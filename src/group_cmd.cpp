@@ -519,63 +519,136 @@ CommandCost CmdCreateGroupSpecificName(TileIndex tile, DoCommandFlag flags, uint
 {
 	Vehicle *v = Vehicle::GetIfValid(GB(p1, 0, 20));
 
+	/* Preconditions */
 	if (v == NULL) return CMD_ERROR;
-
 	if (v->owner != _current_company || !v->IsPrimaryVehicle()) return CMD_ERROR;
 
-	/* Get the essential orders */
-	VehicleOrderID start = 0;
-
+	/* Find first and last order */
 	Order *first = NULL;
 	Order *last = NULL;
-	Order *order = v->GetOrder(start);
+	{
+	    typedef SmallVector<DestinationID,8> DestVec;
+	    struct Data {
+	        DestVec dests;
+	        Order *order;
+	        size_t count;
+	    };
+	    typedef SmallMap<DestinationID,Data> StationMap;
 
-	if (order == NULL) return_cmd_error(STR_ERROR_GROUP_CAN_T_CREATE_NAME);
+	    VehicleOrderID start = 0;
+	    Order *order, *next;
+	    DestinationID dest, ndest;
+	    StationMap map = StationMap();
+	    StationMap::iterator iter;
+	    Data *f = NULL, *l = NULL, *d;
+	    char looped = 0;
 
-	VehicleOrderID oid = start;
+	    // Construct map of stations
+	    for (order = v->GetOrder(start); order != NULL; order = order->next) {
+	        if (order->IsType(OT_GOTO_STATION)) {
+	            dest = order->GetDestination();
+	            if (!map.Contains(dest)) {
+	                DestVec ds = DestVec();
+	                Data dat = { ds, order, 0};
+	                memcpy(&map[dest], &dat, sizeof(Data));
+	            }
 
-	do {
-		if (order->IsType(OT_GOTO_STATION)) {
-			if(first == NULL) first = order;
-			last = order;
-		}
+	            for (next = order->next; !looped || next != NULL; next = next->next) {
+	                if (next == NULL) next = v->GetOrder(start);
 
-		oid++;
-		order = order->next;
-		if (order == NULL) {
-			order = v->orders.list->GetFirstOrder();
-			oid = 0;
-		}
-	} while (oid != start);
+	                if (next->IsType(OT_GOTO_STATION)) {
+	                    ndest = next->GetDestination();
+	                    if (dest != ndest && !map[dest].dests.Contains(ndest)) {
+	                        map[dest].dests.Include(ndest);
+	                        map[dest].count++;
+	                    }
+	                    break;
+	                }
+	            }
+	        }
+	    }
 
+	    // Find first / last
+	    for (iter = map.Begin(); iter != map.End(); iter++) {
+	        d = &iter->second;
+	        if (f == NULL) f = d;
+	        else if (d->count < f->count) { l = f; f = d; }
+	        else if (l == NULL) l = d;
+	        else if (d->count < l->count) l = d;
+	    }
+	    first = f->order;
+	    last = l->order;
+
+	    //for (order = v->GetOrder(start); order != NULL; order = order->next) {
+	    //    if (order->IsType(OT_GOTO_STATION)) {
+	    //        if(first == NULL) first = order;
+	    //        last = order;
+	    //    }
+	    //}
+	}
 	if(last == NULL || first == NULL) return_cmd_error(STR_ERROR_GROUP_CAN_T_CREATE_NAME);
 
-	/* Create the name */
+	/* Find max lengths */
+	size_t str_len, sep_len;
+	{
+	    static char str[MAX_LENGTH_GROUP_NAME_CHARS] = { "" };
+	    static char empty[1] = "";
+	    SetDParamStr(0, empty);
+	    SetDParamStr(1, empty);
+	    GetString(str, STR_GROUP_SPECIFIC_NAME_STATION, lastof(str));
+	    sep_len = strlen(str);
+	    str_len = max(MAX_LENGTH_STATION_NAME_CHARS,MAX_LENGTH_TOWN_NAME_CHARS) * 2 + sep_len;
+	}
 
-	static char str[130] = { "" };  // 63 + 3 + 63 + 1
+	/* Create group name */
+	char str[str_len+1] = { "" };
 
 	if(_settings_client.gui.specific_group_name == 1) { // Use station names
+		static char stationname_first[MAX_LENGTH_STATION_NAME_CHARS+2] = { "" };
+		static char stationname_last[MAX_LENGTH_STATION_NAME_CHARS+2] = { "" };
 
-		static char stationname_first[64] = { "" };
-		static char stationname_last[64] = { "" };
-
+		/* Get station names */
 		SetDParam(0, first->GetDestination());
 		GetString(stationname_first, STR_STATION_NAME, lastof(stationname_first));
-
 		SetDParam(0, last->GetDestination());
 		GetString(stationname_last, STR_STATION_NAME, lastof(stationname_last));
 
-		if(strnatcmp(stationname_first, stationname_last) > 0) {  // Sort by name
-			Order *temp = first;
-			first = last;
-			last = temp;
+		/* Find greatest common prefix (that ends with a space) */
+		size_t prefix;
+		{
+		    for (prefix = 0; stationname_first[prefix] != '\0' && stationname_last[prefix] != '\0' && stationname_first[prefix] == stationname_last[prefix]; prefix++);
+		    if (stationname_first[prefix] == '\0' && stationname_last[prefix] == ' ') {
+		        stationname_first[prefix] = ' ';
+		        prefix++;
+		    }
+		    else if (stationname_last[prefix] == '\0' && stationname_first[prefix] == ' ') {
+		        stationname_last[prefix] = ' ';
+		        prefix++;
+		    }
+		    while (prefix > 0 && stationname_first[prefix-1] != ' ') prefix--;
 		}
-		SetDParam(0, first->GetDestination());
-		SetDParam(1, last->GetDestination());
+
+		/* Truncate */
+		{
+		    int diff = Utf8StringLength(stationname_first) + sep_len + Utf8StringLength(stationname_last) - prefix - MAX_LENGTH_GROUP_NAME_CHARS + 1;
+		    if ( diff > 0 ) {
+		        diff = (diff+1)/2;
+		        stationname_first[Utf8StringLength(stationname_first)-diff] = '\0';
+		        stationname_last[Utf8StringLength(stationname_last)-diff] = '\0';
+		    }
+		}
+
+		/* Create name (Sorted) */
+		if(strnatcmp(stationname_first, stationname_last) > 0) {
+		    SetDParamStr(0, stationname_last);
+		    SetDParamStr(1, &stationname_first[prefix]);
+		} else {
+		    SetDParamStr(0, stationname_first);
+		    SetDParamStr(1, &stationname_last[prefix]);
+		}
 		GetString(str, STR_GROUP_SPECIFIC_NAME_STATION, lastof(str));
 
-	}
-	else { //Use town names
+	} else { // Use town names
 		
 		Station *station_first = Station::GetIfValid(first->GetDestination());
 		Station *station_last = Station::GetIfValid(last->GetDestination());
@@ -588,8 +661,7 @@ CommandCost CmdCreateGroupSpecificName(TileIndex tile, DoCommandFlag flags, uint
 		if(town_first->index == town_last->index) { // First and last station belong to the same town
 			SetDParam(0, town_first->index); 
 			GetString(str, STR_GROUP_SPECIFIC_NAME_TOWN_LOCAL, lastof(str));
-		}
-		else {
+		} else {
 			static char townname_first[64] = { "" };
 			static char townname_last[64] = { "" };
 
@@ -611,21 +683,21 @@ CommandCost CmdCreateGroupSpecificName(TileIndex tile, DoCommandFlag flags, uint
 		}
 	}
 	
+	/* Check group name */
 	if (!IsUniqueGroupNameForVehicleType(str, v->type)) return_cmd_error(STR_ERROR_NAME_MUST_BE_UNIQUE);
-
 	if (Utf8StringLength(str) >= MAX_LENGTH_GROUP_NAME_CHARS) return CMD_ERROR;
 
+	/* Create group and set name */
 	CommandCost ret = CmdCreateGroup(0, flags, v->type, 0, NULL);
 	if (ret.Failed()) return ret;
-
 	GroupID new_g = _new_group_id;
-	CommandCost ret2 = CmdAlterGroup(0, flags, new_g, 0, str);
+	CmdAlterGroup(0, flags, new_g, 0, str);
 
+	/* If execute flag is set, add vehicles to groups */
 	if (flags & DC_EXEC) {
 		AddVehicleToGroup(v, new_g);
 
-		if (HasBit(p1, 31)) {
-			/* Add vehicles in the shared order list as well. */
+		if (HasBit(p1, 31)) { // Add vehicles in the shared order list as well.
 			for (Vehicle *v2 = v->FirstShared(); v2 != NULL; v2 = v2->NextShared()) {
 				if (v2->group_id != new_g) AddVehicleToGroup(v2, new_g);
 			}

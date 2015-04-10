@@ -3369,7 +3369,7 @@ STR_GROUP_ADD_SHARED_VEHICLE                                    :Add shared vehi
 STR_GROUP_REMOVE_ALL_VEHICLES                                   :Remove all vehicles
 
 STR_GROUP_RENAME_CAPTION                                        :{BLACK}Rename a group
-STR_GROUP_SPECIFIC_NAME_STATION                                 :{STATION} - {STATION}
+STR_GROUP_SPECIFIC_NAME_STATION                                 :{RAW_STRING} - {RAW_STRING}
 STR_GROUP_SPECIFIC_NAME_TOWN                                    :{TOWN} - {TOWN}
 STR_GROUP_SPECIFIC_NAME_TOWN_LOCAL                              :Local {TOWN}
 

@@ -757,8 +757,8 @@ public:
 				DoCommandP(0, vindex | (_ctrl_pressed ? 1 << 31 : 0),0 , CMD_CREATE_GROUP_SPECIFIC_NAME | CMD_MSG(STR_ERROR_GROUP_CAN_T_CREATE_SPECIFIC_NAME),  NULL);
 				
 				break;
-			}
 		}
+	}
 	}
 
 	virtual void OnDragDrop(Point pt, int widget)
