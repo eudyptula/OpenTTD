@@ -181,6 +181,11 @@ struct GUISettings {
 	bool   newgrf_show_old_versions;         ///< whether to show old versions in the NewGRF list
 	uint8  newgrf_default_palette;           ///< default palette to use for NewGRFs without action 14 palette information
 
+	bool   reverse_orders_dup_road;          ///< duplicate first/last when reversing road orders
+	bool   reverse_orders_dup_train;         ///< duplicate first/last when reversing train orders
+	bool   reverse_orders_dup_ship;          ///< duplicate first/last when reversing ship orders
+	bool   reverse_orders_dup_aircraft;      ///< duplicate first/last when reversing aircraft orders
+
 	/**
 	 * Returns true when the user has sufficient privileges to edit newgrfs on a running game
 	 * @return whether the user has sufficient privileges to edit newgrfs in an existing game

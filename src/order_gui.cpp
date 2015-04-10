@@ -137,6 +137,7 @@ static const StringID _order_goto_dropdown[] = {
 	STR_ORDER_GO_TO_NEAREST_DEPOT,
 	STR_ORDER_CONDITIONAL,
 	STR_ORDER_SHARE,
+	STR_ORDER_REVERSE,
 	INVALID_STRING_ID
 };
 
@@ -145,6 +146,7 @@ static const StringID _order_goto_dropdown_aircraft[] = {
 	STR_ORDER_GO_TO_NEAREST_HANGAR,
 	STR_ORDER_CONDITIONAL,
 	STR_ORDER_SHARE,
+	STR_ORDER_REVERSE,
 	INVALID_STRING_ID
 };
 
@@ -477,6 +479,7 @@ private:
 		OPOS_GOTO,
 		OPOS_CONDITIONAL,
 		OPOS_SHARE,
+		OPOS_REVERSE,
 		OPOS_END,
 	};
 
@@ -617,6 +620,14 @@ private:
 		order.SetDepotActionType(ODATFB_NEAREST_DEPOT);
 
 		DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), order.Pack(), CMD_INSERT_ORDER | CMD_MSG(STR_ERROR_CAN_T_INSERT_NEW_ORDER));
+	}
+
+	/**
+	 * Handle the click on the reverse orders button.
+	 */
+	void OrderClick_Reverse()
+	{
+		DoCommandP(this->vehicle->tile, this->vehicle->index + (this->OrderGetSel() << 20), 0, CMD_REVERSE_ORDER | CMD_MSG(STR_ERROR_CAN_T_INSERT_NEW_ORDER));
 	}
 
 	/**
@@ -1245,6 +1256,7 @@ public:
 						case OPOS_GOTO:        sel =  0; break;
 						case OPOS_CONDITIONAL: sel =  2; break;
 						case OPOS_SHARE:       sel =  3; break;
+						case OPOS_REVERSE:     sel =  4; break;
 						default: NOT_REACHED();
 					}
 					ShowDropDownMenu(this, this->vehicle->type == VEH_AIRCRAFT ? _order_goto_dropdown_aircraft : _order_goto_dropdown, sel, WID_O_GOTO, 0, 0);
@@ -1365,6 +1377,7 @@ public:
 					case 1: this->OrderClick_NearestDepot(); break;
 					case 2: this->OrderClick_Goto(OPOS_CONDITIONAL); break;
 					case 3: this->OrderClick_Goto(OPOS_SHARE); break;
+					case 4: this->OrderClick_Reverse(); break;
 					default: NOT_REACHED();
 				}
 				break;
