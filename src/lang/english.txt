@@ -1183,6 +1183,7 @@ STR_CONFIG_SETTING_HOVER_DELAY                                  :{LTBLUE}Show to
 STR_CONFIG_SETTING_HOVER_DELAY_DISABLED                         :{LTBLUE}Show tooltips: {ORANGE}Right click
 STR_CONFIG_SETTING_POPULATION_IN_LABEL                          :{LTBLUE}Show town population in the town name label: {ORANGE}{STRING1}
 STR_CONFIG_SETTING_GRAPH_LINE_THICKNESS                         :{LTBLUE}Thickness of lines in graphs: {ORANGE}{STRING1}
+STR_CONFIG_SETTING_FORECAST_DISPLAY                             :{LTBLUE}Display supply and demand forecasting on station building: {ORANGE}{STRING1}
 
 STR_CONFIG_SETTING_LAND_GENERATOR                               :{LTBLUE}Land generator: {ORANGE}{STRING1}
 STR_CONFIG_SETTING_LAND_GENERATOR_ORIGINAL                      :Original
