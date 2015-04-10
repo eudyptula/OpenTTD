@@ -9,6 +9,7 @@
 
 /** @file strings.cpp Handling of translated strings. */
 
+#include <inttypes.h>
 #include "stdafx.h"
 #include "currency.h"
 #include "station_base.h"
@@ -1176,9 +1177,9 @@ static char *FormatString(char *buff, const char *str_arg, StringParameters *arg
 					/* Shows only passengers and mails since other cargoes provide no useful value. (all 1) */
 					if (cs->Index() == CT_PASSENGERS || cs->Index() == CT_MAIL) {
 						if (cs->Index() == CT_PASSENGERS) {
-							n = sprintf(buff, "(%d)", args->GetParam(2));
+							n = seprintf(buff, lastof(buff), "(%" PRIu64 ")", args->GetParam(2));
 						} else {
-							n = sprintf(buff, "(%d)", args->GetParam(3));
+							n = seprintf(buff, lastof(buff), "(%" PRIu64 ")", args->GetParam(3));
 						}
 						buff += n;
 					}
