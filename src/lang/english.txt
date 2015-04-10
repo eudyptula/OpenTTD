@@ -1404,6 +1404,14 @@ STR_CONFIG_SETTING_TIMETABLE_SHOW_ARRIVAL_DEPARTURE             :Show arrival an
 STR_CONFIG_SETTING_TIMETABLE_SHOW_ARRIVAL_DEPARTURE_HELPTEXT    :Display anticipated arrival and departure times in timetables
 STR_CONFIG_SETTING_QUICKGOTO                                    :Quick creation of vehicle orders: {STRING2}
 STR_CONFIG_SETTING_QUICKGOTO_HELPTEXT                           :Pre-select the 'goto cursor' when opening the orders window
+STR_CONFIG_SETTING_REVERSE_ORDERS_ROAD                          :Duplicate first/last order for road: {STRING2}
+STR_CONFIG_SETTING_REVERSE_ORDERS_ROAD_HELPTEXT                 :Add first and last order again when reversing road vehicle orders
+STR_CONFIG_SETTING_REVERSE_ORDERS_TRAIN                         :Duplicate first/last order for trains: {STRING2}
+STR_CONFIG_SETTING_REVERSE_ORDERS_TRAIN_HELPTEXT                :Add first and last order again when reversing train orders
+STR_CONFIG_SETTING_REVERSE_ORDERS_SHIP                          :Duplicate first/last order for ships: {STRING2}
+STR_CONFIG_SETTING_REVERSE_ORDERS_SHIP_HELPTEXT                 :Add first and last order again when reversing ship orders
+STR_CONFIG_SETTING_REVERSE_ORDERS_AIRCRAFT                      :Duplicate first/last order for aircraft: {STRING2}
+STR_CONFIG_SETTING_REVERSE_ORDERS_AIRCRAFT_HELPTEXT             :Add first and last order again when reversing aircraft orders
 STR_CONFIG_SETTING_DEFAULT_RAIL_TYPE                            :Default rail type (after new game/game load): {STRING2}
 STR_CONFIG_SETTING_DEFAULT_RAIL_TYPE_HELPTEXT                   :Rail type to select after starting or loading a game. 'first available' selects the oldest type of tracks, 'last available' selects the newest type of tracks, and 'most used' selects the type which is currently most in use
 STR_CONFIG_SETTING_DEFAULT_RAIL_TYPE_FIRST                      :First available
@@ -1675,6 +1683,7 @@ STR_CONFIG_SETTING_INTERFACE                                    :{ORANGE}Interfa
 STR_CONFIG_SETTING_INTERFACE_GENERAL                            :{ORANGE}General
 STR_CONFIG_SETTING_INTERFACE_VIEWPORTS                          :{ORANGE}Viewports
 STR_CONFIG_SETTING_INTERFACE_CONSTRUCTION                       :{ORANGE}Construction
+STR_CONFIG_SETTING_INTERFACE_REVERSE_ORDERS                     :{ORANGE}Reverse Orders
 STR_CONFIG_SETTING_ADVISORS                                     :{ORANGE}News / Advisors
 STR_CONFIG_SETTING_COMPANY                                      :{ORANGE}Company
 STR_CONFIG_SETTING_ACCOUNTING                                   :{ORANGE}Accounting
@@ -3818,6 +3827,7 @@ STR_ORDER_GO_TO_NEAREST_DEPOT                                   :Go to nearest d
 STR_ORDER_GO_TO_NEAREST_HANGAR                                  :Go to nearest hangar
 STR_ORDER_CONDITIONAL                                           :Conditional order jump
 STR_ORDER_SHARE                                                 :Share orders
+STR_ORDER_REVERSE                                               :Add reverse orders
 STR_ORDERS_GO_TO_TOOLTIP                                        :{BLACK}Insert a new order before the highlighted order, or add to end of list. Ctrl makes station orders 'full load any cargo', waypoint orders 'non-stop' and depot orders 'service'. 'Share orders' or Ctrl lets this vehicle share orders with the selected vehicle. Clicking a vehicle copies the orders from that vehicle. A depot order disables automatic servicing of the vehicle
 
 STR_ORDERS_VEH_WITH_SHARED_ORDERS_LIST_TOOLTIP                  :{BLACK}Show all vehicles that share this schedule

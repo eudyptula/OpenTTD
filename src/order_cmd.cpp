@@ -942,6 +942,53 @@ CommandCost CmdInsertOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 	return CommandCost();
 }
 
+CommandCost CmdReverseOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 p2, const char *text)
+{
+	VehicleID veh          = GB(p1,  0, 20);
+	//VehicleOrderID sel_ord = GB(p1, 20, 8);
+
+	Vehicle *v = Vehicle::GetIfValid(veh);
+	if (v == NULL || !v->IsPrimaryVehicle()) return CMD_ERROR;
+
+	Order *order;
+	Order *first = v->GetFirstOrder();
+	Order *last = v->GetLastOrder();
+	if (!first || !last) return CMD_ERROR;
+
+	VehicleOrderID i, max = v->GetNumOrders();
+	uint32 orders[max];
+	CommandCost ret;
+
+	bool dup = false;
+	switch(v->type) {
+	case VEH_ROAD:
+		if (_settings_client.gui.reverse_orders_dup_road) dup = true;
+		break;
+	case VEH_TRAIN:
+		if (_settings_client.gui.reverse_orders_dup_train) dup = true;
+		break;
+	case VEH_SHIP:
+		if (_settings_client.gui.reverse_orders_dup_ship) dup = true;
+		break;
+	case VEH_AIRCRAFT:
+		if (_settings_client.gui.reverse_orders_dup_aircraft) dup = true;
+		break;
+	default:
+		break;
+	}
+
+	for (order = first, i = 0; order != NULL; order = order->next, i++) {
+		orders[i] = order->Pack();
+	}
+
+	for (i = (dup ? 0 : 1); i < (dup ? max : max-1); i++) {
+		ret = CmdInsertOrder(tile, flags, p1, orders[i], text);
+		if (ret.Failed()) return ret;
+	}
+
+	return CommandCost();
+}
+
 /**
  * Insert a new order but skip the validation.
  * @param v       The vehicle to insert the order to.
