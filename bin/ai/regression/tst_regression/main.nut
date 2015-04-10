@@ -972,48 +972,7 @@ function Regression::Order()
 	print("  SetStopLocation():     " + AIOrder.SetStopLocation(20, 0, AIOrder.STOPLOCATION_MIDDLE));
 	print("  GetStopLocation():     " + AIOrder.GetStopLocation(20, 0));
 
-	local list = AIStationList_Vehicle(12);
-
-	print("");
-	print("--StationList_Vehicle--");
-	print("  Count():             " + list.Count());
-	list.Valuate(AIStation.GetLocation);
-	print("  Location ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetCargoWaiting, 0);
-	print("  CargoWaiting(0) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetCargoWaiting, 1);
-	print("  CargoWaiting(1) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetCargoRating, 1);
-	print("  CargoRating(1) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetDistanceManhattanToTile, 30000);
-	print("  DistanceManhattanToTile(30000) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetDistanceSquareToTile, 30000);
-	print("  DistanceSquareToTile(30000) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.IsWithinTownInfluence, 0);
-	print("  IsWithinTownInfluence(0) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-
-	list = AIVehicleList_Station(3);
+	local list = AIVehicleList_Station(3);
 
 	print("");
 	print("--VehicleList_Station--");
@@ -1269,25 +1228,23 @@ function Regression::Station()
 		}
 	}
 
-	local list = AIStationList(AIStation.STATION_BUS_STOP + AIStation.STATION_TRUCK_STOP);
-
 	print("");
-	print("--StationList--");
-	print("  Count():             " + list.Count());
-	list.Valuate(AIStation.GetLocation);
-	print("  Location ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetCargoWaiting, 0);
-	print("  CargoWaiting(0) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
-	}
-	list.Valuate(AIStation.GetCargoWaiting, 1);
-	print("  CargoWaiting(1) ListDump:");
-	for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-		print("    " + i + " => " + list.GetValue(i));
+	print("--CargoPlanned--");
+	for (local cargo = 0; cargo <= 1000; cargo += 1000) {
+		for (local station0 = 0; station0 <= 1000; station0 += 1000) {
+			print("  GetCargoPlanned(" + station0 + ", " + cargo + "): " +
+					AIStation.GetCargoPlanned(station0, cargo));
+			for (local station1 = 0; station1 <= 1000; station1 += 1000) {
+				print("  GetCargoPlannedFrom(" + station0 + ", " + station1 + ", " + cargo + "): " +
+						AIStation.GetCargoPlannedFrom(station0, station1, cargo));
+				print("  GetCargoPlannedVia(" + station0 + ", " + station1 + ", " + cargo + "): " +
+						AIStation.GetCargoPlannedFrom(station0, station1, cargo));
+				for (local station2 = 0; station2 <= 1000; station2 += 1000) {
+					print("  GetCargoPlannedFromVia(" + station0 + ", " + station1 + ", " + station2 + ", " + cargo + "): " +
+							AIStation.GetCargoPlannedFromVia(station0, station1, station2, cargo));
+				}
+			}
+		}
 	}
 }
 

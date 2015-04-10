@@ -25,6 +25,7 @@
 #include "querystring_gui.h"
 #include "core/geometry_func.hpp"
 #include "newgrf_debug.h"
+#include "zoom_func.h"
 
 #include "widgets/misc_widget.h"
 
@@ -122,14 +123,15 @@ public:
 #	define LANDINFOD_LEVEL 1
 #endif
 		DEBUG(misc, LANDINFOD_LEVEL, "TILE: %#x (%i,%i)", tile, TileX(tile), TileY(tile));
-		DEBUG(misc, LANDINFOD_LEVEL, "type_height  = %#x", _m[tile].type_height);
-		DEBUG(misc, LANDINFOD_LEVEL, "m1           = %#x", _m[tile].m1);
-		DEBUG(misc, LANDINFOD_LEVEL, "m2           = %#x", _m[tile].m2);
-		DEBUG(misc, LANDINFOD_LEVEL, "m3           = %#x", _m[tile].m3);
-		DEBUG(misc, LANDINFOD_LEVEL, "m4           = %#x", _m[tile].m4);
-		DEBUG(misc, LANDINFOD_LEVEL, "m5           = %#x", _m[tile].m5);
-		DEBUG(misc, LANDINFOD_LEVEL, "m6           = %#x", _m[tile].m6);
-		DEBUG(misc, LANDINFOD_LEVEL, "m7           = %#x", _me[tile].m7);
+		DEBUG(misc, LANDINFOD_LEVEL, "type   = %#x", _m[tile].type);
+		DEBUG(misc, LANDINFOD_LEVEL, "height = %#x", _m[tile].height);
+		DEBUG(misc, LANDINFOD_LEVEL, "m1     = %#x", _m[tile].m1);
+		DEBUG(misc, LANDINFOD_LEVEL, "m2     = %#x", _m[tile].m2);
+		DEBUG(misc, LANDINFOD_LEVEL, "m3     = %#x", _m[tile].m3);
+		DEBUG(misc, LANDINFOD_LEVEL, "m4     = %#x", _m[tile].m4);
+		DEBUG(misc, LANDINFOD_LEVEL, "m5     = %#x", _m[tile].m5);
+		DEBUG(misc, LANDINFOD_LEVEL, "m6     = %#x", _me[tile].m6);
+		DEBUG(misc, LANDINFOD_LEVEL, "m7     = %#x", _me[tile].m7);
 #undef LANDINFOD_LEVEL
 	}
 
@@ -630,7 +632,7 @@ static const NWidgetPart _nested_tooltips_widgets[] = {
 static WindowDesc _tool_tips_desc(
 	WDP_MANUAL, NULL, 0, 0, // Coordinates and sizes are not used,
 	WC_TOOLTIPS, WC_NONE,
-	0,
+	WDF_NO_FOCUS,
 	_nested_tooltips_widgets, lengthof(_nested_tooltips_widgets)
 );
 
@@ -682,7 +684,7 @@ struct TooltipsWindow : public Window
 		/* There is only one widget. */
 		for (uint i = 0; i != this->paramcount; i++) SetDParam(i, this->params[i]);
 
-		size->width  = min(GetStringBoundingBox(this->string_id).width, 194);
+		size->width  = min(GetStringBoundingBox(this->string_id).width, ScaleGUITrad(194));
 		size->height = GetStringHeight(this->string_id, size->width);
 
 		/* Increase slightly to have some space around the box. */
@@ -1167,8 +1169,8 @@ static const NWidgetPart _nested_query_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_RED), SetPIP(8, 15, 8),
 		NWidget(WWT_TEXT, COLOUR_RED, WID_Q_TEXT), SetMinimalSize(200, 12),
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE), SetPIP(20, 29, 20),
-			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_NO), SetMinimalSize(71, 12), SetDataTip(STR_QUIT_NO, STR_NULL),
-			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_YES), SetMinimalSize(71, 12), SetDataTip(STR_QUIT_YES, STR_NULL),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_NO), SetMinimalSize(71, 12), SetFill(1, 1), SetDataTip(STR_QUIT_NO, STR_NULL),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_YES), SetMinimalSize(71, 12), SetFill(1, 1), SetDataTip(STR_QUIT_YES, STR_NULL),
 		EndContainer(),
 	EndContainer(),
 };

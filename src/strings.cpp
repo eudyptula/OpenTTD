@@ -399,7 +399,7 @@ static char *FormatBytes(char *buff, int64 number, const char *last)
 	}
 
 	assert(id < lengthof(iec_prefixes));
-	buff += seprintf(buff, last, " %sB", iec_prefixes[id]);
+	buff += seprintf(buff, last, NBSP "%sB", iec_prefixes[id]);
 
 	return buff;
 }
@@ -468,10 +468,10 @@ static char *FormatGenericCurrency(char *buff, const CurrencySpec *spec, Money n
 		 * and 1 000 M is inconsistent, so always use 1 000 M. */
 		if (number >= 1000000000 - 500) {
 			number = (number + 500000) / 1000000;
-			multiplier = "M";
+			multiplier = NBSP "M";
 		} else if (number >= 1000000) {
 			number = (number + 500) / 1000;
-			multiplier = "k";
+			multiplier = NBSP "k";
 		}
 	}
 
@@ -874,7 +874,7 @@ static char *FormatString(char *buff, const char *str_arg, StringParameters *arg
 						bool lookup = (l == SCC_ENCODED);
 						if (lookup) s += len;
 
-						param = (int32)strtoul(s, &p, 16);
+						param = strtoull(s, &p, 16);
 
 						if (lookup) {
 							if (param >= TAB_SIZE) {
@@ -1864,7 +1864,7 @@ int CDECL StringIDSorter(const StringID *a, const StringID *b)
 	GetString(stra, *a, lastof(stra));
 	GetString(strb, *b, lastof(strb));
 
-	return strcmp(stra, strb);
+	return strnatcmp(stra, strb);
 }
 
 /**

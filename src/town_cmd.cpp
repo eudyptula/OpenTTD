@@ -171,7 +171,7 @@ Money HouseSpec::GetRemovalCost() const
 	return (_price[PR_CLEAR_HOUSE] * this->removal_cost) >> 8;
 }
 
-// Local
+/* Local */
 static int _grow_town_result;
 
 /* Describe the possible states */
@@ -868,7 +868,7 @@ static bool IsRoadAllowedHere(Town *t, TileIndex tile, DiagDirection dir)
 	if (DistanceFromEdge(tile) == 0) return false;
 
 	/* Prevent towns from building roads under bridges along the bridge. Looks silly. */
-	if (MayHaveBridgeAbove(tile) && IsBridgeAbove(tile) && GetBridgeAxis(tile) == DiagDirToAxis(dir)) return false;
+	if (IsBridgeAbove(tile) && GetBridgeAxis(tile) == DiagDirToAxis(dir)) return false;
 
 	/* Check if there already is a road at this point? */
 	if (GetTownRoadBits(tile) == ROAD_NONE) {
@@ -2018,7 +2018,7 @@ static inline bool CanBuildHouseHere(TileIndex tile, TownID town, bool noslope)
 	if ((noslope && slope != SLOPE_FLAT) || IsSteepSlope(slope)) return false;
 
 	/* building under a bridge? */
-	if (MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) return false;
+	if (IsBridgeAbove(tile)) return false;
 
 	/* do not try to build over house owned by another town */
 	if (IsTileType(tile, MP_HOUSE) && GetTownIndex(tile) != town) return false;
@@ -2790,7 +2790,7 @@ static bool SearchTileForStatue(TileIndex tile, void *user_data)
 	/* Statues can be build on slopes, just like houses. Only the steep slopes is a no go. */
 	if (IsSteepSlope(GetTileSlope(tile))) return false;
 	/* Don't build statues under bridges. */
-	if (MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) return false;
+	if (IsBridgeAbove(tile)) return false;
 
 	/* A clear-able open space is always preferred. */
 	if ((IsTileType(tile, MP_CLEAR) || IsTileType(tile, MP_TREES)) && TryClearTile(tile)) {
@@ -3115,9 +3115,7 @@ static void UpdateTownGrowRate(Town *t)
 	if (t->larger_town) m /= 2;
 
 	t->growth_rate = m / (t->cache.num_houses / 50 + 1);
-	if (m <= t->grow_counter) {
-		t->grow_counter = m;
-	}
+	t->grow_counter = min(t->growth_rate, t->grow_counter);
 
 	SetBit(t->flags, TOWN_IS_GROWING);
 	SetWindowDirty(WC_TOWN_VIEW, t->index);

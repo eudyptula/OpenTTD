@@ -59,6 +59,13 @@
 #include "safeguards.h"
 
 /**
+ * Static instance of FlowStat::SharesMap.
+ * Note: This instance is created on task start.
+ *       Lazy creation on first usage results in a data race between the CDist threads.
+ */
+/* static */ const FlowStat::SharesMap FlowStat::empty_sharesmap;
+
+/**
  * Check whether the given tile is a hangar.
  * @param t the tile to of whether it is a hangar.
  * @pre IsTileType(t, MP_STATION)
@@ -721,7 +728,7 @@ CommandCost ClearTile_Station(TileIndex tile, DoCommandFlag flags);
  */
 CommandCost CheckBuildableTile(TileIndex tile, uint invalid_dirs, int &allowed_z, bool allow_steep, bool check_bridge = true)
 {
-	if (check_bridge && MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) {
+	if (check_bridge && IsBridgeAbove(tile)) {
 		return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 	}
 
@@ -2489,7 +2496,7 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 	CommandCost ret = CheckIfAuthorityAllowsNewStation(tile, flags);
 	if (ret.Failed()) return ret;
 
-	if (MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
+	if (IsBridgeAbove(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
 	ret = DoCommand(tile, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
 	if (ret.Failed()) return ret;
@@ -2500,7 +2507,7 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 		return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
 	}
 
-	if (MayHaveBridgeAbove(tile_cur) && IsBridgeAbove(tile_cur)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
+	if (IsBridgeAbove(tile_cur)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
 	/* Get the water class of the water tile before it is cleared.*/
 	WaterClass wc = GetWaterClass(tile_cur);
@@ -3536,7 +3543,7 @@ void IncreaseStats(Station *st, CargoID cargo, StationID next_station_id, uint c
 		if (ge2.link_graph == INVALID_LINK_GRAPH) {
 			if (LinkGraph::CanAllocateItem()) {
 				lg = new LinkGraph(cargo);
-				LinkGraphSchedule::Instance()->Queue(lg);
+				LinkGraphSchedule::instance.Queue(lg);
 				ge2.link_graph = lg->index;
 				ge2.node = lg->AddNode(st2);
 			} else {
@@ -3558,11 +3565,11 @@ void IncreaseStats(Station *st, CargoID cargo, StationID next_station_id, uint c
 		if (ge1.link_graph != ge2.link_graph) {
 			LinkGraph *lg2 = LinkGraph::Get(ge2.link_graph);
 			if (lg->Size() < lg2->Size()) {
-				LinkGraphSchedule::Instance()->Unqueue(lg);
+				LinkGraphSchedule::instance.Unqueue(lg);
 				lg2->Merge(lg); // Updates GoodsEntries of lg
 				lg = lg2;
 			} else {
-				LinkGraphSchedule::Instance()->Unqueue(lg2);
+				LinkGraphSchedule::instance.Unqueue(lg2);
 				lg->Merge(lg2); // Updates GoodsEntries of lg2
 			}
 		}
@@ -3684,7 +3691,7 @@ static uint UpdateStationWaiting(Station *st, CargoID type, uint amount, SourceT
 	if (ge.link_graph == INVALID_LINK_GRAPH) {
 		if (LinkGraph::CanAllocateItem()) {
 			lg = new LinkGraph(type);
-			LinkGraphSchedule::Instance()->Queue(lg);
+			LinkGraphSchedule::instance.Queue(lg);
 			ge.link_graph = lg->index;
 			ge.node = lg->AddNode(st);
 		} else {
@@ -4457,17 +4464,55 @@ void FlowStatMap::ReleaseFlows(StationID via)
 }
 
 /**
- * Get the sum of flows via a specific station from this GoodsEntry.
- * @param via Remote station to look for.
- * @return a FlowStat with all flows for 'via' added up.
+ * Get the sum of all flows from this FlowStatMap.
+ * @return sum of all flows.
  */
-uint GoodsEntry::GetSumFlowVia(StationID via) const
+uint FlowStatMap::GetFlow() const
 {
 	uint ret = 0;
-	for (FlowStatMap::const_iterator i = this->flows.begin(); i != this->flows.end(); ++i) {
+	for (FlowStatMap::const_iterator i = this->begin(); i != this->end(); ++i) {
+		ret += (--(i->second.GetShares()->end()))->first;
+	}
+	return ret;
+}
+
+/**
+ * Get the sum of flows via a specific station from this FlowStatMap.
+ * @param via Remote station to look for.
+ * @return all flows for 'via' added up.
+ */
+uint FlowStatMap::GetFlowVia(StationID via) const
+{
+	uint ret = 0;
+	for (FlowStatMap::const_iterator i = this->begin(); i != this->end(); ++i) {
 		ret += i->second.GetShare(via);
 	}
 	return ret;
+}
+
+/**
+ * Get the sum of flows from a specific station from this FlowStatMap.
+ * @param from Origin station to look for.
+ * @return all flows from 'from' added up.
+ */
+uint FlowStatMap::GetFlowFrom(StationID from) const
+{
+	FlowStatMap::const_iterator i = this->find(from);
+	if (i == this->end()) return 0;
+	return (--(i->second.GetShares()->end()))->first;
+}
+
+/**
+ * Get the flow from a specific station via a specific other station.
+ * @param from Origin station to look for.
+ * @param via Remote station to look for.
+ * @return flow share originating at 'from' and going to 'via'.
+ */
+uint FlowStatMap::GetFlowFromVia(StationID from, StationID via) const
+{
+	FlowStatMap::const_iterator i = this->find(from);
+	if (i == this->end()) return 0;
+	return i->second.GetShare(via);
 }
 
 extern const TileTypeProcs _tile_type_station_procs = {

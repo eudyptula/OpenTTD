@@ -246,12 +246,11 @@ static CommandCost RemoveRoad(TileIndex tile, DoCommandFlag flags, RoadBits piec
 				}
 
 				/* Mark tiles dirty that have been repaved */
-				MarkTileDirtyByTile(tile);
-				MarkTileDirtyByTile(other_end);
 				if (IsBridge(tile)) {
-					TileIndexDiff delta = TileOffsByDiagDir(GetTunnelBridgeDirection(tile));
-
-					for (TileIndex t = tile + delta; t != other_end; t += delta) MarkTileDirtyByTile(t);
+					MarkBridgeDirty(tile);
+				} else {
+					MarkTileDirtyByTile(tile);
+					MarkTileDirtyByTile(other_end);
 				}
 			}
 		} else {
@@ -747,12 +746,11 @@ do_clear:;
 				SetRoadOwner(tile, rt, company);
 
 				/* Mark tiles dirty that have been repaved */
-				MarkTileDirtyByTile(other_end);
-				MarkTileDirtyByTile(tile);
 				if (IsBridge(tile)) {
-					TileIndexDiff delta = TileOffsByDiagDir(GetTunnelBridgeDirection(tile));
-
-					for (TileIndex t = tile + delta; t != other_end; t += delta) MarkTileDirtyByTile(t);
+					MarkBridgeDirty(tile);
+				} else {
+					MarkTileDirtyByTile(other_end);
+					MarkTileDirtyByTile(tile);
 				}
 				break;
 			}
@@ -1015,7 +1013,7 @@ CommandCost CmdBuildRoadDepot(TileIndex tile, DoCommandFlag flags, uint32 p1, ui
 	CommandCost cost = DoCommand(tile, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
 	if (cost.Failed()) return cost;
 
-	if (MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
+	if (IsBridgeAbove(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
 	if (!Depot::CanAllocateItem()) return CMD_ERROR;
 
@@ -1158,16 +1156,15 @@ const byte _road_sloped_sprites[14] = {
 };
 
 /**
- * Whether to draw unpaved roads regardless of the town zone.
- * By default, OpenTTD always draws roads as unpaved if they are on a desert
- * tile or above the snowline. Newgrf files, however, can set a bit that allows
- * paved roads to be built on desert tiles as they would be on grassy tiles.
+ * Should the road be drawn as a unpaved snow/desert road?
+ * By default, roads are always drawn as unpaved if they are on desert or
+ * above the snow line, but NewGRFs can override this for desert.
  *
  * @param tile The tile the road is on
  * @param roadside What sort of road this is
- * @return True if the road should be drawn unpaved regardless of the roadside.
+ * @return True if snow/desert road sprites should be used.
  */
-static bool AlwaysDrawUnpavedRoads(TileIndex tile, Roadside roadside)
+static bool DrawRoadAsSnowDesert(TileIndex tile, Roadside roadside)
 {
 	return (IsOnSnow(tile) &&
 			!(_settings_game.game_creation.landscape == LT_TROPIC && HasGrfMiscBit(GMB_DESERT_PAVED_ROADS) &&
@@ -1185,7 +1182,7 @@ void DrawTramCatenary(const TileInfo *ti, RoadBits tram)
 	if (IsInvisibilitySet(TO_CATENARY)) return;
 
 	/* Don't draw the catenary under a low bridge */
-	if (MayHaveBridgeAbove(ti->tile) && IsBridgeAbove(ti->tile) && !IsTransparencySet(TO_CATENARY)) {
+	if (IsBridgeAbove(ti->tile) && !IsTransparencySet(TO_CATENARY)) {
 		int height = GetBridgeHeight(GetNorthernBridgeEnd(ti->tile));
 
 		if (height <= GetTileMaxZ(ti->tile) + 1) return;
@@ -1247,7 +1244,7 @@ static void DrawRoadBits(TileInfo *ti)
 
 	Roadside roadside = GetRoadside(ti->tile);
 
-	if (AlwaysDrawUnpavedRoads(ti->tile, roadside)) {
+	if (DrawRoadAsSnowDesert(ti->tile, roadside)) {
 		image += 19;
 	} else {
 		switch (roadside) {
@@ -1292,7 +1289,7 @@ static void DrawRoadBits(TileInfo *ti)
 	if (!HasBit(_display_opt, DO_FULL_DETAIL) || _cur_dpi->zoom > ZOOM_LVL_DETAIL) return;
 
 	/* Do not draw details (street lights, trees) under low bridge */
-	if (MayHaveBridgeAbove(ti->tile) && IsBridgeAbove(ti->tile) && (roadside == ROADSIDE_TREES || roadside == ROADSIDE_STREET_LIGHTS)) {
+	if (IsBridgeAbove(ti->tile) && (roadside == ROADSIDE_TREES || roadside == ROADSIDE_STREET_LIGHTS)) {
 		int height = GetBridgeHeight(GetNorthernBridgeEnd(ti->tile));
 		int minz = GetTileMaxZ(ti->tile) + 2;
 
@@ -1330,7 +1327,7 @@ static void DrawTile_Road(TileInfo *ti)
 
 				Roadside roadside = GetRoadside(ti->tile);
 
-				if (AlwaysDrawUnpavedRoads(ti->tile, roadside)) {
+				if (DrawRoadAsSnowDesert(ti->tile, roadside)) {
 					road += 19;
 				} else {
 					switch (roadside) {
@@ -1356,7 +1353,7 @@ static void DrawTile_Road(TileInfo *ti)
 
 				Roadside roadside = GetRoadside(ti->tile);
 
-				if (AlwaysDrawUnpavedRoads(ti->tile, roadside)) {
+				if (DrawRoadAsSnowDesert(ti->tile, roadside)) {
 					image += 8;
 				} else {
 					switch (roadside) {
@@ -1414,9 +1411,6 @@ void DrawRoadDepotSprite(int x, int y, DiagDirection dir, RoadType rt)
 {
 	PaletteID palette = COMPANY_SPRITE_COLOUR(_local_company);
 	const DrawTileSprites *dts = (rt == ROADTYPE_TRAM) ? &_tram_depot[dir] : &_road_depot[dir];
-
-	x += 33;
-	y += 17;
 
 	DrawSprite(dts->ground.sprite, PAL_NONE, x, y);
 	DrawOrigTileSeqInGUI(x, y, dts, palette);
@@ -1765,6 +1759,11 @@ static void ChangeTileOwner_Road(TileIndex tile, Owner old_owner, Owner new_owne
 				Company::Get(new_owner)->infrastructure.road[rt] += 2;
 
 				SetTileOwner(tile, new_owner);
+				for (RoadType rt = ROADTYPE_ROAD; rt < ROADTYPE_END; rt++) {
+					if (GetRoadOwner(tile, rt) == old_owner) {
+						SetRoadOwner(tile, rt, new_owner);
+					}
+				}
 			}
 		}
 		return;

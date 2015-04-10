@@ -1037,7 +1037,7 @@ check_params() {
 		log 1 "checking revision... svn detection (tag)"
 	elif [ -d "$ROOT_DIR/.git" ] && [ -n "`git help 2>/dev/null`" ]; then
 		log 1 "checking revision... git detection"
-	elif [ -d "$ROOT_DIR/.hg" ] && [ -n "`hg help 2>/dev/null`" ]; then
+	elif [ -d "$ROOT_DIR/.hg" ] && [ -n "`HGPLAIN= hg help 2>/dev/null`" ]; then
 		log 1 "checking revision... hg detection"
 	elif [ -f "$ROOT_DIR/.ottdrev" ]; then
 		log 1 "checking revision... source tarball"
@@ -1441,6 +1441,7 @@ make_cflags_and_ldflags() {
 	make_compiler_cflags "$cc_host" "CFLAGS" "CXXFLAGS" "LDFLAGS" "FEATURES"
 
 	CFLAGS="$CFLAGS -D$os"
+	CFLAGS_BUILD="$CFLAGS_BUILD -D$os"
 
 	if [ "$enable_debug" = "0" ]; then
 		# No debug, add default stuff
@@ -1450,7 +1451,11 @@ make_cflags_and_ldflags() {
 			LDFLAGS="$LDFLAGS -noixemul"
 		fi
 
-		CFLAGS="-O2 -fomit-frame-pointer $CFLAGS"
+		if [ "$enable_profiling" = "0" ]; then
+			# -fomit-frame-pointer and -pg do not go well together (gcc errors they are incompatible)
+			CFLAGS="-fomit-frame-pointer $CFLAGS"
+		fi
+		CFLAGS="-O2 $CFLAGS"
 	else
 		OBJS_SUBDIR="debug"
 
@@ -1494,7 +1499,7 @@ make_cflags_and_ldflags() {
 	fi
 
 	if [ "$enable_profiling" != "0" ]; then
-		CFLAGS="$CFLAGS -p"
+		CFLAGS="$CFLAGS -pg"
 		LDFLAGS="$LDFLAGS -pg"
 	fi
 
@@ -3178,9 +3183,9 @@ detect_grfcodec() {
 	log 2 "  returned $version"
 	log 2 "  exit code $ret"
 
-	if [ -z "$version" ] || [ "$ret" != "0" ] || [ "$version" -lt "949" ]; then
-		if [ -n "$version" ] && [ "$version" -lt "949" ]; then
-			log 1 "checking grfcodec... needs at least version 6.0.2 (r949), disabled"
+	if [ -z "$version" ] || [ "$ret" != "0" ] || [ "$version" -lt "985" ]; then
+		if [ -n "$version" ] && [ "$version" -lt "985" ]; then
+			log 1 "checking grfcodec... needs at least version 6.0.5 (r985), disabled"
 		else
 			log 1 "checking grfcodec... not found"
 		fi
@@ -3220,9 +3225,9 @@ detect_nforenum() {
 	log 2 "  returned $version"
 	log 2 "  exit code $ret"
 
-	if [ -z "$version" ] || [ "$ret" != "0" ] || [ "$version" -lt "949" ]; then
-		if [ -n "$version" ] && [ "$version" -lt "949" ]; then
-			log 1 "checking nforenum... needs at least version 6.0.2 (r949), disabled"
+	if [ -z "$version" ] || [ "$ret" != "0" ] || [ "$version" -lt "985" ]; then
+		if [ -n "$version" ] && [ "$version" -lt "985" ]; then
+			log 1 "checking nforenum... needs at least version 6.0.5 (r985), disabled"
 		else
 			log 1 "checking nforenum... not found"
 		fi

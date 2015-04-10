@@ -305,6 +305,9 @@ STR_TOOLTIP_VSCROLL_BAR_SCROLLS_LIST                            :{BLACK}Kerimisr
 STR_TOOLTIP_HSCROLL_BAR_SCROLLS_LIST                            :{BLACK}Kerimisriba - kerib listi üles/alla
 STR_TOOLTIP_DEMOLISH_BUILDINGS_ETC                              :{BLACK}Ruudul asuvate hoonete jms. lammutamine. Ctrl valib ala diagonaalselt. Shift valib ehitamise/hinna kuvamise režiimi
 
+# Show engines button
+
+
 # Query window
 STR_BUTTON_DEFAULT                                              :{BLACK}Esialgne
 STR_BUTTON_CANCEL                                               :{BLACK}Tühista
@@ -418,7 +421,6 @@ STR_SCENEDIT_FILE_MENU_QUIT                                     :Välju
 
 ############ range for settings menu starts
 STR_SETTINGS_MENU_GAME_OPTIONS                                  :Mängu seadistus
-STR_SETTINGS_MENU_CONFIG_SETTINGS                               :Põhjalik seadistus
 STR_SETTINGS_MENU_SCRIPT_SETTINGS                               :Tehismõistuse / Mängu skriptide seaded
 STR_SETTINGS_MENU_NEWGRF_SETTINGS                               :NewGRF-i seadistus
 STR_SETTINGS_MENU_TRANSPARENCY_OPTIONS                          :Läbipaistvuse seadistus
@@ -1131,7 +1133,6 @@ STR_CITY_APPROVAL_HOSTILE                                       :Vaenulik
 STR_WARNING_NO_SUITABLE_AI                                      :{WHITE}Sobiv tehismõistus puudub...{}Tehismõistuseid võib laadida Internetisisu laadimise aknast.
 
 # Advanced settings window
-STR_CONFIG_SETTING_CAPTION                                      :{WHITE}Põhjalik seadistus
 STR_CONFIG_SETTING_FILTER_TITLE                                 :{BLACK}Filtri tekst:
 STR_CONFIG_SETTING_EXPAND_ALL                                   :{BLACK}Ava kõik
 STR_CONFIG_SETTING_COLLAPSE_ALL                                 :{BLACK}Sulge kõik
@@ -1750,7 +1751,6 @@ STR_INTRO_MULTIPLAYER                                           :{BLACK}Mitmikm�
 
 STR_INTRO_GAME_OPTIONS                                          :{BLACK}Liidese seadistus
 STR_INTRO_HIGHSCORE                                             :{BLACK}Punktitabel
-STR_INTRO_ADVANCED_SETTINGS                                     :{BLACK}Põhjalik seadistus
 STR_INTRO_NEWGRF_SETTINGS                                       :{BLACK}NewGRF-i seadistus
 STR_INTRO_ONLINE_CONTENT                                        :{BLACK}Aineste allalaadimine
 STR_INTRO_SCRIPT_SETTINGS                                       :{BLACK}Arvuti seadistus
@@ -1770,7 +1770,6 @@ STR_INTRO_TOOLTIP_TOYLAND_LANDSCAPE                             :{BLACK}Vali 'm�
 
 STR_INTRO_TOOLTIP_GAME_OPTIONS                                  :{BLACK}Ava liidese seadistamine
 STR_INTRO_TOOLTIP_HIGHSCORE                                     :{BLACK}Ava punktitabel
-STR_INTRO_TOOLTIP_ADVANCED_SETTINGS                             :{BLACK}Ava põhjalik seadistamine
 STR_INTRO_TOOLTIP_NEWGRF_SETTINGS                               :{BLACK}Ava NewGRF-i seadistamine
 STR_INTRO_TOOLTIP_ONLINE_CONTENT                                :{BLACK}Otsi allalaadimiseks uusi ja uuendatud aineseid
 STR_INTRO_TOOLTIP_SCRIPT_SETTINGS                               :{BLACK}Ava arvuti seadistamine
@@ -2701,7 +2700,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Ettevõtte maa
 STR_ABOUT_OPENTTD                                               :{WHITE}OpenTTD lisainfo
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Algne autorikaitse {COPYRIGHT} 1995 Chris Sawyer, kõik õigused kaitstud
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD osa {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2014 OpenTTD meeskond
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2015 OpenTTD meeskond
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Mängu salvestamine
@@ -2875,7 +2874,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Eelmine 
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}Proceed to the previous normal sprite, skipping any pseudo/recolour/font sprites and wrapping around at the begin
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}Representation of the currently selected sprite. The alignment is ignored when drawing this sprite
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Liiguta spraiti , muutes X ja Y tasakaalu
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}X tasakaal: {NUM}, Y tasakaal: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}Korja sprite
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}Korja sprite ükskõik kust ekraanil
 
@@ -3414,6 +3412,9 @@ STR_BUY_VEHICLE_ROAD_VEHICLE_RENAME_TOOLTIP                     :{BLACK}Muuda mo
 STR_BUY_VEHICLE_SHIP_RENAME_TOOLTIP                             :{BLACK}Laeva tüübinime muutmine
 STR_BUY_VEHICLE_AIRCRAFT_RENAME_TOOLTIP                         :{BLACK}Lennuki tüübinime muutmine
 
+
+
+
 STR_QUERY_RENAME_TRAIN_TYPE_CAPTION                             :{WHITE}Vaheta rongivaguni tüübinime
 STR_QUERY_RENAME_ROAD_VEHICLE_TYPE_CAPTION                      :{WHITE}Vaheta mootorsõiduki tüübinime
 STR_QUERY_RENAME_SHIP_TYPE_CAPTION                              :{WHITE}Laeva tüübinime vahetamine
@@ -3517,6 +3518,7 @@ STR_REPLACE_VEHICLE_TRAIN                                       :Rong
 STR_REPLACE_VEHICLE_ROAD_VEHICLE                                :Sõiduk
 STR_REPLACE_VEHICLE_SHIP                                        :Laev
 STR_REPLACE_VEHICLE_AIRCRAFT                                    :Õhusõiduk
+
 
 STR_REPLACE_HELP_LEFT_ARRAY                                     :{BLACK}Vali asendatav veduritüüp
 STR_REPLACE_HELP_RIGHT_ARRAY                                    :{BLACK}Vali uus vedur, millega sa soovid vasakult valitud vedurit asendada.
@@ -4166,6 +4168,7 @@ STR_ERROR_CAN_ONLY_BE_POSITIONED                                :{WHITE}... saab
 STR_ERROR_FOREST_CAN_ONLY_BE_PLANTED                            :{WHITE}... metsa saab istutada ainult lumepiirist kõrgemale
 STR_ERROR_CAN_ONLY_BE_BUILT_ABOVE_SNOW_LINE                     :{WHITE}... saab ehitada ainult ülespoole lumepiiri
 STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :{WHITE}... saab ehitada ainult allapoole lumepiiri
+
 
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :{WHITE}Siia ei saa raudteejaama ehitada...
@@ -4902,8 +4905,6 @@ STR_WHITE_COMMA                                                 :{WHITE}{COMMA}
 STR_TINY_BLACK_DECIMAL                                          :{TINY_FONT}{BLACK}{DECIMAL}
 STR_COMPANY_MONEY                                               :{WHITE}{CURRENCY_LONG}
 STR_BLACK_DATE_LONG                                             :{BLACK}{DATE_LONG}
-STR_BLACK_CROSS                                                 :{BLACK}{CROSS}
-STR_SILVER_CROSS                                                :{SILVER}{CROSS}
 STR_WHITE_DATE_LONG                                             :{WHITE}{DATE_LONG}
 STR_SHORT_DATE                                                  :{WHITE}{DATE_TINY}
 STR_DATE_LONG_SMALL                                             :{TINY_FONT}{BLACK}{DATE_LONG}

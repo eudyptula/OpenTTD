@@ -32,6 +32,7 @@
 #include "hotkeys.h"
 #include "engine_base.h"
 #include "terraform_gui.h"
+#include "zoom_func.h"
 
 #include "widgets/terraform_widget.h"
 
@@ -360,7 +361,7 @@ static WindowDesc _terraform_desc(
 /**
  * Show the toolbar for terraforming in the game.
  * @param link The toolbar we might want to link to.
- * @return The allocated toolbar.
+ * @return The allocated toolbar if the window was newly opened, else \c NULL.
  */
 Window *ShowTerraformToolbar(Window *link)
 {
@@ -554,6 +555,14 @@ struct ScenarioEditorLandscapeGenerationWindow : Window {
 		}
 	}
 
+	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	{
+		if (widget != WID_ETT_DOTS) return;
+
+		size->width  = max<uint>(size->width,  ScaleGUITrad(59));
+		size->height = max<uint>(size->height, ScaleGUITrad(31));
+	}
+
 	virtual void DrawWidget(const Rect &r, int widget) const
 	{
 		if (widget != WID_ETT_DOTS) return;
@@ -566,7 +575,7 @@ struct ScenarioEditorLandscapeGenerationWindow : Window {
 
 		assert(n != 0);
 		do {
-			DrawSprite(SPR_WHITE_POINT, PAL_NONE, center_x + coords[0], center_y + coords[1]);
+			DrawSprite(SPR_WHITE_POINT, PAL_NONE, center_x + ScaleGUITrad(coords[0]), center_y + ScaleGUITrad(coords[1]));
 			coords += 2;
 		} while (--n);
 	}
@@ -754,7 +763,7 @@ static WindowDesc _scen_edit_land_gen_desc(
 
 /**
  * Show the toolbar for terraforming in the scenario editor.
- * @return The allocated toolbar.
+ * @return The allocated toolbar if the window was newly opened, else \c NULL.
  */
 Window *ShowEditorTerraformToolbar()
 {

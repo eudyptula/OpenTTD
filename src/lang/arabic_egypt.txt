@@ -240,6 +240,9 @@ STR_TOOLTIP_VSCROLL_BAR_SCROLLS_LIST                            :{BLACK}شريط
 STR_TOOLTIP_HSCROLL_BAR_SCROLLS_LIST                            :{BLACK}عمود التحريك - يمين/يسار
 STR_TOOLTIP_DEMOLISH_BUILDINGS_ETC                              :{BLACK}هدم المباني و غيرها في مربع من الأرض.
 
+# Show engines button
+
+
 # Query window
 STR_BUTTON_DEFAULT                                              :{BLACK}افتراضي
 STR_BUTTON_CANCEL                                               :{BLACK}الغاء
@@ -348,7 +351,6 @@ STR_SCENEDIT_FILE_MENU_QUIT                                     :انهاء
 
 ############ range for settings menu starts
 STR_SETTINGS_MENU_GAME_OPTIONS                                  :إعدادات اللعبه
-STR_SETTINGS_MENU_CONFIG_SETTINGS                               :اعدادات متقدمة
 STR_SETTINGS_MENU_SCRIPT_SETTINGS                               :الذكاء الصناعي/ اعدادات اللعبة
 STR_SETTINGS_MENU_NEWGRF_SETTINGS                               :إعدادات اﻹضافات
 STR_SETTINGS_MENU_TRANSPARENCY_OPTIONS                          :خيارات الشفافية
@@ -943,6 +945,8 @@ STR_GAME_OPTIONS_RESOLUTION                                     :{BLACK}دقة �
 STR_GAME_OPTIONS_RESOLUTION_TOOLTIP                             :{BLACK}اختر دقة الشاشة
 STR_GAME_OPTIONS_RESOLUTION_OTHER                               :اخرى
 
+
+
 STR_GAME_OPTIONS_BASE_GRF                                       :{BLACK} الواجهة الرسومية الاساسية
 STR_GAME_OPTIONS_BASE_GRF_TOOLTIP                               :{BLACK} اختر مجموعة الواجهة الرسومية
 STR_GAME_OPTIONS_BASE_GRF_STATUS                                :{RED}{NUM} ملف مفقود او غير صالح
@@ -1043,8 +1047,7 @@ STR_CITY_APPROVAL_HOSTILE                                       :معاد
 
 STR_WARNING_NO_SUITABLE_AI                                      :{WHITE}لايوجد ذكاء اصطناعي متاح ...{}تستطيع تجميل العديد من الذكاء الاصطناعي عن طريق اللانترنت
 
-# Advanced settings window
-STR_CONFIG_SETTING_CAPTION                                      :{WHITE}إعدادات متقدمه
+# Settings tree window
 STR_CONFIG_SETTING_EXPAND_ALL                                   :مدد الكل
 STR_CONFIG_SETTING_COLLAPSE_ALL                                 :إسحب الكل
 
@@ -1401,7 +1404,6 @@ STR_INTRO_MULTIPLAYER                                           :{BLACK}لعب �
 
 STR_INTRO_GAME_OPTIONS                                          :{BLACK}إعدادات اللعبه
 STR_INTRO_HIGHSCORE                                             :{BLACK}قائمه المتفوقين
-STR_INTRO_ADVANCED_SETTINGS                                     :{BLACK}الاعدادات المتقدمة
 STR_INTRO_NEWGRF_SETTINGS                                       :{BLACK} اعدادات NewGRF
 STR_INTRO_ONLINE_CONTENT                                        :{BLACK} إبحث عن المحتوى عبر الشبكه العنكبوتيه
 STR_INTRO_SCRIPT_SETTINGS                                       :{BLACK}إعدادات الذكاء الصناعى
@@ -1420,7 +1422,6 @@ STR_INTRO_TOOLTIP_SUB_TROPICAL_LANDSCAPE                        :{BLACK}اختي
 STR_INTRO_TOOLTIP_TOYLAND_LANDSCAPE                             :{BLACK}اختيار نمط الألعاب
 
 STR_INTRO_TOOLTIP_GAME_OPTIONS                                  :{BLACK}عرض خيارات اللعبة
-STR_INTRO_TOOLTIP_ADVANCED_SETTINGS                             :{BLACK}عرض الاعدادات المتقدمة
 STR_INTRO_TOOLTIP_NEWGRF_SETTINGS                               :{BLACK}عرض إعدادات اﻹضافات
 STR_INTRO_TOOLTIP_ONLINE_CONTENT                                :{BLACK} ابحث عن محتوى جديد او تحديث
 STR_INTRO_TOOLTIP_QUIT                                          :{BLACK}اغلاق'OpenTTD'
@@ -2313,7 +2314,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :ارض مملو
 STR_ABOUT_OPENTTD                                               :{WHITE}حول النسخة المفتوحة
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}الحقوق الاصلية {COPYRIGHT} كريس سوير 1995 , جميع الحقوق محفوظة
 STR_ABOUT_VERSION                                               :{BLACK}النسخة المفتوحة رقم {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}النسخة المفتوحة {COPYRIGHT}2002-2014 فريق النسخة المفتوحة
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}النسخة المفتوحة {COPYRIGHT}2002-2015 فريق النسخة المفتوحة
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}حفظ اللعبة
@@ -2494,7 +2495,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}العف
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}نابع للعفريتة الطبيعية التالية، تجاوز اي عفريتة موقوفة/ مصبوغة/مخطوطة و انهي في البداية.
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}عرض العفريتة المختارة حاليا. يتم تجاهل الموائمة عند رسم هذا العفريت.
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}حرك العفريتة في الجوار، غير الاحداثيات س ، ص.
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}احداث س: {NUM}، احداث ص: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}اختر عفريتة
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}اختر عفريتة من اي مكان في الشاشة.
 
@@ -2936,6 +2936,9 @@ STR_BUY_VEHICLE_ROAD_VEHICLE_RENAME_TOOLTIP                     :{BLACK} اعا�
 STR_BUY_VEHICLE_SHIP_RENAME_TOOLTIP                             :{BLACK}اعادة تسمية نوع السفينة
 STR_BUY_VEHICLE_AIRCRAFT_RENAME_TOOLTIP                         :{BLACK}اعادة تسمية نوع الطائرة
 
+
+
+
 STR_QUERY_RENAME_TRAIN_TYPE_CAPTION                             :{WHITE}اعادة تسمية عربات القطار
 STR_QUERY_RENAME_ROAD_VEHICLE_TYPE_CAPTION                      :{WHITE}اعادة تسمية العربة
 STR_QUERY_RENAME_SHIP_TYPE_CAPTION                              :{WHITE}اعادة تسمية نوع السفينة
@@ -3037,6 +3040,7 @@ STR_REPLACE_VEHICLE_TRAIN                                       :قطار
 STR_REPLACE_VEHICLE_ROAD_VEHICLE                                :مركبات
 STR_REPLACE_VEHICLE_SHIP                                        :سفن
 STR_REPLACE_VEHICLE_AIRCRAFT                                    :طائرات
+
 
 STR_REPLACE_HELP_LEFT_ARRAY                                     :{BLACK} اختر نوع المحرك لاستبدالة
 STR_REPLACE_HELP_RIGHT_ARRAY                                    :{BLACK} اختر نوع المحرك المراد إحلاله محل المحرك المختار في القائمة اليسرى
@@ -3642,6 +3646,7 @@ STR_ERROR_FOREST_CAN_ONLY_BE_PLANTED                            :{WHITE}... يم
 STR_ERROR_CAN_ONLY_BE_BUILT_ABOVE_SNOW_LINE                     :{WHITE}يمكن بنائة فوق خط الثلج فقط
 STR_ERROR_CAN_ONLY_BE_BUILT_BELOW_SNOW_LINE                     :{WHITE}يمكن بنائة تحت خط الثلج فقط
 
+
 # Station construction related errors
 STR_ERROR_CAN_T_BUILD_RAILROAD_STATION                          :{WHITE}لا يمكن بناء محطة سكة حديد هنا ...
 STR_ERROR_CAN_T_BUILD_BUS_STATION                               :{WHITE}تعذر بناء محطه الحافلات...
@@ -4246,7 +4251,7 @@ STR_VEHICLE_NAME_SHIP_SHIVERSHAKE_PASSENGER_FERRY               :شيفرشيك 
 STR_VEHICLE_NAME_SHIP_YATE_CARGO_SHIP                           :ناقلة ياتي
 STR_VEHICLE_NAME_SHIP_BAKEWELL_CARGO_SHIP                       :ناقلة باكويل
 STR_VEHICLE_NAME_SHIP_MIGHTYMOVER_CARGO_SHIP                    :ناقلة مايتي
-STR_VEHICLE_NAME_SHIP_POWERNAUT_CARGO_SHIP                      :ناقلة بور
+STR_VEHICLE_NAME_SHIP_POWERNAUT_CARGO_SHIP                      :Powernaut سفينة شحن
 STR_VEHICLE_NAME_AIRCRAFT_SAMPSON_U52                           :سامسون 52
 STR_VEHICLE_NAME_AIRCRAFT_COLEMAN_COUNT                         :كولمان كونت
 STR_VEHICLE_NAME_AIRCRAFT_FFP_DART                              :سهم اف اف بي
@@ -4374,8 +4379,6 @@ STR_WHITE_COMMA                                                 :{WHITE}{COMMA}
 STR_TINY_BLACK_DECIMAL                                          :{TINY_FONT}{BLACK}{DECIMAL}
 STR_COMPANY_MONEY                                               :{WHITE}{CURRENCY_LONG}
 STR_BLACK_DATE_LONG                                             :{BLACK}{DATE_LONG}
-STR_BLACK_CROSS                                                 :{BLACK}{CROSS}
-STR_SILVER_CROSS                                                :{SILVER}{CROSS}
 STR_WHITE_DATE_LONG                                             :{WHITE}{DATE_LONG}
 STR_SHORT_DATE                                                  :{WHITE}{DATE_TINY}
 STR_DATE_LONG_SMALL                                             :{TINY_FONT}{BLACK}{DATE_LONG}

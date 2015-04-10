@@ -1,5 +1,5 @@
-Last updated:    2014-02-25
-Release version: 1.4.0-beta5
+Last updated:    2015-02-24
+Release version: 1.5.0-beta2
 ------------------------------------------------------------------------
 
 
@@ -660,6 +660,12 @@ license text.
 The md5 implementation in src/3rdparty/md5 is licensed under the Zlib
 license. See the comments in the source files in src/3rdparty/md5 for
 the complete license text.
+
+The implementations of Posix getaddrinfo and getnameinfo for OS/2 in
+src/3rdparty/os2 are distributed partly under the GNU Lesser General Public
+License 2.1, and partly under the (3-clause) BSD license. The exact licensing
+terms can be found in src/3rdparty/os2/getaddrinfo.c resp.
+src/3rdparty/os2/getnameinfo.c.
 
 The exe2coff implementation in os/dos/exe2coff is available under the
 GPL, with a number of additional terms. See os/dos/exe2coff/copying and
