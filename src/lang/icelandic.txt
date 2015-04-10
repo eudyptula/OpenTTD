@@ -2538,7 +2538,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Land í eigu fy
 STR_ABOUT_OPENTTD                                               :{WHITE}Um OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Upphaflegur höfundarréttur {COPYRIGHT} 1995 Chris Sawyer, Öll réttindi áskilin
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD útgáfa {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2014 OpenTTD hópurinn
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2015 OpenTTD hópurinn
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Vista leik
@@ -2711,7 +2711,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Fyrri hr
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}Fara á fyrri venjulegu hreyfimynd, sleppir gervi/endurlitun/letur hreyfimyndum og fer aftast í listen þegar upphafi er náð.
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}Framsetning á valinni hreyfimynd. Samstillingu er sleppt við teikningu á þessari hreyfimynd.
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Færðu hreyfimyndina, breytir X og Y hliðrun
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}X hliðrun: {NUM}, Y hliðrun: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}Veldu hreyfimynd
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}Veldu hreyfimynd hvaðan sem er af skjánum
 

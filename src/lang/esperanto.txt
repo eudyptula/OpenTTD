@@ -967,6 +967,7 @@ STR_GAME_OPTIONS_RESOLUTION                                     :{BLACK}Ekrana m
 STR_GAME_OPTIONS_RESOLUTION_TOOLTIP                             :{BLACK}Elektu uzotan ekranan montrograndon
 STR_GAME_OPTIONS_RESOLUTION_OTHER                               :alia
 
+STR_GAME_OPTIONS_GUI_ZOOM_FRAME                                 :{BLACK}Interfacgrandeco
 
 STR_GAME_OPTIONS_GUI_ZOOM_DROPDOWN_NORMAL                       :Normala
 STR_GAME_OPTIONS_GUI_ZOOM_DROPDOWN_2X_ZOOM                      :Duobla grandeco
@@ -2265,7 +2266,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Kompanie poseda
 STR_ABOUT_OPENTTD                                               :{WHITE}Pri OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Origina kopirajto {COPYRIGHT} 1995 Chris Sawyer, Ĉiuj rajtoj rezervitaj
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD-versio {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2014 La teamo de OpenTTD
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2015 La teamo de OpenTTD
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Konservu Ludon
@@ -2430,7 +2431,6 @@ STR_SPRITE_ALIGNER_NEXT_BUTTON                                  :{BLACK}Sekvanta
 STR_SPRITE_ALIGNER_GOTO_BUTTON                                  :{BLACK}Iru al bildeto
 STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Antaŭa bildeto
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Movu ĉirkaŭ la bildeton, ŝanĝante la X kaj Y distancojn
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}X distanco: {NUM}, Y distanco: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}Elektu bildeto
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}Elektu bildeton ie el la ekrano
 

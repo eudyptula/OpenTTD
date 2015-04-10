@@ -2700,7 +2700,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Ettevõtte maa
 STR_ABOUT_OPENTTD                                               :{WHITE}OpenTTD lisainfo
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Algne autorikaitse {COPYRIGHT} 1995 Chris Sawyer, kõik õigused kaitstud
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD osa {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2014 OpenTTD meeskond
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2015 OpenTTD meeskond
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Mängu salvestamine
@@ -2874,7 +2874,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Eelmine 
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}Proceed to the previous normal sprite, skipping any pseudo/recolour/font sprites and wrapping around at the begin
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}Representation of the currently selected sprite. The alignment is ignored when drawing this sprite
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Liiguta spraiti , muutes X ja Y tasakaalu
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}X tasakaal: {NUM}, Y tasakaal: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}Korja sprite
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}Korja sprite ükskõik kust ekraanil
 

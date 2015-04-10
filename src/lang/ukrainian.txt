@@ -1111,6 +1111,8 @@ STR_GAME_OPTIONS_RESOLUTION                                     :{BLACK}Розд
 STR_GAME_OPTIONS_RESOLUTION_TOOLTIP                             :{BLACK}Виберіть роздільну здатність екрану
 STR_GAME_OPTIONS_RESOLUTION_OTHER                               :інша
 
+
+
 STR_GAME_OPTIONS_BASE_GRF                                       :{BLACK}Базовий набір графіки
 STR_GAME_OPTIONS_BASE_GRF_TOOLTIP                               :{BLACK}Оберіть, яку основну графіку використовувати
 STR_GAME_OPTIONS_BASE_GRF_STATUS                                :{RED}{NUM} відсутн{P ій іх іх}/пошкоджен{P ий их их} файл{P "" а ів}
@@ -1211,7 +1213,7 @@ STR_CITY_APPROVAL_HOSTILE                                       :вороже
 
 STR_WARNING_NO_SUITABLE_AI                                      :{WHITE}Немає відповідних AI...{}Ви можете завантажити кілька AI через систему 'Вмісту в Інтернеті'
 
-# Advanced settings window
+# Settings tree window
 STR_CONFIG_SETTING_FILTER_TITLE                                 :{BLACK}Фільтр:
 STR_CONFIG_SETTING_EXPAND_ALL                                   :{BLACK}Розгорнути всі
 STR_CONFIG_SETTING_COLLAPSE_ALL                                 :{BLACK}Згорнути всі
@@ -1227,7 +1229,7 @@ STR_CONFIG_SETTING_TYPE_COMPANY_INGAME                          :Налашту�
 STR_CONFIG_SETTING_RESTRICT_CATEGORY                            :{BLACK}Категорія:
 STR_CONFIG_SETTING_RESTRICT_TYPE                                :{BLACK}Тип:
 STR_CONFIG_SETTING_RESTRICT_DROPDOWN_HELPTEXT                   :{BLACK}Показати лише відфільтровані налаштування
-STR_CONFIG_SETTING_RESTRICT_BASIC                               :Основні налаштування
+STR_CONFIG_SETTING_RESTRICT_BASIC                               :Основні (показує лише найважливіші налаштування)
 STR_CONFIG_SETTING_RESTRICT_ADVANCED                            :Розширені налаштування
 STR_CONFIG_SETTING_RESTRICT_ALL                                 :Всі / експертні налаштування
 STR_CONFIG_SETTING_RESTRICT_CHANGED_AGAINST_DEFAULT             :Налаштування, що відрізняються від дефолтних
@@ -2789,7 +2791,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Ця ділян
 STR_ABOUT_OPENTTD                                               :{WHITE}Про OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Авторське право {COPYRIGHT} 1995 Кріс Сойєр, Всі права захищені
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD версія {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2014 команда OpenTTD
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2015 команда OpenTTD
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Зберегти гру
@@ -2973,7 +2975,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Попе
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}Повернутися до попереднього нормального спрайту, пропускаючи будь-які псевдоспрайти, спрайти зі зміненими кольорами та шрифтові спрайти, а також обгортки (wrap) навколо на початку
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}Відображення обраного спрайту (вирівнювання ігнорується)
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Рухайте спрайт навколо, змінюючи його зміщення за X та Y
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}Зміщення за X: {NUM}, Зміщення за Y: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}Вибрати спрайт
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}Оберіть будь-який спрайт на екрані
 

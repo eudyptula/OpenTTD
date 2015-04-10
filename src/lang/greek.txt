@@ -2682,7 +2682,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Ιδιοκτη�
 STR_ABOUT_OPENTTD                                               :{WHITE}Σχετικά με το OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Αρχικά Πνευματικά Δικαιώματα {COPYRIGHT} 1995 Chris Sawyer, Όλα τα δικαιώματα διατηρούνται
 STR_ABOUT_VERSION                                               :{BLACK}Έκδοση OpenTTD{REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2014 Η ομάδα του OpenTTD
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2015 Η ομάδα του OpenTTD
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Αποθήκευση Παιχνιδιού
@@ -2855,7 +2855,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Προη
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}Προχώρησε στο προηγούμενο κανονικό sprite, προσπερνώντας οποιαδήποτε ψευδό/επαναχρωματιζόμενα/γραμματοσειράς sprites και ξαναεκτέλεσε τη διαδικασία από το πρώτο sprite ως το τελεταίο
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}Επανεμφάνιση του επιλεγμένου sprite. Η ευθυγράμμιση αγνοείται όταν γίνεται η σχεδίαση του sprite
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Μετακίνηση του sprite τριγύρω, αλλάζοντας τα στίγματα Χ και Υ
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}Στίγμα Χ: {NUM}, Στίγμα Υ: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}Επιλογή sprite
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}Επιλογή ενός sprite από οπουδήποτε στη οθόνη
 

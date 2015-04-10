@@ -2390,7 +2390,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :زمین خری
 STR_ABOUT_OPENTTD                                               :{WHITE}OpenTTD در باره ی
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Original copyright {COPYRIGHT} 1995 Chris Sawyer, All rights reserved
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD ویرایش {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2014 The OpenTTD team
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2015 The OpenTTD team
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}ذخیره ی بازی
@@ -2572,7 +2572,6 @@ STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}تصوی
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}نمایش تصویر عادی قبلی، بدون انجام دادن هر گونه تغییرات
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}نمایش تصویر انتخاب شده. تغییر مکان تصویر در زمان بارگزاری اعمال نمی شود
 STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}تغییر مکان تصویر، تغییر مقدار اضافه شونده به X و Y
-STR_SPRITE_ALIGNER_OFFSETS                                      :{BLACK}مقدار اضافه شونده به X: {NUM}, مقدار اضافه شونده به Y: {NUM}
 STR_SPRITE_ALIGNER_PICKER_BUTTON                                :{BLACK}برداشتن تصویر
 STR_SPRITE_ALIGNER_PICKER_TOOLTIP                               :{BLACK}برداشتن یک تصویر از یک نقطه از صفحه نمایش
 
