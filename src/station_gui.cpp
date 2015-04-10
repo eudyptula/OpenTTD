@@ -1317,7 +1317,6 @@ struct StationViewWindow : public Window {
 	{
 		Overlays::Instance()->RemoveStation(Station::Get(this->window_number));
 		MarkWholeScreenDirty();
-		Owner owner = Station::Get(this->window_number)->owner;
 		DeleteWindowById(WC_TRAINS_LIST,   VehicleListIdentifier(VL_STATION_LIST, VEH_TRAIN,    this->owner, this->window_number).Pack(), false);
 		DeleteWindowById(WC_ROADVEH_LIST,  VehicleListIdentifier(VL_STATION_LIST, VEH_ROAD,     this->owner, this->window_number).Pack(), false);
 		DeleteWindowById(WC_SHIPS_LIST,    VehicleListIdentifier(VL_STATION_LIST, VEH_SHIP,     this->owner, this->window_number).Pack(), false);
