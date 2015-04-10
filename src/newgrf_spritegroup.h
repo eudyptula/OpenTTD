@@ -33,17 +33,6 @@ static inline uint32 GetRegister(uint i)
 	return _temp_store.GetValue(i);
 }
 
-/**
- * Clears the value of a so-called newgrf "register".
- * @param i index of the register
- * @pre i < 0x110
- */
-static inline void ClearRegister(uint i)
-{
-	extern TemporaryStorageArray<int32, 0x110> _temp_store;
-	_temp_store.StoreValue(i, 0);
-}
-
 /* List of different sprite group types */
 enum SpriteGroupType {
 	SGT_REAL,
@@ -332,6 +321,26 @@ struct ResolverObject {
 	uint32 reseed[VSG_END];     ///< Collects bits to rerandomise while triggering triggers.
 
 	const GRFFile *grffile;     ///< GRFFile the resolved SpriteGroup belongs to
+	const SpriteGroup *root_spritegroup; ///< Root SpriteGroup to use for resolving
+
+	/**
+	 * Resolve SpriteGroup.
+	 * @return Result spritegroup.
+	 */
+	const SpriteGroup *Resolve()
+	{
+		return SpriteGroup::Resolve(this->root_spritegroup, *this);
+	}
+
+	/**
+	 * Resolve callback.
+	 * @return Callback result.
+	 */
+	uint16 ResolveCallback()
+	{
+		const SpriteGroup *result = Resolve();
+		return result != NULL ? result->GetCallbackResult() : CALLBACK_FAILED;
+	}
 
 	virtual const SpriteGroup *ResolveReal(const RealSpriteGroup *group) const;
 
