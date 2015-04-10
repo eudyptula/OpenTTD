@@ -48,14 +48,11 @@ protected:
 	GraphList schedule;            ///< Queue for new jobs.
 	JobList running;               ///< Currently running jobs.
 
-	void SpawnThread(LinkGraphJob *job);
-	void JoinThread(LinkGraphJob *job);
-
 public:
 	/* This is a tick where not much else is happening, so a small lag might go unnoticed. */
 	static const uint SPAWN_JOIN_TICK = 21; ///< Tick when jobs are spawned or joined every day.
+	static LinkGraphSchedule instance;
 
-	static LinkGraphSchedule *Instance();
 	static void Run(void *j);
 	static void Clear();
 

@@ -14,8 +14,32 @@
 #include "newgrf_spritegroup.h"
 #include "core/pool_func.hpp"
 
+#include "safeguards.h"
+
 SpriteGroupPool _spritegroup_pool("SpriteGroup");
 INSTANTIATE_POOL_METHODS(SpriteGroup)
+
+TemporaryStorageArray<int32, 0x110> _temp_store;
+
+
+/**
+ * ResolverObject (re)entry point.
+ * This cannot be made a call to a virtual function because virtual functions
+ * do not like NULL and checking for NULL *everywhere* is more cumbersome than
+ * this little helper function.
+ * @param group the group to resolve for
+ * @param object information needed to resolve the group
+ * @param top_level true if this is a top-level SpriteGroup, false if used nested in another SpriteGroup.
+ * @return the resolved group
+ */
+/* static */ const SpriteGroup *SpriteGroup::Resolve(const SpriteGroup *group, ResolverObject &object, bool top_level)
+{
+	if (group == NULL) return NULL;
+	if (top_level) {
+		_temp_store.ClearChanges();
+	}
+	return group->Resolve(object);
+}
 
 RealSpriteGroup::~RealSpriteGroup()
 {
@@ -33,9 +57,6 @@ RandomizedSpriteGroup::~RandomizedSpriteGroup()
 {
 	free(this->groups);
 }
-
-TemporaryStorageArray<int32, 0x110> _temp_store;
-
 
 static inline uint32 GetVariable(const ResolverObject &object, ScopeResolver *scope, byte variable, uint32 parameter, bool *available)
 {
@@ -131,6 +152,7 @@ ResolverObject::ResolverObject(const GRFFile *grffile, CallbackID callback, uint
 	this->ResetState();
 
 	this->grffile = grffile;
+	this->root_spritegroup = NULL;
 }
 
 ResolverObject::~ResolverObject() {}
@@ -208,9 +230,9 @@ static U EvalAdjustT(const DeterministicSpriteGroupAdjust *adjust, ScopeResolver
 		case DSGA_OP_ROR:  return RotateRight(last_value, value);
 		case DSGA_OP_SCMP: return ((S)last_value == (S)value) ? 1 : ((S)last_value < (S)value ? 0 : 2);
 		case DSGA_OP_UCMP: return ((U)last_value == (U)value) ? 1 : ((U)last_value < (U)value ? 0 : 2);
-		case DSGA_OP_SHL:  return (U)last_value << ((U)value & 0x1F); // mask 'value' to 5 bits, which should behave the same on all architectures.
-		case DSGA_OP_SHR:  return (U)last_value >> ((U)value & 0x1F);
-		case DSGA_OP_SAR:  return (S)last_value >> ((U)value & 0x1F);
+		case DSGA_OP_SHL:  return (uint32)(U)last_value << ((U)value & 0x1F); // Same behaviour as in ParamSet, mask 'value' to 5 bits, which should behave the same on all architectures.
+		case DSGA_OP_SHR:  return (uint32)(U)last_value >> ((U)value & 0x1F);
+		case DSGA_OP_SAR:  return (int32)(S)last_value >> ((U)value & 0x1F);
 		default:           return value;
 	}
 }
@@ -230,7 +252,7 @@ const SpriteGroup *DeterministicSpriteGroup::Resolve(ResolverObject &object) con
 		/* Try to get the variable. We shall assume it is available, unless told otherwise. */
 		bool available = true;
 		if (adjust->variable == 0x7E) {
-			const SpriteGroup *subgroup = SpriteGroup::Resolve(adjust->subroutine, object);
+			const SpriteGroup *subgroup = SpriteGroup::Resolve(adjust->subroutine, object, false);
 			if (subgroup == NULL) {
 				value = CALLBACK_FAILED;
 			} else {
@@ -247,7 +269,7 @@ const SpriteGroup *DeterministicSpriteGroup::Resolve(ResolverObject &object) con
 		if (!available) {
 			/* Unsupported variable: skip further processing and return either
 			 * the group from the first range or the default group. */
-			return SpriteGroup::Resolve(this->num_ranges > 0 ? this->ranges[0].group : this->default_group, object);
+			return SpriteGroup::Resolve(this->num_ranges > 0 ? this->ranges[0].group : this->default_group, object, false);
 		}
 
 		switch (this->size) {
@@ -271,11 +293,11 @@ const SpriteGroup *DeterministicSpriteGroup::Resolve(ResolverObject &object) con
 
 	for (i = 0; i < this->num_ranges; i++) {
 		if (this->ranges[i].low <= value && value <= this->ranges[i].high) {
-			return SpriteGroup::Resolve(this->ranges[i].group, object);
+			return SpriteGroup::Resolve(this->ranges[i].group, object, false);
 		}
 	}
 
-	return SpriteGroup::Resolve(this->default_group, object);
+	return SpriteGroup::Resolve(this->default_group, object, false);
 }
 
 
@@ -302,7 +324,7 @@ const SpriteGroup *RandomizedSpriteGroup::Resolve(ResolverObject &object) const
 	uint32 mask  = (this->num_groups - 1) << this->lowest_randbit;
 	byte index = (scope->GetRandomBits() & mask) >> this->lowest_randbit;
 
-	return SpriteGroup::Resolve(this->groups[index], object);
+	return SpriteGroup::Resolve(this->groups[index], object, false);
 }
 
 

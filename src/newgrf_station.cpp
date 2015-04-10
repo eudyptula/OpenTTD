@@ -26,6 +26,8 @@
 #include "newgrf_animation_base.h"
 #include "newgrf_class_func.h"
 
+#include "safeguards.h"
+
 
 template <typename Tspec, typename Tid, Tid Tmax>
 /* static */ void NewGRFClass<Tspec, Tid, Tmax>::InsertDefaults()
@@ -394,7 +396,7 @@ uint32 Station::GetNewGRFVariable(const ResolverObject &object, byte variable, b
 			uint32 value = 0;
 
 			for (cargo_type = 0; cargo_type < NUM_CARGO; cargo_type++) {
-				if (HasBit(this->goods[cargo_type].acceptance_pickup, GoodsEntry::GES_ACCEPTANCE)) SetBit(value, cargo_type);
+				if (HasBit(this->goods[cargo_type].status, GoodsEntry::GES_ACCEPTANCE)) SetBit(value, cargo_type);
 			}
 			return value;
 		}
@@ -426,12 +428,12 @@ uint32 Station::GetNewGRFVariable(const ResolverObject &object, byte variable, b
 			case 0x62: return ge->HasRating() ? ge->rating : 0xFFFFFFFF;
 			case 0x63: return ge->cargo.DaysInTransit();
 			case 0x64: return ge->HasVehicleEverTriedLoading() ? ge->last_speed | (ge->last_age << 8) : 0xFF00;
-			case 0x65: return GB(ge->acceptance_pickup, GoodsEntry::GES_ACCEPTANCE, 1) << 3;
+			case 0x65: return GB(ge->status, GoodsEntry::GES_ACCEPTANCE, 1) << 3;
 			case 0x69: {
 				assert_compile((int)GoodsEntry::GES_EVER_ACCEPTED + 1 == (int)GoodsEntry::GES_LAST_MONTH);
 				assert_compile((int)GoodsEntry::GES_EVER_ACCEPTED + 2 == (int)GoodsEntry::GES_CURRENT_MONTH);
 				assert_compile((int)GoodsEntry::GES_EVER_ACCEPTED + 3 == (int)GoodsEntry::GES_ACCEPTED_BIGTICK);
-				return GB(ge->acceptance_pickup, GoodsEntry::GES_EVER_ACCEPTED, 4);
+				return GB(ge->status, GoodsEntry::GES_EVER_ACCEPTED, 4);
 			}
 		}
 	}
@@ -441,7 +443,7 @@ uint32 Station::GetNewGRFVariable(const ResolverObject &object, byte variable, b
 		const GoodsEntry *g = &this->goods[GB(variable - 0x8C, 3, 4)];
 		switch (GB(variable - 0x8C, 0, 3)) {
 			case 0: return g->cargo.TotalCount();
-			case 1: return GB(min(g->cargo.TotalCount(), 4095), 0, 4) | (GB(g->acceptance_pickup, GoodsEntry::GES_ACCEPTANCE, 1) << 7);
+			case 1: return GB(min(g->cargo.TotalCount(), 4095), 0, 4) | (GB(g->status, GoodsEntry::GES_ACCEPTANCE, 1) << 7);
 			case 2: return g->time_since_pickup;
 			case 3: return g->rating;
 			case 4: return g->cargo.Source();
@@ -545,11 +547,37 @@ uint32 Waypoint::GetNewGRFVariable(const ResolverObject &object, byte variable, 
  */
 StationResolverObject::StationResolverObject(const StationSpec *statspec, BaseStation *st, TileIndex tile,
 		CallbackID callback, uint32 callback_param1, uint32 callback_param2)
-	: ResolverObject((statspec != NULL ? statspec->grf_prop.grffile : NULL), callback, callback_param1, callback_param2),
+	: ResolverObject(statspec->grf_prop.grffile, callback, callback_param1, callback_param2),
 	station_scope(*this, statspec, st, tile), town_scope(NULL)
 {
 	/* Invalidate all cached vars */
 	_svc.valid = 0;
+
+	CargoID ctype = CT_DEFAULT_NA;
+
+	if (this->station_scope.st == NULL) {
+		/* No station, so we are in a purchase list */
+		ctype = CT_PURCHASE;
+	} else if (Station::IsExpected(this->station_scope.st)) {
+		const Station *st = Station::From(this->station_scope.st);
+		/* Pick the first cargo that we have waiting */
+		const CargoSpec *cs;
+		FOR_ALL_CARGOSPECS(cs) {
+			if (this->station_scope.statspec->grf_prop.spritegroup[cs->Index()] != NULL &&
+					st->goods[cs->Index()].cargo.TotalCount() > 0) {
+				ctype = cs->Index();
+				break;
+			}
+		}
+	}
+
+	if (this->station_scope.statspec->grf_prop.spritegroup[ctype] == NULL) {
+		ctype = CT_DEFAULT;
+	}
+
+	/* Remember the cargo type we've picked */
+	this->station_scope.cargo_type = ctype;
+	this->root_spritegroup = this->station_scope.statspec->grf_prop.spritegroup[this->station_scope.cargo_type];
 }
 
 StationResolverObject::~StationResolverObject()
@@ -574,39 +602,6 @@ StationScopeResolver::StationScopeResolver(ResolverObject &ro, const StationSpec
 	this->axis = INVALID_AXIS;
 }
 
-static const SpriteGroup *ResolveStation(StationResolverObject &object)
-{
-	CargoID ctype = CT_DEFAULT_NA;
-
-	if (object.station_scope.st == NULL) {
-		/* No station, so we are in a purchase list */
-		ctype = CT_PURCHASE;
-	} else if (Station::IsExpected(object.station_scope.st)) {
-		const Station *st = Station::From(object.station_scope.st);
-		/* Pick the first cargo that we have waiting */
-		const CargoSpec *cs;
-		FOR_ALL_CARGOSPECS(cs) {
-			if (object.station_scope.statspec->grf_prop.spritegroup[cs->Index()] != NULL &&
-					st->goods[cs->Index()].cargo.TotalCount() > 0) {
-				ctype = cs->Index();
-				break;
-			}
-		}
-	}
-
-	const SpriteGroup *group = object.station_scope.statspec->grf_prop.spritegroup[ctype];
-	if (group == NULL) {
-		ctype = CT_DEFAULT;
-		group = object.station_scope.statspec->grf_prop.spritegroup[ctype];
-		if (group == NULL) return NULL;
-	}
-
-	/* Remember the cargo type we've picked */
-	object.station_scope.cargo_type = ctype;
-
-	return SpriteGroup::Resolve(group, object);
-}
-
 /**
  * Resolve sprites for drawing a station tile.
  * @param statspec Station spec
@@ -618,7 +613,7 @@ static const SpriteGroup *ResolveStation(StationResolverObject &object)
 SpriteID GetCustomStationRelocation(const StationSpec *statspec, BaseStation *st, TileIndex tile, uint32 var10)
 {
 	StationResolverObject object(statspec, st, tile, CBID_NO_CALLBACK, var10);
-	const SpriteGroup *group = ResolveStation(object);
+	const SpriteGroup *group = object.Resolve();
 	if (group == NULL || group->type != SGT_RESULT) return 0;
 	return group->GetResult() - 0x42D;
 }
@@ -637,9 +632,10 @@ SpriteID GetCustomStationFoundationRelocation(const StationSpec *statspec, BaseS
 	/* callback_param1 == 2 means  we are resolving the foundation sprites. */
 	StationResolverObject object(statspec, st, tile, CBID_NO_CALLBACK, 2, layout | (edge_info << 16));
 
-	ClearRegister(0x100);
-	const SpriteGroup *group = ResolveStation(object);
+	const SpriteGroup *group = object.Resolve();
 	if (group == NULL || group->type != SGT_RESULT) return 0;
+
+	/* Note: SpriteGroup::Resolve zeroes all registers, so register 0x100 is initialised to 0. (compatibility) */
 	return group->GetResult() + GetRegister(0x100);
 }
 
@@ -647,9 +643,7 @@ SpriteID GetCustomStationFoundationRelocation(const StationSpec *statspec, BaseS
 uint16 GetStationCallback(CallbackID callback, uint32 param1, uint32 param2, const StationSpec *statspec, BaseStation *st, TileIndex tile)
 {
 	StationResolverObject object(statspec, st, tile, callback, param1, param2);
-	const SpriteGroup *group = ResolveStation(object);
-	if (group == NULL) return CALLBACK_FAILED;
-	return group->GetCallbackResult();
+	return object.ResolveCallback();
 }
 
 /**
@@ -672,15 +666,14 @@ CommandCost PerformStationTileSlopeCheck(TileIndex north_tile, TileIndex cur_til
 			(numtracks << 24) | (plat_len << 16) | (axis == AXIS_Y ? TileX(diff) << 8 | TileY(diff) : TileY(diff) << 8 | TileX(diff)));
 	object.station_scope.axis = axis;
 
-	const SpriteGroup *group = ResolveStation(object);
-	uint16 cb_res = group != NULL ? group->GetCallbackResult() : CALLBACK_FAILED;
+	uint16 cb_res = object.ResolveCallback();
 
 	/* Failed callback means success. */
 	if (cb_res == CALLBACK_FAILED) return CommandCost();
 
 	/* The meaning of bit 10 is inverted for a grf version < 8. */
 	if (statspec->grf_prop.grffile->grf_version < 8) ToggleBit(cb_res, 10);
-	return GetErrorMessageFromLocationCallbackResult(cb_res, statspec->grf_prop.grffile->grfid, STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
+	return GetErrorMessageFromLocationCallbackResult(cb_res, statspec->grf_prop.grffile, STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 }
 
 
@@ -1023,7 +1016,7 @@ void TriggerStationRandomisation(Station *st, TileIndex tile, StationRandomTrigg
 				StationResolverObject object(ss, st, tile, CBID_RANDOM_TRIGGER, 0);
 				object.trigger = trigger_bit;
 
-				const SpriteGroup *group = ResolveStation(object);
+				const SpriteGroup *group = object.Resolve();
 				if (group == NULL) continue;
 
 				uint32 reseed = object.GetReseedSum();

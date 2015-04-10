@@ -56,6 +56,15 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
+/**
+ * Static instance of FlowStat::SharesMap.
+ * Note: This instance is created on task start.
+ *       Lazy creation on first usage results in a data race between the CDist threads.
+ */
+/* static */ const FlowStat::SharesMap FlowStat::empty_sharesmap;
+
 /**
  * Check whether the given tile is a hangar.
  * @param t the tile to of whether it is a hangar.
@@ -247,6 +256,14 @@ static StringID GenerateStationName(Station *st, TileIndex tile, StationNaming n
 		if (s != st && s->town == t) {
 			if (s->indtype != IT_INVALID) {
 				indtypes[s->indtype] = true;
+				StringID name = GetIndustrySpec(s->indtype)->station_name;
+				if (name != STR_UNDEFINED) {
+					/* Filter for other industrytypes with the same name */
+					for (IndustryType it = 0; it < NUM_INDUSTRYTYPES; it++) {
+						const IndustrySpec *indsp = GetIndustrySpec(it);
+						if (indsp->enabled && indsp->station_name == name) indtypes[it] = true;
+					}
+				}
 				continue;
 			}
 			uint str = M(s->string_id);
@@ -428,7 +445,7 @@ static uint GetAcceptanceMask(const Station *st)
 	uint mask = 0;
 
 	for (CargoID i = 0; i < NUM_CARGO; i++) {
-		if (HasBit(st->goods[i].acceptance_pickup, GoodsEntry::GES_ACCEPTANCE)) mask |= 1 << i;
+		if (HasBit(st->goods[i].status, GoodsEntry::GES_ACCEPTANCE)) mask |= 1 << i;
 	}
 	return mask;
 }
@@ -571,7 +588,7 @@ void UpdateStationAcceptance(Station *st, bool show_msg)
 		}
 
 		GoodsEntry &ge = st->goods[i];
-		SB(ge.acceptance_pickup, GoodsEntry::GES_ACCEPTANCE, 1, amt >= 8);
+		SB(ge.status, GoodsEntry::GES_ACCEPTANCE, 1, amt >= 8);
 		if (LinkGraph::IsValidID(ge.link_graph)) {
 			(*LinkGraph::Get(ge.link_graph))[ge.node].SetDemand(amt / 8);
 		}
@@ -633,6 +650,14 @@ static void UpdateStationSignCoord(BaseStation *st)
 	/* clamp sign coord to be inside the station rect */
 	st->xy = TileXY(ClampU(TileX(st->xy), r->left, r->right), ClampU(TileY(st->xy), r->top, r->bottom));
 	st->UpdateVirtCoord();
+
+	if (!Station::IsExpected(st)) return;
+	Station *full_station = Station::From(st);
+	for (CargoID c = 0; c < NUM_CARGO; ++c) {
+		LinkGraphID lg = full_station->goods[c].link_graph;
+		if (!LinkGraph::IsValidID(lg)) continue;
+		(*LinkGraph::Get(lg))[full_station->goods[c].node].UpdateLocation(st->xy);
+	}
 }
 
 /**
@@ -642,7 +667,7 @@ static void UpdateStationSignCoord(BaseStation *st)
  * @param reuse Whether to try to reuse a deleted station (gray sign) if possible
  * @param area Area occupied by the new part
  * @param name_class Station naming class to use to generate the new station's name
- * @return Command error that occured, if any
+ * @return Command error that occurred, if any
  */
 static CommandCost BuildStationPart(Station **st, DoCommandFlag flags, bool reuse, TileArea area, StationNaming name_class)
 {
@@ -703,7 +728,7 @@ CommandCost ClearTile_Station(TileIndex tile, DoCommandFlag flags);
  */
 CommandCost CheckBuildableTile(TileIndex tile, uint invalid_dirs, int &allowed_z, bool allow_steep, bool check_bridge = true)
 {
-	if (check_bridge && MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) {
+	if (check_bridge && IsBridgeAbove(tile)) {
 		return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 	}
 
@@ -1205,7 +1230,7 @@ CommandCost CmdBuildRailStation(TileIndex tile_org, DoCommandFlag flags, uint32 
 		/* Perform NewStation checks */
 
 		/* Check if the station size is permitted */
-		if (HasBit(statspec->disallowed_platforms, numtracks - 1) || HasBit(statspec->disallowed_lengths, plat_len - 1)) {
+		if (HasBit(statspec->disallowed_platforms, min(numtracks - 1, 7)) || HasBit(statspec->disallowed_lengths, min(plat_len - 1, 7))) {
 			return CMD_ERROR;
 		}
 
@@ -1749,7 +1774,8 @@ static CommandCost FindJoiningRoadStop(StationID existing_stop, StationID statio
  *           bit 1: 0 For normal stops, 1 for drive-through.
  *           bit 2..3: The roadtypes.
  *           bit 5: Allow stations directly adjacent to other stations.
- *           bit 6..7: Entrance direction (#DiagDirection).
+ *           bit 6..7: Entrance direction (#DiagDirection) for normal stops.
+ *           bit 6: #Axis of the road for drive-through stops.
  *           bit 16..31: Station ID to join (NEW_STATION if build new one).
  * @param text Unused.
  * @return The cost of this operation or an error.
@@ -1783,12 +1809,17 @@ CommandCost CmdBuildRoadStop(TileIndex tile, DoCommandFlag flags, uint32 p1, uin
 	/* Trams only have drive through stops */
 	if (!is_drive_through && HasBit(rts, ROADTYPE_TRAM)) return CMD_ERROR;
 
-	DiagDirection ddir = Extract<DiagDirection, 6, 2>(p2);
-
-	/* Safeguard the parameters. */
-	if (!IsValidDiagDirection(ddir)) return CMD_ERROR;
-	/* If it is a drive-through stop, check for valid axis. */
-	if (is_drive_through && !IsValidAxis((Axis)ddir)) return CMD_ERROR;
+	DiagDirection ddir;
+	Axis axis;
+	if (is_drive_through) {
+		/* By definition axis is valid, due to there being 2 axes and reading 1 bit. */
+		axis = Extract<Axis, 6, 1>(p2);
+		ddir = AxisToDiagDir(axis);
+	} else {
+		/* By definition ddir is valid, due to there being 4 diagonal directions and reading 2 bits. */
+		ddir = Extract<DiagDirection, 6, 2>(p2);
+		axis = DiagDirToAxis(ddir);
+	}
 
 	CommandCost ret = CheckIfAuthorityAllowsNewStation(tile, flags);
 	if (ret.Failed()) return ret;
@@ -1796,7 +1827,7 @@ CommandCost CmdBuildRoadStop(TileIndex tile, DoCommandFlag flags, uint32 p1, uin
 	/* Total road stop cost. */
 	CommandCost cost(EXPENSES_CONSTRUCTION, roadstop_area.w * roadstop_area.h * _price[type ? PR_BUILD_STATION_TRUCK : PR_BUILD_STATION_BUS]);
 	StationID est = INVALID_STATION;
-	ret = CheckFlatLandRoadStop(roadstop_area, flags, is_drive_through ? 5 << ddir : 1 << ddir, is_drive_through, type, DiagDirToAxis(ddir), &est, rts);
+	ret = CheckFlatLandRoadStop(roadstop_area, flags, is_drive_through ? 5 << axis : 1 << ddir, is_drive_through, type, axis, &est, rts);
 	if (ret.Failed()) return ret;
 	cost.AddCost(ret);
 
@@ -1850,7 +1881,7 @@ CommandCost CmdBuildRoadStop(TileIndex tile, DoCommandFlag flags, uint32 p1, uin
 					}
 				}
 
-				MakeDriveThroughRoadStop(cur_tile, st->owner, road_owner, tram_owner, st->index, rs_type, rts | cur_rts, DiagDirToAxis(ddir));
+				MakeDriveThroughRoadStop(cur_tile, st->owner, road_owner, tram_owner, st->index, rs_type, rts | cur_rts, axis);
 				road_stop->MakeDriveThrough();
 			} else {
 				/* Non-drive-through stop never overbuild and always count as two road bits. */
@@ -2465,7 +2496,7 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 	CommandCost ret = CheckIfAuthorityAllowsNewStation(tile, flags);
 	if (ret.Failed()) return ret;
 
-	if (MayHaveBridgeAbove(tile) && IsBridgeAbove(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
+	if (IsBridgeAbove(tile)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
 	ret = DoCommand(tile, 0, 0, flags, CMD_LANDSCAPE_CLEAR);
 	if (ret.Failed()) return ret;
@@ -2476,7 +2507,7 @@ CommandCost CmdBuildDock(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 		return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
 	}
 
-	if (MayHaveBridgeAbove(tile_cur) && IsBridgeAbove(tile_cur)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
+	if (IsBridgeAbove(tile_cur)) return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);
 
 	/* Get the water class of the water tile before it is cleared.*/
 	WaterClass wc = GetWaterClass(tile_cur);
@@ -3167,7 +3198,7 @@ void TriggerWatchedCargoCallbacks(Station *st)
 	/* Collect cargoes accepted since the last big tick. */
 	uint cargoes = 0;
 	for (CargoID cid = 0; cid < NUM_CARGO; cid++) {
-		if (HasBit(st->goods[cid].acceptance_pickup, GoodsEntry::GES_ACCEPTED_BIGTICK)) SetBit(cargoes, cid);
+		if (HasBit(st->goods[cid].status, GoodsEntry::GES_ACCEPTED_BIGTICK)) SetBit(cargoes, cid);
 	}
 
 	/* Anything to do? */
@@ -3200,7 +3231,7 @@ static bool StationHandleBigTick(BaseStation *st)
 		TriggerWatchedCargoCallbacks(Station::From(st));
 
 		for (CargoID i = 0; i < NUM_CARGO; i++) {
-			ClrBit(Station::From(st)->goods[i].acceptance_pickup, GoodsEntry::GES_ACCEPTED_BIGTICK);
+			ClrBit(Station::From(st)->goods[i].status, GoodsEntry::GES_ACCEPTED_BIGTICK);
 		}
 	}
 
@@ -3214,6 +3245,28 @@ static inline void byte_inc_sat(byte *p)
 {
 	byte b = *p + 1;
 	if (b != 0) *p = b;
+}
+
+/**
+ * Truncate the cargo by a specific amount.
+ * @param cs The type of cargo to perform the truncation for.
+ * @param ge The goods entry, of the station, to truncate.
+ * @param amount The amount to truncate the cargo by.
+ */
+static void TruncateCargo(const CargoSpec *cs, GoodsEntry *ge, uint amount = UINT_MAX)
+{
+	/* If truncating also punish the source stations' ratings to
+	 * decrease the flow of incoming cargo. */
+
+	StationCargoAmountMap waiting_per_source;
+	ge->cargo.Truncate(amount, &waiting_per_source);
+	for (StationCargoAmountMap::iterator i(waiting_per_source.begin()); i != waiting_per_source.end(); ++i) {
+		Station *source_station = Station::GetIfValid(i->first);
+		if (source_station == NULL) continue;
+
+		GoodsEntry &source_ge = source_station->goods[cs->Index()];
+		source_ge.max_waiting_cargo = max(source_ge.max_waiting_cargo, i->second);
+	}
 }
 
 static void UpdateStationRating(Station *st)
@@ -3236,6 +3289,13 @@ static void UpdateStationRating(Station *st)
 		/* Only change the rating if we are moving this cargo */
 		if (ge->HasRating()) {
 			byte_inc_sat(&ge->time_since_pickup);
+			if (ge->time_since_pickup == 255 && _settings_game.order.selectgoods) {
+				ClrBit(ge->status, GoodsEntry::GES_RATING);
+				ge->last_speed = 0;
+				TruncateCargo(cs, ge);
+				waiting_changed = true;
+				continue;
+			}
 
 			bool skip = false;
 			int rating = 0;
@@ -3349,18 +3409,7 @@ static void UpdateStationRating(Station *st)
 					 * next rating calculation. */
 					ge->max_waiting_cargo = 0;
 
-					/* If truncating also punish the source stations' ratings to
-					 * decrease the flow of incoming cargo. */
-
-					StationCargoAmountMap waiting_per_source;
-					ge->cargo.Truncate(ge->cargo.AvailableCount() - waiting, &waiting_per_source);
-					for (StationCargoAmountMap::iterator i(waiting_per_source.begin()); i != waiting_per_source.end(); ++i) {
-						Station *source_station = Station::GetIfValid(i->first);
-						if (source_station == NULL) continue;
-
-						GoodsEntry &source_ge = source_station->goods[cs->Index()];
-						source_ge.max_waiting_cargo = max(source_ge.max_waiting_cargo, i->second);
-					}
+					TruncateCargo(cs, ge, ge->cargo.AvailableCount() - waiting);
 				} else {
 					/* If the average number per next hop is low, be more forgiving. */
 					ge->max_waiting_cargo = waiting_avg;
@@ -3481,9 +3530,10 @@ void DeleteStaleLinks(Station *from)
  * @param cargo Cargo to increase stat for.
  * @param next_station_id Station the consist will be travelling to next.
  * @param capacity Capacity to add to link stat.
- * @param usage Usage to add to link stat. If UINT_MAX refresh the link instead of increasing.
+ * @param usage Usage to add to link stat.
+ * @param mode Update mode to be applied.
  */
-void IncreaseStats(Station *st, CargoID cargo, StationID next_station_id, uint capacity, uint usage)
+void IncreaseStats(Station *st, CargoID cargo, StationID next_station_id, uint capacity, uint usage, EdgeUpdateMode mode)
 {
 	GoodsEntry &ge1 = st->goods[cargo];
 	Station *st2 = Station::Get(next_station_id);
@@ -3493,7 +3543,7 @@ void IncreaseStats(Station *st, CargoID cargo, StationID next_station_id, uint c
 		if (ge2.link_graph == INVALID_LINK_GRAPH) {
 			if (LinkGraph::CanAllocateItem()) {
 				lg = new LinkGraph(cargo);
-				LinkGraphSchedule::Instance()->Queue(lg);
+				LinkGraphSchedule::instance.Queue(lg);
 				ge2.link_graph = lg->index;
 				ge2.node = lg->AddNode(st2);
 			} else {
@@ -3515,17 +3565,17 @@ void IncreaseStats(Station *st, CargoID cargo, StationID next_station_id, uint c
 		if (ge1.link_graph != ge2.link_graph) {
 			LinkGraph *lg2 = LinkGraph::Get(ge2.link_graph);
 			if (lg->Size() < lg2->Size()) {
-				LinkGraphSchedule::Instance()->Unqueue(lg);
+				LinkGraphSchedule::instance.Unqueue(lg);
 				lg2->Merge(lg); // Updates GoodsEntries of lg
 				lg = lg2;
 			} else {
-				LinkGraphSchedule::Instance()->Unqueue(lg2);
+				LinkGraphSchedule::instance.Unqueue(lg2);
 				lg->Merge(lg2); // Updates GoodsEntries of lg2
 			}
 		}
 	}
 	if (lg != NULL) {
-		(*lg)[ge1.node].UpdateEdge(ge2.node, capacity, usage);
+		(*lg)[ge1.node].UpdateEdge(ge2.node, capacity, usage, mode);
 	}
 }
 
@@ -3546,7 +3596,7 @@ void IncreaseStats(Station *st, const Vehicle *front, StationID next_station_id)
 			 * As usage is not such an important figure anyway we just
 			 * ignore the additional cargo then.*/
 			IncreaseStats(st, v->cargo_type, next_station_id, v->refit_cap,
-				min(v->refit_cap, v->cargo.StoredCount()));
+				min(v->refit_cap, v->cargo.StoredCount()), EUM_INCREASE);
 		}
 	}
 }
@@ -3596,8 +3646,8 @@ void StationMonthlyLoop()
 	FOR_ALL_STATIONS(st) {
 		for (CargoID i = 0; i < NUM_CARGO; i++) {
 			GoodsEntry *ge = &st->goods[i];
-			SB(ge->acceptance_pickup, GoodsEntry::GES_LAST_MONTH, 1, GB(ge->acceptance_pickup, GoodsEntry::GES_CURRENT_MONTH, 1));
-			ClrBit(ge->acceptance_pickup, GoodsEntry::GES_CURRENT_MONTH);
+			SB(ge->status, GoodsEntry::GES_LAST_MONTH, 1, GB(ge->status, GoodsEntry::GES_CURRENT_MONTH, 1));
+			ClrBit(ge->status, GoodsEntry::GES_CURRENT_MONTH);
 		}
 	}
 }
@@ -3613,7 +3663,7 @@ void ModifyStationRatingAround(TileIndex tile, Owner owner, int amount, uint rad
 			for (CargoID i = 0; i < NUM_CARGO; i++) {
 				GoodsEntry *ge = &st->goods[i];
 
-				if (ge->acceptance_pickup != 0) {
+				if (ge->status != 0) {
 					ge->rating = Clamp(ge->rating + amount, 0, 255);
 				}
 			}
@@ -3641,7 +3691,7 @@ static uint UpdateStationWaiting(Station *st, CargoID type, uint amount, SourceT
 	if (ge.link_graph == INVALID_LINK_GRAPH) {
 		if (LinkGraph::CanAllocateItem()) {
 			lg = new LinkGraph(type);
-			LinkGraphSchedule::Instance()->Queue(lg);
+			LinkGraphSchedule::instance.Queue(lg);
 			ge.link_graph = lg->index;
 			ge.node = lg->AddNode(st);
 		} else {
@@ -3654,7 +3704,7 @@ static uint UpdateStationWaiting(Station *st, CargoID type, uint amount, SourceT
 
 	if (!ge.HasRating()) {
 		InvalidateWindowData(WC_STATION_LIST, st->index);
-		SetBit(ge.acceptance_pickup, GoodsEntry::GES_PICKUP);
+		SetBit(ge.status, GoodsEntry::GES_RATING);
 	}
 
 	TriggerStationRandomisation(st, st->xy, SRT_NEW_CARGO, type);
@@ -3703,7 +3753,7 @@ CommandCost CmdRenameStation(TileIndex tile, DoCommandFlag flags, uint32 p1, uin
 
 	if (flags & DC_EXEC) {
 		free(st->name);
-		st->name = reset ? NULL : strdup(text);
+		st->name = reset ? NULL : stredup(text);
 
 		st->UpdateVirtCoord();
 		InvalidateWindowData(WC_STATION_LIST, st->owner, 1);
@@ -4290,6 +4340,24 @@ void FlowStat::ReleaseShare(StationID st)
 }
 
 /**
+ * Scale all shares from link graph's runtime to monthly values.
+ * @param runtime Time the link graph has been running without compression.
+ * @pre runtime must be greater than 0 as we don't want infinite flow values.
+ */
+void FlowStat::ScaleToMonthly(uint runtime)
+{
+	assert(runtime > 0);
+	SharesMap new_shares;
+	uint share = 0;
+	for (SharesMap::iterator i = this->shares.begin(); i != this->shares.end(); ++i) {
+		share = max(share + 1, i->first * 30 / runtime);
+		new_shares[share] = i->second;
+		if (this->unrestricted == i->first) this->unrestricted = share;
+	}
+	this->shares.swap(new_shares);
+}
+
+/**
  * Add some flow from "origin", going via "via".
  * @param origin Origin of the flow.
  * @param via Next hop.
@@ -4396,17 +4464,55 @@ void FlowStatMap::ReleaseFlows(StationID via)
 }
 
 /**
- * Get the sum of flows via a specific station from this GoodsEntry.
- * @param via Remote station to look for.
- * @return a FlowStat with all flows for 'via' added up.
+ * Get the sum of all flows from this FlowStatMap.
+ * @return sum of all flows.
  */
-uint GoodsEntry::GetSumFlowVia(StationID via) const
+uint FlowStatMap::GetFlow() const
 {
 	uint ret = 0;
-	for (FlowStatMap::const_iterator i = this->flows.begin(); i != this->flows.end(); ++i) {
+	for (FlowStatMap::const_iterator i = this->begin(); i != this->end(); ++i) {
+		ret += (--(i->second.GetShares()->end()))->first;
+	}
+	return ret;
+}
+
+/**
+ * Get the sum of flows via a specific station from this FlowStatMap.
+ * @param via Remote station to look for.
+ * @return all flows for 'via' added up.
+ */
+uint FlowStatMap::GetFlowVia(StationID via) const
+{
+	uint ret = 0;
+	for (FlowStatMap::const_iterator i = this->begin(); i != this->end(); ++i) {
 		ret += i->second.GetShare(via);
 	}
 	return ret;
+}
+
+/**
+ * Get the sum of flows from a specific station from this FlowStatMap.
+ * @param from Origin station to look for.
+ * @return all flows from 'from' added up.
+ */
+uint FlowStatMap::GetFlowFrom(StationID from) const
+{
+	FlowStatMap::const_iterator i = this->find(from);
+	if (i == this->end()) return 0;
+	return (--(i->second.GetShares()->end()))->first;
+}
+
+/**
+ * Get the flow from a specific station via a specific other station.
+ * @param from Origin station to look for.
+ * @param via Remote station to look for.
+ * @return flow share originating at 'from' and going to 'via'.
+ */
+uint FlowStatMap::GetFlowFromVia(StationID from, StationID via) const
+{
+	FlowStatMap::const_iterator i = this->find(from);
+	if (i == this->end()) return 0;
+	return i->second.GetShare(via);
 }
 
 extern const TileTypeProcs _tile_type_station_procs = {

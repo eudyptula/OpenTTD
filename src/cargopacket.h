@@ -157,7 +157,7 @@ public:
 	 * Gets the ID of the station where the cargo was loaded for the first time.
 	 * @return StationID.
 	 */
-	inline SourceID SourceStation() const
+	inline StationID SourceStation() const
 	{
 		return this->source;
 	}
@@ -429,7 +429,8 @@ public:
 	 * amount of cargo to be moved. Second parameter is destination (if
 	 * applicable), return value is amount of cargo actually moved. */
 
-	uint Reassign(uint max_move, MoveToAction from, MoveToAction to);
+	template<MoveToAction Tfrom, MoveToAction Tto>
+	uint Reassign(uint max_move, TileOrStationID update = INVALID_TILE);
 	uint Return(uint max_move, StationCargoList *dest, StationID next_station);
 	uint Unload(uint max_move, StationCargoList *dest, CargoPayment *payment);
 	uint Shift(uint max_move, VehicleCargoList *dest);

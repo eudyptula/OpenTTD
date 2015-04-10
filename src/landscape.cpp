@@ -32,9 +32,12 @@
 #include "company_func.h"
 #include "pathfinder/npf/aystar.h"
 #include <list>
+#include <set>
 
 #include "table/strings.h"
 #include "table/sprites.h"
+
+#include "safeguards.h"
 
 extern const TileTypeProcs
 	_tile_type_clear_procs,
@@ -667,8 +670,7 @@ CommandCost CmdClearArea(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 	const Company *c = (flags & (DC_AUTO | DC_BANKRUPT)) ? NULL : Company::GetIfValid(_current_company);
 	int limit = (c == NULL ? INT32_MAX : GB(c->clear_limit, 16, 16));
 
-	TileArea ta(tile, p1);
-	TileIterator *iter = HasBit(p2, 0) ? (TileIterator *)new DiagonalTileIterator(tile, p1) : new OrthogonalTileIterator(ta);
+	TileIterator *iter = HasBit(p2, 0) ? (TileIterator *)new DiagonalTileIterator(tile, p1) : new OrthogonalTileIterator(tile, p1);
 	for (; *iter != INVALID_TILE; ++(*iter)) {
 		TileIndex t = *iter;
 		CommandCost ret = DoCommand(t, 0, 0, flags & ~DC_EXEC, CMD_LANDSCAPE_CLEAR);
@@ -692,11 +694,10 @@ CommandCost CmdClearArea(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 
 			/* draw explosion animation...
 			 * Disable explosions when game is paused. Looks silly and blocks the view. */
-			TileIndex off = t - ta.tile;
-			if ((TileX(off) == 0 || TileX(off) == ta.w - 1U) && (TileY(off) == 0 || TileY(off) == ta.h - 1U) && _pause_mode == PM_UNPAUSED) {
-				/* big explosion in each corner, or small explosion for single tiles */
+			if ((t == tile || t == p1) && _pause_mode == PM_UNPAUSED) {
+				/* big explosion in two corners, or small explosion for single tiles */
 				CreateEffectVehicleAbove(TileX(t) * TILE_SIZE + TILE_SIZE / 2, TileY(t) * TILE_SIZE + TILE_SIZE / 2, 2,
-					ta.w == 1 && ta.h == 1 ? EV_EXPLOSION_SMALL : EV_EXPLOSION_LARGE
+					TileX(tile) == TileX(p1) && TileY(tile) == TileY(p1) ? EV_EXPLOSION_SMALL : EV_EXPLOSION_LARGE
 				);
 			}
 		} else {
@@ -722,12 +723,13 @@ void RunTileLoop()
 	 * shift register (LFSR). This allows a deterministic pseudorandom ordering, but
 	 * still with minimal state and fast iteration. */
 
-	/* Maximal length LFSR feedback terms, from 12-bit (for 64x64 maps) to 22-bit (for 2048x2048 maps).
+	/* Maximal length LFSR feedback terms, from 12-bit (for 64x64 maps) to 24-bit (for 4096x4096 maps).
 	 * Extracted from http://www.ece.cmu.edu/~koopman/lfsr/ */
 	static const uint32 feedbacks[] = {
-		0xD8F, 0x1296, 0x2496, 0x4357, 0x8679, 0x1030E, 0x206CD, 0x403FE, 0x807B8, 0x1004B2, 0x2006A8
+		0xD8F, 0x1296, 0x2496, 0x4357, 0x8679, 0x1030E, 0x206CD, 0x403FE, 0x807B8, 0x1004B2, 0x2006A8, 0x4004B2, 0x800B87
 	};
-	const uint32 feedback = feedbacks[MapLogX() + MapLogY() - 12];
+	assert_compile(lengthof(feedbacks) == 2 * MAX_MAP_SIZE_BITS - 2 * MIN_MAP_SIZE_BITS + 1);
+	const uint32 feedback = feedbacks[MapLogX() + MapLogY() - 2 * MIN_MAP_SIZE_BITS];
 
 	/* We update every tile every 256 ticks, so divide the map size by 2^8 = 256 */
 	uint count = 1 << (MapLogX() + MapLogY() - 8);
@@ -890,6 +892,7 @@ static void CreateDesertOrRainForest()
 {
 	TileIndex update_freq = MapSize() / 4;
 	const TileIndexDiffC *data;
+	uint max_desert_height = CeilDiv(_settings_game.construction.max_heightlevel, 4);
 
 	for (TileIndex tile = 0; tile != MapSize(); ++tile) {
 		if ((tile % update_freq) == 0) IncreaseGeneratingWorldProgress(GWP_LANDSCAPE);
@@ -899,7 +902,7 @@ static void CreateDesertOrRainForest()
 		for (data = _make_desert_or_rainforest_data;
 				data != endof(_make_desert_or_rainforest_data); ++data) {
 			TileIndex t = AddTileIndexDiffCWrap(tile, *data);
-			if (t != INVALID_TILE && (TileHeight(t) >= 4 || IsTileType(t, MP_WATER))) break;
+			if (t != INVALID_TILE && (TileHeight(t) >= max_desert_height || IsTileType(t, MP_WATER))) break;
 		}
 		if (data == endof(_make_desert_or_rainforest_data)) {
 			SetTropicZone(tile, TROPICZONE_DESERT);
@@ -1097,18 +1100,20 @@ static void BuildRiver(TileIndex begin, TileIndex end)
 
 /**
  * Try to flow the river down from a given begin.
- * @param marks  Array for temporary of iterated tiles.
  * @param spring The springing point of the river.
  * @param begin  The begin point we are looking from; somewhere down hill from the spring.
  * @return True iff a river could/has been built, otherwise false.
  */
-static bool FlowRiver(bool *marks, TileIndex spring, TileIndex begin)
+static bool FlowRiver(TileIndex spring, TileIndex begin)
 {
+	#define SET_MARK(x) marks.insert(x)
+	#define IS_MARKED(x) (marks.find(x) != marks.end())
+
 	uint height = TileHeight(begin);
 	if (IsWaterTile(begin)) return DistanceManhattan(spring, begin) > _settings_game.game_creation.min_river_length;
 
-	MemSetT(marks, 0, MapSize());
-	marks[begin] = true;
+	std::set<TileIndex> marks;
+	SET_MARK(begin);
 
 	/* Breadth first search for the closest tile we can flow down to. */
 	std::list<TileIndex> queue;
@@ -1129,8 +1134,8 @@ static bool FlowRiver(bool *marks, TileIndex spring, TileIndex begin)
 
 		for (DiagDirection d = DIAGDIR_BEGIN; d < DIAGDIR_END; d++) {
 			TileIndex t2 = end + TileOffsByDiagDir(d);
-			if (IsValidTile(t2) && !marks[t2] && FlowsDown(end, t2)) {
-				marks[t2] = true;
+			if (IsValidTile(t2) && !IS_MARKED(t2) && FlowsDown(end, t2)) {
+				SET_MARK(t2);
 				count++;
 				queue.push_back(t2);
 			}
@@ -1139,13 +1144,14 @@ static bool FlowRiver(bool *marks, TileIndex spring, TileIndex begin)
 
 	if (found) {
 		/* Flow further down hill. */
-		found = FlowRiver(marks, spring, end);
+		found = FlowRiver(spring, end);
 	} else if (count > 32) {
 		/* Maybe we can make a lake. Find the Nth of the considered tiles. */
 		TileIndex lakeCenter = 0;
-		for (int i = RandomRange(count - 1); i != 0; lakeCenter++) {
-			if (marks[lakeCenter]) i--;
-		}
+		int i = RandomRange(count - 1) + 1;
+		std::set<TileIndex>::const_iterator cit = marks.begin();
+		while (--i) cit++;
+		lakeCenter = *cit;
 
 		if (IsValidTile(lakeCenter) &&
 				/* A river, or lake, can only be built on flat slopes. */
@@ -1169,6 +1175,7 @@ static bool FlowRiver(bool *marks, TileIndex spring, TileIndex begin)
 		}
 	}
 
+	marks.clear();
 	if (found) BuildRiver(begin, end);
 	return found;
 }
@@ -1183,18 +1190,15 @@ static void CreateRivers()
 
 	uint wells = ScaleByMapSize(4 << _settings_game.game_creation.amount_of_rivers);
 	SetGeneratingWorldProgress(GWP_RIVER, wells + 256 / 64); // Include the tile loop calls below.
-	bool *marks = CallocT<bool>(MapSize());
 
 	for (; wells != 0; wells--) {
 		IncreaseGeneratingWorldProgress(GWP_RIVER);
 		for (int tries = 0; tries < 128; tries++) {
 			TileIndex t = RandomTile();
 			if (!CircularTileSearch(&t, 8, FindSpring, NULL)) continue;
-			if (FlowRiver(marks, t, t)) break;
+			if (FlowRiver(t, t)) break;
 		}
 	}
-
-	free(marks);
 
 	/* Run tile loop to update the ground density. */
 	for (uint i = 0; i != 256; i++) {
@@ -1269,7 +1273,8 @@ void GenerateLandscape(byte mode)
 				assert(_settings_game.difficulty.quantity_sea_lakes != CUSTOM_SEA_LEVEL_NUMBER_DIFFICULTY);
 				uint i = ScaleByMapSize(GB(r, 0, 7) + (3 - _settings_game.difficulty.quantity_sea_lakes) * 256 + 100);
 				for (; i != 0; --i) {
-					GenerateTerrain(_settings_game.difficulty.terrain_type, 0);
+					/* Make sure we do not overflow. */
+					GenerateTerrain(Clamp(_settings_game.difficulty.terrain_type, 0, 3), 0);
 				}
 				break;
 			}

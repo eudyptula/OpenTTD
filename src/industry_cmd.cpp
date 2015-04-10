@@ -40,10 +40,13 @@
 #include "core/backup_type.hpp"
 #include "object_base.h"
 #include "game/game.hpp"
+#include "error.h"
 
 #include "table/strings.h"
 #include "table/industry_land.h"
 #include "table/build_industry.h"
+
+#include "safeguards.h"
 
 IndustryPool _industry_pool("Industry");
 INSTANTIATE_POOL_METHODS(Industry)
@@ -518,7 +521,7 @@ static void TransportIndustryGoods(TileIndex tile)
 
 		if (newgfx != INDUSTRYTILE_NOANIM) {
 			ResetIndustryConstructionStage(tile);
-			SetIndustryCompleted(tile, true);
+			SetIndustryCompleted(tile);
 			SetIndustryGfx(tile, newgfx);
 			MarkTileDirtyByTile(tile);
 		}
@@ -718,7 +721,7 @@ static void MakeIndustryTileBigger(TileIndex tile)
 	SetIndustryConstructionCounter(tile, 0);
 	SetIndustryConstructionStage(tile, stage);
 	StartStopIndustryTileAnimation(tile, IAT_CONSTRUCTION_STATE_CHANGE);
-	if (stage == INDUSTRY_COMPLETED) SetIndustryCompleted(tile, true);
+	if (stage == INDUSTRY_COMPLETED) SetIndustryCompleted(tile);
 
 	MarkTileDirtyByTile(tile);
 
@@ -854,7 +857,7 @@ static void TileLoop_Industry(TileIndex tile)
 				case GFX_GOLD_MINE_TOWER_ANIMATED:   gfx = GFX_GOLD_MINE_TOWER_NOT_ANIMATED;   break;
 			}
 			SetIndustryGfx(tile, gfx);
-			SetIndustryCompleted(tile, true);
+			SetIndustryCompleted(tile);
 			SetIndustryConstructionStage(tile, 3);
 			DeleteAnimatedTile(tile);
 		}
@@ -1387,7 +1390,7 @@ static CommandCost CheckIfIndustryTilesAreFree(TileIndex tile, const IndustryTil
 		} else {
 			CommandCost ret = EnsureNoVehicleOnGround(cur_tile);
 			if (ret.Failed()) return ret;
-			if (MayHaveBridgeAbove(cur_tile) && IsBridgeAbove(cur_tile)) return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
+			if (IsBridgeAbove(cur_tile)) return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
 
 			const IndustryTileSpec *its = GetIndustryTileSpec(gfx);
 
@@ -1563,7 +1566,30 @@ static bool CheckIfCanLevelIndustryPlatform(TileIndex tile, DoCommandFlag flags,
 static CommandCost CheckIfFarEnoughFromConflictingIndustry(TileIndex tile, int type)
 {
 	const IndustrySpec *indspec = GetIndustrySpec(type);
-	const Industry *i;
+	const Industry *i = NULL;
+
+	/* On a large map with many industries, it may be faster to check an area. */
+	static const int dmax = 14;
+	if (Industry::GetNumItems() > (size_t) (dmax * dmax * 2)) {
+		const int tx = TileX(tile);
+		const int ty = TileY(tile);
+		TileArea tile_area = TileArea(TileXY(max(0, tx - dmax), max(0, ty - dmax)), TileXY(min(MapMaxX(), tx + dmax), min(MapMaxY(), ty + dmax)));
+		TILE_AREA_LOOP(atile, tile_area) {
+			if (GetTileType(atile) == MP_INDUSTRY) {
+				const Industry *i2 = Industry::GetByTile(atile);
+				if (i == i2) continue;
+				i = i2;
+				if (DistanceMax(tile, i->location.tile) > (uint)dmax) continue;
+				if (i->type == indspec->conflicting[0] ||
+						i->type == indspec->conflicting[1] ||
+						i->type == indspec->conflicting[2]) {
+					return_cmd_error(STR_ERROR_INDUSTRY_TOO_CLOSE);
+				}
+			}
+		}
+		return CommandCost();
+	}
+
 	FOR_ALL_INDUSTRIES(i) {
 		/* Within 14 tiles from another industry is considered close */
 		if (DistanceMax(tile, i->location.tile) > 14) continue;
@@ -1995,7 +2021,7 @@ static uint GetNumberOfIndustries()
 
 	assert(lengthof(numof_industry_table) == ID_END);
 	uint difficulty = (_game_mode != GM_EDITOR) ? _settings_game.difficulty.industry_density : (uint)ID_VERY_LOW;
-	return ScaleByMapSize(numof_industry_table[difficulty]);
+	return min(IndustryPool::MAX_SIZE, ScaleByMapSize(numof_industry_table[difficulty]));
 }
 
 /**
@@ -2714,6 +2740,26 @@ void InitializeIndustries()
 	_industry_sound_tile = 0;
 
 	_industry_builder.Reset();
+}
+
+/** Verify whether the generated industries are complete, and warn the user if not. */
+void CheckIndustries()
+{
+	int count = 0;
+	for (IndustryType it = 0; it < NUM_INDUSTRYTYPES; it++) {
+		if (Industry::GetIndustryTypeCount(it) > 0) continue; // Types of existing industries can be skipped.
+
+		bool force_at_least_one;
+		uint32 chance = GetScaledIndustryGenerationProbability(it, &force_at_least_one);
+		if (chance == 0 || !force_at_least_one) continue; // Types that are not available can be skipped.
+
+		const IndustrySpec *is = GetIndustrySpec(it);
+		SetDParam(0, is->name);
+		ShowErrorMessage(STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES, STR_ERROR_NO_SUITABLE_PLACES_FOR_INDUSTRIES_EXPLANATION, WL_WARNING);
+
+		count++;
+		if (count >= 3) break; // Don't swamp the user with errors.
+	}
 }
 
 /**

@@ -21,7 +21,7 @@ class Path;
 typedef std::list<Path *> PathList;
 
 /** Type of the pool for link graph jobs. */
-typedef Pool<LinkGraphJob, LinkGraphJobID, 32, 0xFFFFFF> LinkGraphJobPool;
+typedef Pool<LinkGraphJob, LinkGraphJobID, 32, 0xFFFF> LinkGraphJobPool;
 /** The actual pool with link graph jobs. */
 extern LinkGraphJobPool _link_graph_job_pool;
 
@@ -63,6 +63,10 @@ protected:
 	Date join_date;                   ///< Date when the job is to be joined.
 	NodeAnnotationVector nodes;       ///< Extra node data necessary for link graph calculation.
 	EdgeAnnotationMatrix edges;       ///< Extra edge data necessary for link graph calculation.
+
+	void EraseFlows(NodeID from);
+	void JoinThread();
+	void SpawnThread();
 
 public:
 
@@ -339,6 +343,8 @@ public:
  */
 class Path {
 public:
+	static Path *invalid_path;
+
 	Path(NodeID n, bool source = false);
 
 	/** Get the node this leg passes. */

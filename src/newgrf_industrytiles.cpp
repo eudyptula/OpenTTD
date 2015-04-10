@@ -22,6 +22,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /**
  * Based on newhouses equivalent, but adapted for newindustries
  * @param parameter from callback.  It's in fact a pair of coordinates
@@ -147,6 +149,7 @@ IndustryTileResolverObject::IndustryTileResolverObject(IndustryGfx gfx, TileInde
 	indtile_scope(*this, indus, tile),
 	ind_scope(*this, tile, indus, indus->type)
 {
+	this->root_spritegroup = GetIndustryTileSpec(gfx)->grf_prop.spritegroup[0];
 }
 
 /**
@@ -190,10 +193,7 @@ uint16 GetIndustryTileCallback(CallbackID callback, uint32 param1, uint32 param2
 	assert(industry->index == INVALID_INDUSTRY || IsTileType(tile, MP_INDUSTRY));
 
 	IndustryTileResolverObject object(gfx_id, tile, industry, callback, param1, param2);
-	const SpriteGroup *group = SpriteGroup::Resolve(GetIndustryTileSpec(gfx_id)->grf_prop.spritegroup[0], object);
-	if (group == NULL || group->type != SGT_CALLBACK) return CALLBACK_FAILED;
-
-	return group->GetCallbackResult();
+	return object.ResolveCallback();
 }
 
 bool DrawNewIndustryTile(TileInfo *ti, Industry *i, IndustryGfx gfx, const IndustryTileSpec *inds)
@@ -211,7 +211,7 @@ bool DrawNewIndustryTile(TileInfo *ti, Industry *i, IndustryGfx gfx, const Indus
 
 	IndustryTileResolverObject object(gfx, ti->tile, i);
 
-	const SpriteGroup *group = SpriteGroup::Resolve(inds->grf_prop.spritegroup[0], object);
+	const SpriteGroup *group = object.Resolve();
 	if (group == NULL || group->type != SGT_TILELAYOUT) return false;
 
 	/* Limit the building stage to the number of stages supplied. */
@@ -256,7 +256,7 @@ CommandCost PerformIndustryTileSlopeCheck(TileIndex ind_base_tile, TileIndex ind
 		return_cmd_error(STR_ERROR_SITE_UNSUITABLE);
 	}
 
-	return GetErrorMessageFromLocationCallbackResult(callback_res, its->grf_prop.grffile->grfid, STR_ERROR_SITE_UNSUITABLE);
+	return GetErrorMessageFromLocationCallbackResult(callback_res, its->grf_prop.grffile, STR_ERROR_SITE_UNSUITABLE);
 }
 
 /* Simple wrapper for GetHouseCallback to keep the animation unified. */
@@ -328,7 +328,7 @@ static void DoTriggerIndustryTile(TileIndex tile, IndustryTileTrigger trigger, I
 	IndustryTileResolverObject object(gfx, tile, ind, CBID_RANDOM_TRIGGER);
 	object.trigger = trigger;
 
-	const SpriteGroup *group = SpriteGroup::Resolve(itspec->grf_prop.spritegroup[0], object);
+	const SpriteGroup *group = object.Resolve();
 	if (group == NULL) return;
 
 	byte new_random_bits = Random();

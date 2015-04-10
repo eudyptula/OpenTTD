@@ -44,7 +44,7 @@ public:
 	 * Get the height of the font.
 	 * @return The height of the font.
 	 */
-	inline int GetHeight() const { return this->height; }
+	virtual int GetHeight() const { return this->height; }
 
 	/**
 	 * Get the ascender value of the font.
@@ -118,6 +118,12 @@ public:
 	 * @return The loaded table data.
 	 */
 	virtual const void *GetFontTable(uint32 tag, size_t &length) = 0;
+
+	/**
+	 * Get the name of this font.
+	 * @return The name of the font.
+	 */
+	virtual const char *GetFontName() = 0;
 
 	/**
 	 * Get the font cache of a given font size.

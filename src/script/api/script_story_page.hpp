@@ -13,6 +13,7 @@
 #define SCRIPT_STORY_HPP
 
 #include "script_company.hpp"
+#include "script_date.hpp"
 #include "../../story_type.h"
 #include "../../story_base.h"
 
@@ -119,6 +120,54 @@ public:
 	static bool UpdateElement(StoryPageElementID story_page_element_id, uint32 reference, Text *text);
 
 	/**
+	 * Get story page sort value. Each page has a sort value that is internally assigned and used
+	 * to sort the pages in the story book. OpenTTD maintains this number so that the sort order
+	 * is perceived. This API exist only so that you can sort ScriptStoryPageList the same order
+	 * as in GUI. You should not use this number for anything else.
+	 * @param story_page_id The story page to get the sort value of.
+	 * @return Page sort value.
+	 */
+	static uint32 GetPageSortValue(StoryPageID story_page_id);
+
+	/**
+	 * Get story page element sort value. Each page element has a sort value that is internally
+	 * assigned and used to sort the page elements within a page of the story book. OpenTTD
+	 * maintains this number so that the sort order is perceived. This API exist only so that
+	 * you can sort ScriptStoryPageList the same order as in GUI. You should not use this number
+	 * for anything else.
+	 * @param story_page_element_id The story page element to get the sort value of.
+	 * @return Page element sort value.
+	 */
+	static uint32 GetPageElementSortValue(StoryPageElementID story_page_element_id);
+
+	/**
+	 * Get the company which the page belongs to. If the page is global,
+	 * ScriptCompany::COMPANY_INVALID is returned.
+	 * @param story_page_id The story page to get the company for.
+	 * @return owner company or ScriptCompany::COMPANY_INVALID
+	 * @pre IsValidStoryPage(story_page_id).
+	 */
+	static ScriptCompany::CompanyID GetCompany(StoryPageID story_page_id);
+
+	/**
+	 * Get the page date which is displayed at the top of each page.
+	 * @param story_page_id The story page to get the date of.
+	 * @return The date
+	 * @pre IsValidStoryPage(story_page_id).
+	 */
+	static ScriptDate::Date GetDate(StoryPageID story_page_id);
+
+	/**
+	 * Update date of a story page. The date is shown in the top left of the page
+	 * @param story_page_id The story page to set the date for.
+	 * @param date Date to display at the top of story page or ScriptDate::DATE_INVALID to disable showing date on this page. (also, @see ScriptDate)
+	 * @return True if the action succeeded.
+	 * @pre No ScriptCompanyMode may be in scope.
+	 * @pre IsValidStoryPage(story_page_id).
+	 */
+	static bool SetDate(StoryPageID story_page_id, ScriptDate::Date date);
+
+	/**
 	 * Update title of a story page. The title is shown in the page selector drop down.
 	 * @param story_page_id The story page to update.
 	 * @param title Page title (can be either a raw string, a ScriptText object, or null).
@@ -140,13 +189,23 @@ public:
 	static bool Show(StoryPageID story_page_id);
 
 	/**
-	 * Remove a story page from the list.
+	 * Remove a story page and all the page elements
+	 * associated with it.
 	 * @param story_page_id The story page to remove.
 	 * @return True if the action succeeded.
 	 * @pre No ScriptCompanyMode may be in scope.
 	 * @pre IsValidStoryPage(story_page_id).
 	 */
 	static bool Remove(StoryPageID story_page_id);
+
+	/**
+	 * Removes a story page element.
+	 * @param story_page_element_id The story page element to remove.
+	 * @return True if the action succeeded.
+	 * @pre No ScriptCompanyMode may be in scope.
+	 * @pre IsValidStoryPageElement(story_page_element_id).
+	 */
+	static bool RemoveElement(StoryPageElementID story_page_element_id);
 };
 
 #endif /* SCRIPT_STORY_HPP */

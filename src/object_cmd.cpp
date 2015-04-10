@@ -38,6 +38,8 @@
 #include "table/strings.h"
 #include "table/object_land.h"
 
+#include "safeguards.h"
+
 ObjectPool _object_pool("Object");
 INSTANTIATE_POOL_METHODS(Object)
 uint16 Object::counts[NUM_OBJECTS];
@@ -270,7 +272,7 @@ CommandCost CmdBuildObject(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 			} else {
 				/* The meaning of bit 10 is inverted for a grf version < 8. */
 				if (spec->grf_prop.grffile->grf_version < 8) ToggleBit(callback, 10);
-				CommandCost ret = GetErrorMessageFromLocationCallbackResult(callback, spec->grf_prop.grffile->grfid, STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
+				CommandCost ret = GetErrorMessageFromLocationCallbackResult(callback, spec->grf_prop.grffile, STR_ERROR_LAND_SLOPED_IN_WRONG_DIRECTION);
 				if (ret.Failed()) return ret;
 			}
 		}
@@ -293,7 +295,7 @@ CommandCost CmdBuildObject(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 
 	/* Finally do a check for bridges. */
 	TILE_AREA_LOOP(t, ta) {
-		if (MayHaveBridgeAbove(t) && IsBridgeAbove(t) && (
+		if (IsBridgeAbove(t) && (
 				!(spec->flags & OBJECT_FLAG_ALLOW_UNDER_BRIDGE) ||
 				(GetTileMaxZ(t) + spec->height >= GetBridgeHeight(GetSouthernBridgeEnd(t))))) {
 			return_cmd_error(STR_ERROR_MUST_DEMOLISH_BRIDGE_FIRST);

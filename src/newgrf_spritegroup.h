@@ -33,17 +33,6 @@ static inline uint32 GetRegister(uint i)
 	return _temp_store.GetValue(i);
 }
 
-/**
- * Clears the value of a so-called newgrf "register".
- * @param i index of the register
- * @pre i < 0x110
- */
-static inline void ClearRegister(uint i)
-{
-	extern TemporaryStorageArray<int32, 0x110> _temp_store;
-	_temp_store.StoreValue(i, 0);
-}
-
 /* List of different sprite group types */
 enum SpriteGroupType {
 	SGT_REAL,
@@ -81,19 +70,7 @@ public:
 	virtual byte GetNumResults() const { return 0; }
 	virtual uint16 GetCallbackResult() const { return CALLBACK_FAILED; }
 
-	/**
-	 * ResolverObject (re)entry point.
-	 * This cannot be made a call to a virtual function because virtual functions
-	 * do not like NULL and checking for NULL *everywhere* is more cumbersome than
-	 * this little helper function.
-	 * @param group the group to resolve for
-	 * @param object information needed to resolve the group
-	 * @return the resolved group
-	 */
-	static const SpriteGroup *Resolve(const SpriteGroup *group, ResolverObject &object)
-	{
-		return group == NULL ? NULL : group->Resolve(object);
-	}
+	static const SpriteGroup *Resolve(const SpriteGroup *group, ResolverObject &object, bool top_level = true);
 };
 
 
@@ -344,6 +321,26 @@ struct ResolverObject {
 	uint32 reseed[VSG_END];     ///< Collects bits to rerandomise while triggering triggers.
 
 	const GRFFile *grffile;     ///< GRFFile the resolved SpriteGroup belongs to
+	const SpriteGroup *root_spritegroup; ///< Root SpriteGroup to use for resolving
+
+	/**
+	 * Resolve SpriteGroup.
+	 * @return Result spritegroup.
+	 */
+	const SpriteGroup *Resolve()
+	{
+		return SpriteGroup::Resolve(this->root_spritegroup, *this);
+	}
+
+	/**
+	 * Resolve callback.
+	 * @return Callback result.
+	 */
+	uint16 ResolveCallback()
+	{
+		const SpriteGroup *result = Resolve();
+		return result != NULL ? result->GetCallbackResult() : CALLBACK_FAILED;
+	}
 
 	virtual const SpriteGroup *ResolveReal(const RealSpriteGroup *group) const;
 
