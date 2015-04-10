@@ -1671,6 +1671,7 @@ static SettingEntry _settings_vehicles_trains[] = {
 	SettingEntry("vehicle.train_slope_steepness"),
 	SettingEntry("vehicle.max_train_length"),
 	SettingEntry("vehicle.wagon_speed_limits"),
+	SettingEntry("vehicle.train_speed_adaption"),
 	SettingEntry("vehicle.disable_elrails"),
 	SettingEntry("vehicle.freight_trains"),
 	SettingEntry("gui.stop_location"),
