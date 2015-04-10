@@ -24,6 +24,8 @@
 #include "newgrf_cargo.h"
 #include "station_base.h"
 
+#include "safeguards.h"
+
 static BuildingCounts<uint32> _building_counts;
 static HouseClassMapping _class_mapping[HOUSE_CLASS_MAX];
 
@@ -81,6 +83,7 @@ HouseResolverObject::HouseResolverObject(HouseID house_id, TileIndex tile, Town 
 	house_scope(*this, house_id, tile, town, not_yet_constructed, initial_random_bits, watched_cargo_triggers),
 	town_scope(*this, town, not_yet_constructed) // Don't access StorePSA if house is not yet constructed.
 {
+	this->root_spritegroup = HouseSpec::Get(house_id)->grf_prop.spritegroup[0];
 }
 
 HouseClassID AllocateHouseClassID(byte grf_class_id, uint32 grfid)
@@ -377,10 +380,10 @@ static uint32 GetDistanceFromNearbyHouse(uint8 parameter, TileIndex tile, HouseI
 			uint32 res = 0;
 			for (Station * const * st_iter = sl->Begin(); st_iter != sl->End(); st_iter++) {
 				const Station *st = *st_iter;
-				if (HasBit(st->goods[cid].acceptance_pickup, GoodsEntry::GES_EVER_ACCEPTED))    SetBit(res, 0);
-				if (HasBit(st->goods[cid].acceptance_pickup, GoodsEntry::GES_LAST_MONTH))       SetBit(res, 1);
-				if (HasBit(st->goods[cid].acceptance_pickup, GoodsEntry::GES_CURRENT_MONTH))    SetBit(res, 2);
-				if (HasBit(st->goods[cid].acceptance_pickup, GoodsEntry::GES_ACCEPTED_BIGTICK)) SetBit(res, 3);
+				if (HasBit(st->goods[cid].status, GoodsEntry::GES_EVER_ACCEPTED))    SetBit(res, 0);
+				if (HasBit(st->goods[cid].status, GoodsEntry::GES_LAST_MONTH))       SetBit(res, 1);
+				if (HasBit(st->goods[cid].status, GoodsEntry::GES_CURRENT_MONTH))    SetBit(res, 2);
+				if (HasBit(st->goods[cid].status, GoodsEntry::GES_ACCEPTED_BIGTICK)) SetBit(res, 3);
 			}
 
 			/* Cargo triggered CB 148? */
@@ -439,11 +442,7 @@ uint16 GetHouseCallback(CallbackID callback, uint32 param1, uint32 param2, House
 
 	HouseResolverObject object(house_id, tile, town, callback, param1, param2,
 			not_yet_constructed, initial_random_bits, watched_cargo_triggers);
-
-	const SpriteGroup *group = SpriteGroup::Resolve(HouseSpec::Get(house_id)->grf_prop.spritegroup[0], object);
-	if (group == NULL) return CALLBACK_FAILED;
-
-	return group->GetCallbackResult();
+	return object.ResolveCallback();
 }
 
 static void DrawTileLayout(const TileInfo *ti, const TileLayoutSpriteGroup *group, byte stage, HouseID house_id)
@@ -490,7 +489,7 @@ void DrawNewHouseTile(TileInfo *ti, HouseID house_id)
 
 	HouseResolverObject object(house_id, ti->tile, Town::GetByTile(ti->tile));
 
-	const SpriteGroup *group = SpriteGroup::Resolve(hs->grf_prop.spritegroup[0], object);
+	const SpriteGroup *group = object.Resolve();
 	if (group != NULL && group->type == SGT_TILELAYOUT) {
 		/* Limit the building stage to the number of stages supplied. */
 		const TileLayoutSpriteGroup *tlgroup = (const TileLayoutSpriteGroup *)group;
@@ -615,7 +614,7 @@ static void DoTriggerHouse(TileIndex tile, HouseTrigger trigger, byte base_rando
 	HouseResolverObject object(hid, tile, Town::GetByTile(tile), CBID_RANDOM_TRIGGER);
 	object.trigger = trigger;
 
-	const SpriteGroup *group = SpriteGroup::Resolve(hs->grf_prop.spritegroup[0], object);
+	const SpriteGroup *group = object.Resolve();
 	if (group == NULL) return;
 
 	byte new_random_bits = Random();
