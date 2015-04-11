@@ -953,7 +953,7 @@ CommandCost CmdReverseOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 	Order *order;
 	Order *first = v->GetFirstOrder();
 	Order *last = v->GetLastOrder();
-	if (!first || !last) return CMD_ERROR;
+	if (!first || !last ) return CMD_ERROR;
 
 	VehicleOrderID i, max = v->GetNumOrders();
 	uint32 orders[max];
@@ -981,8 +981,8 @@ CommandCost CmdReverseOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 		orders[i] = order->Pack();
 	}
 
-	for (i = (dup ? 0 : 1); i < (dup ? max : max-1); i++) {
-		ret = CmdInsertOrder(tile, flags, p1, orders[i], text);
+	for (i = (dup ? i-1 : i-2); i >= (dup ? 0 : 1) ; i--) {
+		ret = CmdInsertOrder(tile, flags, SB(p1, 20, 8, v->GetNumOrders()), orders[i], text);
 		if (ret.Failed()) return ret;
 	}
 
