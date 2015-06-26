@@ -9,6 +9,9 @@
 
 /** @file strings.cpp Handling of translated strings. */
 
+// Need to define this for PRIu64 macro to be defined in MSYS2 compilations
+#define __STDC_FORMAT_MACROS 1
+
 #include <inttypes.h>
 #include "stdafx.h"
 #include "currency.h"
