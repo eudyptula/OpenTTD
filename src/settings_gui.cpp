@@ -1566,6 +1566,14 @@ static SettingsContainer &GetSettingsTree()
 				wallclock->Add(new SettingEntry("gui.clock_offset"));
 			}
 
+			SettingsPage *reverse_orders = interface->Add(new SettingsPage(STR_CONFIG_SETTING_INTERFACE_REVERSE_ORDERS));
+			{
+				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_road"));
+				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_train"));
+				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_ship"));
+				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_aircraft"));
+			}
+
 			interface->Add(new SettingEntry("gui.autosave"));
 			interface->Add(new SettingEntry("gui.toolbar_pos"));
 			interface->Add(new SettingEntry("gui.statusbar_pos"));
