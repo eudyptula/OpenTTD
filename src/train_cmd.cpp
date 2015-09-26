@@ -415,14 +415,15 @@ int Train::GetCurrentMaxSpeed() const
 				}
 				/* Check if tile has train/is reserved */
 				if (KillFirstBit(ft.m_new_td_bits) == TRACKDIR_BIT_NONE && ///< Tile has exactly *one* track
-						HasReservedTracks(ft.m_new_tile, TrackdirBitsToTrackBits(ft.m_new_td_bits))) { ///< Tile is reserved
+					HasReservedTracks(ft.m_new_tile, TrackdirBitsToTrackBits(ft.m_new_td_bits))) { ///< Tile is reserved
 					Train* other_train = GetTrainForReservation(ft.m_new_tile, TrackBitsToTrack(TrackdirBitsToTrackBits(ft.m_new_td_bits)));
-					if(other_train != this && ///< Other train is not this train
-							TrackdirToTrackdirBits(ReverseTrackdir(other_train->GetVehicleTrackdir())) != ft.m_new_td_bits && ///< Other train not travelling in opposite direction
-							other_train->GetAccelerationStatus() != AS_BRAKE) { ///< Other train is not braking
-						atc_speed = other_train->GetCurrentSpeed();
-						num_signals = 4;
-					}
+					if( other_train != NULL &&
+                        other_train != this && ///< Other train is not this train
+                        TrackdirToTrackdirBits(ReverseTrackdir(other_train->GetVehicleTrackdir())) != ft.m_new_td_bits && ///< Other train not travelling in opposite direction
+                        other_train->GetAccelerationStatus() != AS_BRAKE) { ///< Other train is not braking
+                        atc_speed = other_train->GetCurrentSpeed();
+                        num_signals = 4;
+                    }
 				}
 				/* Decide what in direction to continue: reservation, straight or "first" direction. */
 				/* Abort if there's no reservation even though the tile contains multiple tracks. */
