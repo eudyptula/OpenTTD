@@ -638,6 +638,13 @@ CommandCost CmdCreateGroupSpecificName(TileIndex tile, DoCommandFlag flags, uint
 				Utf8TrimString(stationname_first, Utf8StringLength(stationname_first)-diff);
 				Utf8TrimString(stationname_last, Utf8StringLength(stationname_last)-diff);
 		    }
+			
+			/* Remove white endings */
+			int i;
+			for (i = 0; stationname_first[i] != '\0'; i++); i--;
+			while (stationname_first[i] == ' ') { stationname_first[i] = '\0'; i--; }
+			for (i = 0; stationname_last[i] != '\0'; i++); i--;
+			while (stationname_last[i] == ' ') { stationname_last[i] = '\0'; i--; }
 		}
 
 		/* Create name (Sorted) */
