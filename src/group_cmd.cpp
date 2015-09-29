@@ -620,10 +620,12 @@ CommandCost CmdCreateGroupSpecificName(TileIndex tile, DoCommandFlag flags, uint
 		    if (stationname_first[prefix] == '\0' && stationname_last[prefix] == ' ') {
 		        stationname_first[prefix] = ' ';
 		        prefix++;
+				stationname_first[prefix] = '\0';
 		    }
 		    else if (stationname_last[prefix] == '\0' && stationname_first[prefix] == ' ') {
 		        stationname_last[prefix] = ' ';
 		        prefix++;
+				stationname_last[prefix] = '\0';
 		    }
 		    while (prefix > 0 && stationname_first[prefix-1] != ' ') prefix--;
 		}
