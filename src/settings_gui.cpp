@@ -1543,6 +1543,7 @@ static SettingsContainer &GetSettingsTree()
 				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_train"));
 				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_ship"));
 				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_aircraft"));
+			}
 
 			SettingsPage *departureboards = interface->Add(new SettingsPage(STR_CONFIG_SETTING_INTERFACE_DEPARTUREBOARDS));
 			{
@@ -1563,7 +1564,7 @@ static SettingsContainer &GetSettingsTree()
 				departureboards->Add(new SettingEntry("gui.departure_show_all_stops"));
 				departureboards->Add(new SettingEntry("gui.departure_merge_identical"));
 			}
-			
+
 			SettingsPage *wallclock = interface->Add(new SettingsPage(STR_CONFIG_SETTING_INTERFACE_WALLCLOCK));
 			{
 				wallclock->Add(new SettingEntry("gui.time_in_minutes"));
