@@ -3525,10 +3525,10 @@ static void UpdateStationRating(Station *st)
 
 				byte waittime = ge->time_since_pickup;
 				if (st->last_vehicle_type == VEH_SHIP) waittime >>= 2;
-				(waittime > 21) ||
+				(waittime > 48) ||
+				(rating += 25, waittime > 24) ||
 				(rating += 25, waittime > 12) ||
-				(rating += 25, waittime > 6) ||
-				(rating += 45, waittime > 3) ||
+				(rating += 45, waittime > 6) ||
 				(rating += 35, true);
 
 				(rating -= 90, ge->max_waiting_cargo > 1500) ||
