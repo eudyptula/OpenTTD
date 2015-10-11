@@ -355,7 +355,6 @@ public:
 	 */
 	static inline uint GetAdvanceSpeed(uint speed)
 	{
-		printf("   %d kph", speed);
 		return (speed*1000*192*16)/(_settings_game.map.ticks_per_minute*60*_settings_game.map.field_width);
 	}
 
