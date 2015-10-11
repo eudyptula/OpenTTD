@@ -389,7 +389,8 @@ static bool ShipAccelerate(Vehicle *v)
 	}
 
 	/* Convert direction-independent speed into direction-dependent speed. (old movement method) */
-	spd = v->GetOldAdvanceSpeed(spd);
+	/* Speed is stored as 2*spd so correct this */
+	spd = v->GetOldAdvanceSpeed(spd)/2;
 
 	if (spd == 0) return false;
 	if ((byte)++spd == 0) return true;

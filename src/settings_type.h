@@ -558,7 +558,7 @@ struct CompanySettings {
 };
 
 struct MapSettings {
-	uint8  field_width;						 ///< width of a field on the map
+	uint16 field_width;						 ///< width of a field on the map
 	uint8  ticks_per_minute;                 ///< how many ticks per minute
 };
 

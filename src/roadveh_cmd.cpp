@@ -1542,7 +1542,10 @@ static bool RoadVehController(RoadVehicle *v)
 	v->ShowVisualEffect();
 
 	/* Check how far the vehicle needs to proceed */
-	int j = v->UpdateSpeed();
+	/* Stored speeds for road vehicles are stored as multiples (1/2*spd or 2*spd), thus we need to correct this */
+	int j = v->UpdateSpeed()/2;
+	j += v->progress;
+	v->progress = 0;
 
 	int adv_spd = v->GetAdvanceDistance();
 	bool blocked = false;
