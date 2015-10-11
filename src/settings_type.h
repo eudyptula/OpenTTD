@@ -69,7 +69,6 @@ struct DifficultySettings {
 	bool   line_reverse_mode;                ///< reversing at stations or not
 	bool   disasters;                        ///< are disasters enabled
 	byte   town_council_tolerance;           ///< minimum required town ratings to be allowed to demolish stuff
-	uint8  field_width;						 ///< width of a field on the map
 };
 
 /** Settings related to the GUI and other stuff that is not saved in the savegame. */
@@ -136,7 +135,6 @@ struct GUISettings {
 	bool   timetable_in_ticks;               ///< whether to show the timetable in ticks rather than days
 	bool   time_in_minutes;                  ///< whether to use the hh:mm conversion when printing dates
 	bool   timetable_start_text_entry;       ///< whether to enter timetable start times as text (hhmm format)
-	uint8  ticks_per_minute;                 ///< how many ticks per minute
 	uint8  date_with_time;                   ///< whether to show the month and year with the time
 	uint16 clock_offset;                     ///< clock offset in minutes
 	bool   quick_goto;                       ///< Allow quick access to 'goto button' in vehicle orders window
@@ -559,6 +557,11 @@ struct CompanySettings {
 	VehicleDefaultSettings vehicle;          ///< default settings for vehicles
 };
 
+struct MapSettings {
+	uint8  field_width;						 ///< width of a field on the map
+	uint8  ticks_per_minute;                 ///< how many ticks per minute
+};
+
 /** All settings together for the game. */
 struct GameSettings {
 	DifficultySettings   difficulty;         ///< settings related to the difficulty
@@ -575,6 +578,7 @@ struct GameSettings {
 	LinkGraphSettings    linkgraph;          ///< settings for link graph calculations
 	StationSettings      station;            ///< settings related to station management
 	LocaleSettings       locale;             ///< settings related to used currency/unit system in the current game
+	MapSettings			 map;
 };
 
 /** All settings that are only important for the local client. */
