@@ -69,6 +69,7 @@ struct DifficultySettings {
 	bool   line_reverse_mode;                ///< reversing at stations or not
 	bool   disasters;                        ///< are disasters enabled
 	byte   town_council_tolerance;           ///< minimum required town ratings to be allowed to demolish stuff
+	uint8  field_width;						 ///< width of a field on the map
 };
 
 /** Settings related to the GUI and other stuff that is not saved in the savegame. */

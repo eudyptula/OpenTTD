@@ -1720,6 +1720,11 @@ static SettingsContainer &GetSettingsTree()
 				cdist->Add(new SettingEntry("linkgraph.short_path_saturation"));
 			}
 
+			SettingsPage *map = environment->Add(new SettingsPage(STR_CONFIG_SETTING_ENVIRONMENT_MAPSETTINGS));
+			{
+				map->Add(new SettingEntry("difficulty.field_width"));
+			}
+
 			environment->Add(new SettingEntry("station.modified_catchment"));
 			environment->Add(new SettingEntry("construction.extra_tree_placement"));
 		}
