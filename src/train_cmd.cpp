@@ -3885,7 +3885,10 @@ static bool TrainLocoHandler(Train *v, bool mode)
 		return true;
 	}
 
-	int j = v->UpdateSpeed();
+	/* Divide by two as we are called twice per tick */
+	int j = v->UpdateSpeed()/2;
+	j += v->progress;
+	v->progress = 0;
 
 	/* we need to invalidate the widget if we are stopping from 'Stopping 0 km/h' to 'Stopped' */
 	if (v->cur_speed == 0 && (v->vehstatus & VS_STOPPED)) {

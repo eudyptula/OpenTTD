@@ -383,8 +383,6 @@ protected:
 
 		int scaled_spd = this->GetAdvanceSpeed(spd);
 
-		scaled_spd += this->progress;
-		this->progress = 0; // set later in *Handler or *Controller
 		return scaled_spd;
 	}
 };

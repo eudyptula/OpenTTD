@@ -24,6 +24,7 @@
 #include "group_type.h"
 #include "timetable.h"
 #include "base_consist.h"
+#include "settings_type.h"
 #include <list>
 #include <map>
 
@@ -332,7 +333,8 @@ public:
 	 */
 	inline uint GetOldAdvanceSpeed(uint speed)
 	{
-		return (this->direction & 1) ? speed : speed * 3 / 4;
+		speed = GetAdvanceSpeed(speed);
+		return (this->direction & 1) ? speed * 4 / 3 : speed;
 	}
 
 	/**
@@ -344,12 +346,22 @@ public:
 	 * However different amounts of "progress" are needed for moving a step in a specific direction.
 	 * That way the leftover progress does not need any adaption when changing movement direction.
 	 *
+	 * Explanation of variables to scale this to map specific settings:
+	 *    speed           : Current speed of vehicle (km-ish/h)
+	 *    1000            : Speed unit conversion (km-ish/m-ish)
+	 *    192             : "progress" per position (non-diagonal), as defined in GetAdvanceDistance.
+	 *    16              : Positions per visual map tile (from https://wiki.openttd.org/OpenTTDDevBlackBook/Simulation/Vehicles)
+	 *    ticks_per_minute: Number of ticks per minute as defined by the 24hr wall clock.
+	 *    60              : Time unit conversion (min/h)
+	 *    field_width     : Width of a visual map tile as defined in map settings (m)
+	 *
 	 * @param speed Direction-independent unscaled speed.
 	 * @return speed, scaled to match #GetAdvanceDistance().
 	 */
 	static inline uint GetAdvanceSpeed(uint speed)
 	{
-		return speed * 3 / 4;
+		printf("   %d kph", speed);
+		return (speed*1000*192*16)/(_settings_game.map.ticks_per_minute*60*_settings_game.map.field_width);
 	}
 
 	/**
