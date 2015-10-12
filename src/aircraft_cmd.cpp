@@ -592,7 +592,7 @@ void UpdateAircraftCache(Aircraft *v, bool update_range)
  * Special velocities for aircraft
  */
 enum AircraftSpeedLimits {
-	SPEED_LIMIT_TAXI     =     50,  ///< Maximum speed of an aircraft while taxiing
+	SPEED_LIMIT_TAXI     =     64,  ///< Maximum speed of an aircraft while taxiing
 	SPEED_LIMIT_APPROACH =    230,  ///< Maximum speed of an aircraft on finals
 	SPEED_LIMIT_BROKEN   =    320,  ///< Maximum speed of an aircraft that is broken
 	SPEED_LIMIT_HOLD     =    425,  ///< Maximum speed of an aircraft that flies the holding pattern
@@ -654,8 +654,13 @@ static int UpdateAircraftSpeed(Aircraft *v, uint speed_limit = SPEED_LIMIT_NONE,
 	if (_settings_game.vehicle.plane_speed > 1) spd /= _settings_game.vehicle.plane_speed;
 
 	/* Convert direction-independent speed into direction-dependent speed. (old movement method) */
-	/* Divide by two as we are called twice per tick */
-	spd = v->GetOldAdvanceSpeed(spd)/2;
+	if (speed_limit == SPEED_LIMIT_TAXI) {
+		/* Taxing becomes way too slow on some maps, if we use map dependent speeds */
+		spd = (v->direction & 1) ? spd : spd * 3 / 4;
+	} else {
+		/* Divide by two as we are called twice per tick */
+		spd = v->GetOldAdvanceSpeed(spd) / 2;
+	}
 
 	spd += v->progress;
 	v->progress = (byte)spd;
