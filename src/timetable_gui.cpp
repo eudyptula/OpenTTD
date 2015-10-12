@@ -512,6 +512,35 @@ struct TimetableWindow : Window {
 		return v->index | (order_number << 20) | (mtf << 28);
 	}
 
+	void ChangeTime(WChar key) {
+		const Vehicle *v = this->vehicle;
+		int selected = this->sel_index;
+		VehicleOrderID real = (selected + 1) / 2;
+
+		if (real >= v->GetNumOrders()) real = 0;
+
+		const Order *order = v->GetOrder(real);
+		StringID current = STR_EMPTY;
+
+		if (order != NULL) {
+			uint time = 0;
+			if (key >= '0' && key <= '9') {
+				time = key-'0';
+			} else {
+				time = (selected % 2 == 1) ? order->GetTravelTime() : order->GetWaitTime();
+				if (!_settings_client.gui.timetable_in_ticks) time /= DAY_TICKS;
+			}
+
+			if (time != 0) {
+				SetDParam(0, time);
+				current = STR_JUST_INT;
+			}
+		}
+
+		this->query_is_speed_query = false;
+		ShowQueryString(current, STR_TIMETABLE_CHANGE_TIME, 31, this, CS_NUMERAL, QSF_ACCEPT_UNCHANGED);
+	}
+
 	virtual void OnClick(Point pt, int widget, int click_count)
 	{
 		const Vehicle *v = this->vehicle;
@@ -534,26 +563,7 @@ struct TimetableWindow : Window {
 				break;
 
 			case WID_VT_CHANGE_TIME: { // "Wait For" button.
-				int selected = this->sel_index;
-				VehicleOrderID real = (selected + 1) / 2;
-
-				if (real >= v->GetNumOrders()) real = 0;
-
-				const Order *order = v->GetOrder(real);
-				StringID current = STR_EMPTY;
-
-				if (order != NULL) {
-					uint time = (selected % 2 == 1) ? order->GetTravelTime() : order->GetWaitTime();
-					if (!_settings_client.gui.timetable_in_ticks) time /= DAY_TICKS;
-
-					if (time != 0) {
-						SetDParam(0, time);
-						current = STR_JUST_INT;
-					}
-				}
-
-				this->query_is_speed_query = false;
-				ShowQueryString(current, STR_TIMETABLE_CHANGE_TIME, 31, this, CS_NUMERAL, QSF_ACCEPT_UNCHANGED);
+				ChangeTime(0);
 				break;
 			}
 
@@ -611,6 +621,14 @@ struct TimetableWindow : Window {
 		}
 
 		this->SetDirty();
+	}
+
+	virtual EventState OnKeyPress(WChar key, uint16 keycode) {
+		if (key >= '0' && key <= '9') {
+			ChangeTime(key);
+			return ES_HANDLED;
+		}
+		return ES_NOT_HANDLED;
 	}
 
 	virtual void OnQueryTextFinished(char *str)
