@@ -262,6 +262,7 @@
  *  192   26700
  *  193   26802
  *  194   26881   1.5.x
+ *  195   N/A     Last travel time for vehicles added
  */
 extern const uint16 SAVEGAME_VERSION = 195; ///< Current savegame version of OpenTTD.
 
