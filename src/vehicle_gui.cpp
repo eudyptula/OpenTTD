@@ -91,6 +91,23 @@ const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
 	INVALID_STRING_ID
 };
 
+const StringID BaseVehicleListWindow::vehicle_list_details[] = {
+		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
+		STR_VEHICLE_LIST_NAME,
+		STR_VEHICLE_LIST_AGE,
+		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
+		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
+		STR_VEHICLE_LIST_CAPACITY,
+		STR_VEHICLE_LIST_RELIABILITY,
+		STR_VEHICLE_LIST_MAX_SPEED,
+		STR_VEHICLE_LIST_MODEL,
+		STR_VEHICLE_LIST_VALUE,
+		STR_VEHICLE_LIST_LENGTH,
+		STR_VEHICLE_LIST_AGE,
+		STR_VEHICLE_LIST_TIMETABLE_DELAY,
+		INVALID_STRING_ID
+};
+
 const StringID BaseVehicleListWindow::vehicle_depot_name[] = {
 	STR_VEHICLE_LIST_SEND_TRAIN_TO_DEPOT,
 	STR_VEHICLE_LIST_SEND_ROAD_VEHICLE_TO_DEPOT,
@@ -1386,11 +1403,44 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 		const Vehicle *v = this->vehicles[i];
 		StringID str;
 
-		SetDParam(0, v->GetDisplayProfitThisYear());
-		SetDParam(1, v->GetDisplayProfitLastYear());
-
 		DrawVehicleImage(v, image_left, image_right, y + FONT_HEIGHT_SMALL - 1, selected_vehicle, EIT_IN_LIST, 0);
-		DrawString(text_left, text_right, y + line_height - FONT_HEIGHT_SMALL - WD_FRAMERECT_BOTTOM - 1, STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR);
+
+		str = this->vehicle_list_details[this->vehicles.SortType()];
+		switch(str) {
+			case STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR:
+				SetDParam(0, v->GetDisplayProfitThisYear());
+				SetDParam(1, v->GetDisplayProfitLastYear());
+				break;
+			case STR_VEHICLE_LIST_NAME:
+				SetDParamStr(0, v->name);
+				break;
+			case STR_VEHICLE_LIST_AGE:
+				SetDParam(0, v->age / DAYS_IN_LEAP_YEAR);
+				SetDParam(1, v->max_age / DAYS_IN_LEAP_YEAR);
+				break;
+			case STR_VEHICLE_LIST_CAPACITY:
+				SetDParam(0, v->GetConsistTotalCapacity());
+				break;
+			case STR_VEHICLE_LIST_RELIABILITY:
+				SetDParam(0, ToPercent16(v->reliability));
+				break;
+			case STR_VEHICLE_LIST_MAX_SPEED:
+				SetDParam(0, v->GetDisplayMaxSpeed());
+				break;
+			case STR_VEHICLE_LIST_MODEL:
+				SetDParam(0, v->engine_type);
+				break;
+			case STR_VEHICLE_LIST_VALUE:
+				SetDParam(0, v->value);
+				break;
+			case STR_VEHICLE_LIST_LENGTH:
+				SetDParam(0, v->GetGroundVehicleCache()->cached_total_length);
+				break;
+			case STR_VEHICLE_LIST_TIMETABLE_DELAY:
+				SetTimetableParams(0, 1, v->lateness_counter);
+				break;
+		}
+		DrawString(text_left, text_right, y + line_height - FONT_HEIGHT_SMALL - WD_FRAMERECT_BOTTOM - 1, str);
 
 		if (v->name != NULL) {
 			/* The vehicle got a name so we will print it */
