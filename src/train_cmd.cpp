@@ -2868,8 +2868,10 @@ int Train::UpdateSpeed()
 		case AM_ORIGINAL:
 			return this->DoUpdateSpeed(this->acceleration * (this->GetAccelerationStatus() == AS_BRAKE ? -4 : 2), 0, this->GetCurrentMaxSpeed());
 
-		case AM_REALISTIC:
-			return this->DoUpdateSpeed(this->GetAcceleration(), this->GetAccelerationStatus() == AS_BRAKE ? 0 : 2, this->GetCurrentMaxSpeed());
+		case AM_REALISTIC: {
+			/* Divide acceleration with two as we are called twice per tick */
+			return this->DoUpdateSpeed(this->GetAcceleration()/2, this->GetAccelerationStatus() == AS_BRAKE ? 0 : 2, this->GetCurrentMaxSpeed());
+		}
 	}
 }
 

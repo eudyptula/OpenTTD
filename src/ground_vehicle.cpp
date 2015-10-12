@@ -177,7 +177,9 @@ int GroundVehicle<T, Type>::GetAcceleration() const
 		 * down hill will never slow down enough, and a vehicle that came up
 		 * a hill will never speed up enough to (eventually) get back to the
 		 * same (maximum) speed. */
-		int accel = ClampToI32((force - resistance) / (mass * 4));
+		/* Convert the result to kph/tick and multiply with 256, as it is
+		 * being applied to subspeed (one byte fraction of the speed). */
+		int accel = ClampToI32( ((force - resistance) * 36 * 60 * 256 ) / (mass * 10 * 1000 * _settings_game.map.ticks_per_minute));
 		return force < resistance ? min(-1, accel) : max(1, accel);
 	} else {
 		return ClampToI32(min(-force - resistance, -10000) / mass);
