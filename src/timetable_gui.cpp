@@ -149,6 +149,7 @@ static void ChangeTimetableStartCallback(const Window *w, Date date)
 
 
 struct TimetableWindow : Window {
+	static TimetableWindow *last_sel; ///< Window of last select (used in onKeyPress)
 	int sel_index;
 	const Vehicle *vehicle; ///< Vehicle monitored by the window.
 	bool show_expected;     ///< Whether we show expected arrival or scheduled
@@ -555,6 +556,7 @@ struct TimetableWindow : Window {
 
 				this->DeleteChildWindows();
 				this->sel_index = (selected == INVALID_ORDER || selected == this->sel_index) ? -1 : selected;
+				this->last_sel = this;
 				break;
 			}
 
@@ -624,7 +626,8 @@ struct TimetableWindow : Window {
 	}
 
 	virtual EventState OnKeyPress(WChar key, uint16 keycode) {
-		if (key >= '0' && key <= '9') {
+		if (this->last_sel == this && key >= '0' && key <= '9') {
+			this->clicked_widget = WID_VT_CHANGE_TIME;
 			ChangeTime(key);
 			return ES_HANDLED;
 		}
@@ -666,6 +669,8 @@ struct TimetableWindow : Window {
 		this->GetWidget<NWidgetStacked>(WID_VT_EXPECTED_SELECTION)->SetDisplayedPlane(_settings_client.gui.timetable_arrival_departure ? 0 : 1);
 	}
 };
+
+TimetableWindow *TimetableWindow::last_sel = NULL;
 
 static const NWidgetPart _nested_timetable_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
