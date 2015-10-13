@@ -1751,7 +1751,6 @@ static SettingsContainer &GetSettingsTree()
 			SettingsPage *map = environment->Add(new SettingsPage(STR_CONFIG_SETTING_ENVIRONMENT_MAPSETTINGS));
 			{
 				map->Add(new SettingEntry("map.field_width"));
-				map->Add(new SettingEntry("map.ticks_per_minute"));
 			}
 
 			environment->Add(new SettingEntry("station.modified_catchment"));

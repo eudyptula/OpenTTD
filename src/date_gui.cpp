@@ -180,7 +180,7 @@ struct SetMinutesWindow : SetDateWindow
 	/** Constructor. */
 	SetMinutesWindow(WindowDesc *desc, WindowNumber window_number, Window *parent, DateTicks initial_date, Year min_year, Year max_year, SetDateCallback *callback) :
 		SetDateWindow(desc, window_number, parent, initial_date, min_year, max_year, callback),
-		minutes(initial_date / _settings_game.map.ticks_per_minute)
+		minutes(initial_date / TICKS_PER_MINUTE)
 	{
 	}
 
@@ -263,7 +263,7 @@ struct SetMinutesWindow : SetDateWindow
 				break;
 
 			case WID_SD_SET_DATE:
-				if (this->callback != NULL) this->callback(this->parent, ((DateTicks)minutes - _settings_client.gui.clock_offset) * _settings_game.map.ticks_per_minute);
+				if (this->callback != NULL) this->callback(this->parent, ((DateTicks)minutes - _settings_client.gui.clock_offset) * TICKS_PER_MINUTE);
 				delete this;
 				break;
 		}
@@ -362,6 +362,6 @@ void ShowSetDateWindow(Window *parent, int window_number, DateTicks initial_date
 	if (!_settings_client.gui.time_in_minutes) {
 		new SetDateWindow(&_set_date_desc, window_number, parent, initial_date / DAY_TICKS, min_year, max_year, callback);
 	} else {
-		new SetMinutesWindow(&_set_minutes_desc, window_number, parent, initial_date + (_settings_client.gui.clock_offset * _settings_game.map.ticks_per_minute), min_year, max_year, callback);
+		new SetMinutesWindow(&_set_minutes_desc, window_number, parent, initial_date + (_settings_client.gui.clock_offset * TICKS_PER_MINUTE), min_year, max_year, callback);
 	}
 }

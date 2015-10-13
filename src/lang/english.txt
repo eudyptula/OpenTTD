@@ -1643,8 +1643,6 @@ STR_CONFIG_SETTING_SHORT_PATH_SATURATION_HELPTEXT               :Frequently ther
 STR_CONFIG_SETTING_KM                                           :{COMMA}km
 STR_CONFIG_SETTING_MAP_FIELD_WIDTH                              :Width of a field: {STRING2}
 STR_CONFIG_SETTING_MAP_FIELD_WIDTH_HELPTEXT                     :Width of a field on the map for adapting vehicle speeds.
-STR_CONFIG_SETTING_TICKS_PER_MINUTE                             :Ticks per minute: {STRING2}
-STR_CONFIG_SETTING_TICKS_PER_MINUTE_HELPTEXT                    :The number of game ticks per minute
 
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY                  :Speed units: {STRING2}
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_HELPTEXT         :Whenever a speed is shown in the user interface, show it in the selected units
