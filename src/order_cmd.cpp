@@ -997,8 +997,13 @@ CommandCost CmdReverseOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 	if (v->GetNumOrders()*2 - (dup ? 0 : 2) > MAX_VEH_ORDER_ID) return_cmd_error(STR_ERROR_TOO_MANY_ORDERS);
 	if (!Order::CanAllocateItem(v->GetNumOrders() - (dup ? 0 : 2))) return_cmd_error(STR_ERROR_NO_MORE_SPACE_FOR_ORDERS);
 
+	Order *last_order = v->GetLastOrder();
+	VehicleOrderID last_idx = v->GetNumOrders()-1;
+
 	// Insert orders
-	for (i = (dup ? 0 : 1); i < (dup ? max : max-1); i++) {
+	VehicleOrderID from = dup ? (v->GetFirstOrder()->IsType(OT_GOTO_DEPOT) ? 1 : 0) : 1;
+	VehicleOrderID to = dup ? (v->GetLastOrder()->IsType(OT_GOTO_DEPOT) ? max-1 : max) : max-1;
+	for (i = from; i < to; i++) {
 		//ret = CmdInsertOrder(tile, flags, p1, orders[i], text);
 		//if (ret.Failed()) return ret;
 
@@ -1009,6 +1014,20 @@ CommandCost CmdReverseOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 			new_o->AssignOrder(new_order);
 			InsertOrder(v, new_o, sel_ord);
 		}
+	}
+
+	if (flags & DC_EXEC) {
+		if (dup) {
+			if (last_order->IsType(OT_GOTO_STATION))
+				last_order->SetLoadType(OLFB_NO_LOAD);
+			if (v->GetLastOrder()->IsType(OT_GOTO_STATION))
+				v->GetLastOrder()->SetLoadType(OLFB_NO_LOAD);
+		}
+
+		if (v->GetFirstOrder()->IsType(OT_GOTO_DEPOT) && v->GetLastOrder()->IsType(OT_GOTO_STATION))
+            v->GetLastOrder()->SetLoadType(OLFB_NO_LOAD);
+        if (last_order->IsType(OT_GOTO_DEPOT) && v->GetOrder(last_idx-1)->IsType(OT_GOTO_STATION))
+            v->GetOrder(last_idx-1)->SetLoadType(OLFB_NO_LOAD);
 	}
 
 	return CommandCost();
