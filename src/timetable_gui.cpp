@@ -22,6 +22,7 @@
 #include "company_func.h"
 #include "date_func.h"
 #include "date_gui.h"
+#include "date_type.h"
 #include "vehicle_gui.h"
 #include "settings_type.h"
 
@@ -592,7 +593,7 @@ struct TimetableWindow : Window {
 				if (_settings_client.gui.time_in_minutes && _settings_client.gui.timetable_start_text_entry) {
 					StringID str = STR_JUST_INT;
 					uint64 time = ((DateTicks)_date * DAY_TICKS) + _date_fract;
-					time /= _settings_client.gui.ticks_per_minute;
+					time /= TICKS_PER_MINUTE;
 					time += _settings_client.gui.clock_offset;
 					time %= 24*60;
 					time = (time % 60) + (((time / 60) % 24) * 100);

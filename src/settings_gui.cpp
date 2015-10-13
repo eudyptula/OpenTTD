@@ -1561,7 +1561,6 @@ static SettingsContainer &GetSettingsTree()
 			{
 				wallclock->Add(new SettingEntry("gui.time_in_minutes"));
 				wallclock->Add(new SettingEntry("gui.timetable_start_text_entry"));
-				wallclock->Add(new SettingEntry("gui.ticks_per_minute"));
 				wallclock->Add(new SettingEntry("gui.date_with_time"));
 				wallclock->Add(new SettingEntry("gui.clock_offset"));
 			}
@@ -1760,6 +1759,11 @@ static SettingsContainer &GetSettingsTree()
 				cdist->Add(new SettingEntry("linkgraph.demand_distance"));
 				cdist->Add(new SettingEntry("linkgraph.demand_size"));
 				cdist->Add(new SettingEntry("linkgraph.short_path_saturation"));
+			}
+
+			SettingsPage *map = environment->Add(new SettingsPage(STR_CONFIG_SETTING_ENVIRONMENT_MAPSETTINGS));
+			{
+				map->Add(new SettingEntry("map.field_width"));
 			}
 
 			environment->Add(new SettingEntry("station.modified_catchment"));

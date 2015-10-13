@@ -361,7 +361,7 @@ void DeparturesWindow<Twaypoint>::RecomputeDateWidth()
 	cached_status_width = max((GetStringBoundingBox(STR_DEPARTURES_DELAYED)).width, cached_status_width);
 	cached_status_width = max((GetStringBoundingBox(STR_DEPARTURES_CANCELLED)).width, cached_status_width);
 
-	uint interval = cached_date_display_method ? _settings_client.gui.ticks_per_minute : DAY_TICKS;
+	uint interval = cached_date_display_method ? TICKS_PER_MINUTE : DAY_TICKS;
 	uint count = cached_date_display_method ? 24*60 : 365;
 
 	for (uint i = 0; i < count; ++i) {

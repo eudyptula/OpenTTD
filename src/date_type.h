@@ -32,7 +32,17 @@ static const int DAY_TICKS         =  74; ///< ticks per day
 static const int DAYS_IN_YEAR      = 365; ///< days per year
 static const int DAYS_IN_LEAP_YEAR = 366; ///< sometimes, you need one day more...
 
-#define DATE_UNIT_SIZE (_settings_client.gui.time_in_minutes ? _settings_client.gui.ticks_per_minute : DAY_TICKS)
+/*
+ * Formula: (4*1000*192*16)/(3*60*fw)
+ * Explanation of variables to scale this to map specific settings:
+ *    1000            : Speed unit conversion (km-ish/m-ish)
+ *    192             : "progress" per position (non-diagonal), as defined in GetAdvanceDistance.
+ *    16              : Positions per visual map tile (from https://wiki.openttd.org/OpenTTDDevBlackBook/Simulation/Vehicles)
+ *    60              : Time unit conversion (min/h)
+ *    field_width     : Width of a visual map tile as defined in map settings (m)
+ */
+#define TICKS_PER_MINUTE (204800/(3*_settings_game.map.field_width))
+#define DATE_UNIT_SIZE (_settings_client.gui.time_in_minutes ? TICKS_PER_MINUTE : DAY_TICKS)
 
 static const int STATION_RATING_TICKS     = 185; ///< cycle duration for updating station rating
 static const int STATION_ACCEPTANCE_TICKS = 250; ///< cycle duration for updating station acceptance
@@ -111,7 +121,7 @@ static const Year MAX_YEAR  = 5000000;
 #define MINUTES_DATE(day, hour, minute) ((day * 1440) + (hour * 60) + minute)
 
 /** Get the current date in minutes */
-#define CURRENT_MINUTE ((((DateTicks)_date * DAY_TICKS) + _date_fract) / _settings_client.gui.ticks_per_minute)
+#define CURRENT_MINUTE ((((DateTicks)_date * DAY_TICKS) + _date_fract) / TICKS_PER_MINUTE)
 
 /**
  * Data structure to convert between Date and triplet (year, month, and day).

@@ -1408,8 +1408,6 @@ STR_CONFIG_SETTING_TIMETABLE_SEPARATION                         :Use timetable t
 STR_CONFIG_SETTING_TIMETABLE_SEPARATION_HELPTEXT                :Use timetable to automatically separate vehicles by having vehicles too close to the one ahead wait at stations
 STR_CONFIG_SETTING_TIME_IN_MINUTES                              :Show time in minutes rather than days: {STRING2}
 STR_CONFIG_SETTING_TIME_IN_MINUTES_HELPTEXT                     :Select whether to use hours and minutes instead of days
-STR_CONFIG_SETTING_TICKS_PER_MINUTE                             :Ticks per minute: {STRING2}
-STR_CONFIG_SETTING_TICKS_PER_MINUTE_HELPTEXT                    :The number of game ticks per minute
 STR_CONFIG_SETTING_DATE_WITH_TIME                               :Show date with time in status bar: {STRING2}
 STR_CONFIG_SETTING_DATE_WITH_TIME_HELPTEXT                      :Show the real game date in the status bar as well as the time
 STR_CONFIG_SETTING_CLOCK_OFFSET                                 :Clock offset in minutes: {STRING2}
@@ -1662,6 +1660,10 @@ STR_CONFIG_SETTING_DEMAND_SIZE_HELPTEXT                         :Setting this to
 STR_CONFIG_SETTING_SHORT_PATH_SATURATION                        :Saturation of short paths before using high-capacity paths: {STRING2}
 STR_CONFIG_SETTING_SHORT_PATH_SATURATION_HELPTEXT               :Frequently there are multiple paths between two given stations. Cargodist will saturate the shortest path first, then use the second shortest path until that is saturated and so on. Saturation is determined by an estimation of capacity and planned usage. Once it has saturated all paths, if there is still demand left, it will overload all paths, prefering the ones with high capacity. Most of the time the algorithm will not estimate the capacity accurately, though. This setting allows you to specify up to which percentage a shorter path must be saturated in the first pass before choosing the next longer one. Set it to less than 100% to avoid overcrowded stations in case of overestimated capacity.
 
+STR_CONFIG_SETTING_KM                                           :{COMMA}km
+STR_CONFIG_SETTING_MAP_FIELD_WIDTH                              :Width of a field: {STRING2}
+STR_CONFIG_SETTING_MAP_FIELD_WIDTH_HELPTEXT                     :Width of a field on the map for adapting vehicle speeds.
+
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY                  :Speed units: {STRING2}
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_HELPTEXT         :Whenever a speed is shown in the user interface, show it in the selected units
 STR_CONFIG_SETTING_LOCALISATION_UNITS_VELOCITY_IMPERIAL         :Imperial (mph)
@@ -1722,6 +1724,7 @@ STR_CONFIG_SETTING_ENVIRONMENT_AUTHORITIES                      :{ORANGE}Authori
 STR_CONFIG_SETTING_ENVIRONMENT_TOWNS                            :{ORANGE}Towns
 STR_CONFIG_SETTING_ENVIRONMENT_INDUSTRIES                       :{ORANGE}Industries
 STR_CONFIG_SETTING_ENVIRONMENT_CARGODIST                        :{ORANGE}Cargo distribution
+STR_CONFIG_SETTING_ENVIRONMENT_MAPSETTINGS                      :{ORANGE}Map Settings
 STR_CONFIG_SETTING_AI                                           :{ORANGE}Competitors
 STR_CONFIG_SETTING_AI_NPC                                       :{ORANGE}Computer players
 

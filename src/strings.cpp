@@ -411,7 +411,7 @@ static char *FormatBytes(char *buff, int64 number, const char *last)
 
 static char *FormatWallClockString(char *buff, DateTicks ticks, const char *last, bool show_date, uint case_index)
 {
-	Minutes minutes = ticks / _settings_client.gui.ticks_per_minute + _settings_client.gui.clock_offset;
+	Minutes minutes = ticks / TICKS_PER_MINUTE + _settings_client.gui.clock_offset;
 	char hour[3], minute[3];
 	seprintf(hour,   lastof(hour),   "%02i", MINUTES_HOUR(minutes)  );
 	seprintf(minute, lastof(minute), "%02i", MINUTES_MINUTE(minutes));
