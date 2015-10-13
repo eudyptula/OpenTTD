@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./configure --host=x86_64-w64-mingw32 --prefix=/usr/local/x86_64-w64-mingw32 CFLAGS="-I/usr/local/x86_64-w64-mingw32/include  --sysroot=/usr/x86_64-w64-mingw32" LDFLAGS="-L/usr/local/x86_64-w64-mingw32/lib"  --without-sdl --without-icu --without-liblzo2 --with-png=/usr/local/x86_64-w64-mingw32/bin/libpng-config --with-freetype="/usr/bin/x86_64-w64-mingw32-pkg-config freetype2"
+./configure --host=x86_64-w64-mingw32 --prefix=/usr/local/x86_64-w64-mingw32 CFLAGS="-I/usr/local/x86_64-w64-mingw32/include  --sysroot=/usr/x86_64-w64-mingw32" LDFLAGS="-L/usr/local/x86_64-w64-mingw32/lib"  --without-sdl --without-icu --without-liblzo2 --with-png=/usr/local/x86_64-w64-mingw32/bin/libpng-config --with-freetype="/usr/bin/x86_64-w64-mingw32-pkg-config freetype2" $@
