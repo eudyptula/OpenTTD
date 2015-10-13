@@ -592,8 +592,8 @@ void UpdateAircraftCache(Aircraft *v, bool update_range)
  * Special velocities for aircraft
  */
 enum AircraftSpeedLimits {
-	SPEED_LIMIT_TAXI     =     50,  ///< Maximum speed of an aircraft while taxiing
-	SPEED_LIMIT_APPROACH =    230,  ///< Maximum speed of an aircraft on finals
+	SPEED_LIMIT_TAXI     =     75,  ///< Maximum speed of an aircraft while taxiing
+	SPEED_LIMIT_APPROACH =    260,  ///< Maximum speed of an aircraft on finals
 	SPEED_LIMIT_BROKEN   =    320,  ///< Maximum speed of an aircraft that is broken
 	SPEED_LIMIT_HOLD     =    425,  ///< Maximum speed of an aircraft that flies the holding pattern
 	SPEED_LIMIT_NONE     = 0xFFFF,  ///< No environmental speed limit. Speed limit is type dependent
