@@ -663,7 +663,7 @@ void UpdateVehicleTimetable(Vehicle *v, bool travelling)
 			/* Use arrival_error to finetune order ticks. */
 			if (arrival_error < 0) new_time++;
 			if (arrival_error > 0) new_time--;
-		} else if (new_time > (int32)timetabled * 10 && travelling) {
+		} else if (new_time > (int32)timetabled * 4 && travelling) {
 			/* Possible jam, clear time and restart timetable for all vehicles.
 			 * Otherwise we risk trains blocking 1-lane stations for long times. */
 			ChangeTimetable(v, v->cur_real_order_index, 0, travelling ? MTF_TRAVEL_TIME : MTF_WAIT_TIME, true);
