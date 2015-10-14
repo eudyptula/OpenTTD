@@ -40,6 +40,7 @@
 #include "zoom_func.h"
 
 #include "safeguards.h"
+#include "vehicle_base.h"
 
 
 Sorting _sorting;
@@ -57,6 +58,7 @@ static GUIVehicleList::SortFunction VehicleValueSorter;
 static GUIVehicleList::SortFunction VehicleLengthSorter;
 static GUIVehicleList::SortFunction VehicleTimeToLiveSorter;
 static GUIVehicleList::SortFunction VehicleTimetableDelaySorter;
+static GUIVehicleList::SortFunction VehicleTimetableLengthSorter;
 
 GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs[] = {
 	&VehicleNumberSorter,
@@ -72,6 +74,7 @@ GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs
 	&VehicleLengthSorter,
 	&VehicleTimeToLiveSorter,
 	&VehicleTimetableDelaySorter,
+	&VehicleTimetableLengthSorter,
 };
 
 const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
@@ -88,6 +91,7 @@ const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
 	STR_SORT_BY_LENGTH,
 	STR_SORT_BY_LIFE_TIME,
 	STR_SORT_BY_TIMETABLE_DELAY,
+	STR_SORT_BY_TIMETABLE_LENGTH,
 	INVALID_STRING_ID
 };
 
@@ -105,6 +109,7 @@ const StringID BaseVehicleListWindow::vehicle_list_details[] = {
 		STR_VEHICLE_LIST_LENGTH,
 		STR_VEHICLE_LIST_AGE,
 		STR_VEHICLE_LIST_TIMETABLE_DELAY,
+		STR_VEHICLE_LIST_TIMETABLE_LENGTH,
 		INVALID_STRING_ID
 };
 
@@ -1216,6 +1221,15 @@ static int CDECL VehicleTimetableDelaySorter(const Vehicle * const *a, const Veh
 	return (r != 0) ? r : VehicleNumberSorter(a, b);
 }
 
+/** Sort vehicles by the timetable length */
+static int CDECL VehicleTimetableLengthSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
+	Ticks a_time = (*a)->orders.list != NULL ? (*a)->orders.list->GetTimetableDurationIncomplete() : 0;
+	Ticks b_time = (*b)->orders.list != NULL ? (*b)->orders.list->GetTimetableDurationIncomplete() : 0;
+	int r = a_time - b_time;
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
+}
+
 void InitializeGUI()
 {
 	MemSetT(&_sorting, 0);
@@ -1438,6 +1452,14 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				break;
 			case STR_VEHICLE_LIST_TIMETABLE_DELAY:
 				SetTimetableParams(0, 1, v->lateness_counter);
+				break;
+			case STR_VEHICLE_LIST_TIMETABLE_LENGTH:
+				Ticks t = 0;
+				if (v->orders.list != NULL) {
+					if (!v->orders.list->IsCompleteTimetable()) str = STR_VEHICLE_LIST_TIMETABLE_LENGTH_INCOMPLETE;
+					t = v->orders.list->GetTimetableDurationIncomplete();
+				}
+				SetTimetableParams(0, 1, t);
 				break;
 		}
 		DrawString(text_left, text_right, y + line_height - FONT_HEIGHT_SMALL - WD_FRAMERECT_BOTTOM - 1, str);
