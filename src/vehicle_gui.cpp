@@ -1190,12 +1190,14 @@ static int CDECL VehicleLoadHighSorter(const Vehicle * const *a, const Vehicle *
 	for (v = *a; v != NULL; v = v->Next()) {
 		loads_a[v->cargo_type] += v->cargo.TotalCount();
 		cap_a[v->cargo_type] += v->cargo_cap;
+		if (cap_a[v->cargo_type] == 0) continue;
 		temp = (loads_a[v->cargo_type] * 1000) / cap_a[v->cargo_type];
 		max_a = (temp > max_a ? temp : max_a);
 	}
 	for (v = *b; v != NULL; v = v->Next()) {
 		loads_b[v->cargo_type] += v->cargo.TotalCount();
 		cap_b[v->cargo_type] += v->cargo_cap;
+		if (cap_b[v->cargo_type] == 0) continue;
 		temp = (loads_b[v->cargo_type] * 1000) / cap_b[v->cargo_type];
 		max_b = (temp > max_b ? temp : max_b);
 	}
@@ -1215,12 +1217,14 @@ static int CDECL VehicleLoadLowSorter(const Vehicle * const *a, const Vehicle * 
 	for (v = *a; v != NULL; v = v->Next()) {
 		loads_a[v->cargo_type] += v->cargo.TotalCount();
 		cap_a[v->cargo_type] += v->cargo_cap;
+		if (cap_a[v->cargo_type] == 0) continue;
 		temp = (loads_a[v->cargo_type] * 1000) / cap_a[v->cargo_type];
 		min_a = (min_a > 0 ? (temp < min_a ? temp : min_a) : temp);
 	}
 	for (v = *b; v != NULL; v = v->Next()) {
 		loads_b[v->cargo_type] += v->cargo.TotalCount();
 		cap_b[v->cargo_type] += v->cargo_cap;
+		if (cap_b[v->cargo_type] == 0) continue;
 		temp = (loads_b[v->cargo_type] * 1000) / cap_b[v->cargo_type];
 		min_b = (min_a > 0 ? (temp < min_b ? temp : min_b) : temp);
 	}
@@ -1512,6 +1516,7 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
 					loads[i->cargo_type] += i->cargo.TotalCount();
 					cap[i->cargo_type] += i->cargo_cap;
+					if (cap[i->cargo_type] == 0) continue;
 					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
 					if (pct[i->cargo_type] > max_val) {
 						max_type = i->cargo_type;
@@ -1533,6 +1538,7 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
 					loads[i->cargo_type] += i->cargo.TotalCount();
 					cap[i->cargo_type] += i->cargo_cap;
+					if (cap[i->cargo_type] == 0) continue;
 					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
 					if (pct[i->cargo_type] < min_val || min_val == 0) {
 						min_type = i->cargo_type;
