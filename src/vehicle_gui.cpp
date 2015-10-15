@@ -1182,24 +1182,27 @@ static int CDECL VehicleLoadTotalSorter(const Vehicle * const *a, const Vehicle 
 /** Sort vehicles by their load */
 static int CDECL VehicleLoadHighSorter(const Vehicle * const *a, const Vehicle * const *b)
 {
-	const Vehicle *v;
 	CargoArray loads_a, loads_b, cap_a, cap_b;
 	uint max_a = 0, max_b = 0, temp;
 
-	/* Find max procentages */
-	for (v = *a; v != NULL; v = v->Next()) {
+	for (const Vehicle *v = *a; v != NULL; v = v->Next()) {
 		loads_a[v->cargo_type] += v->cargo.TotalCount();
 		cap_a[v->cargo_type] += v->cargo_cap;
-		if (cap_a[v->cargo_type] == 0) continue;
-		temp = (loads_a[v->cargo_type] * 1000) / cap_a[v->cargo_type];
-		max_a = (temp > max_a ? temp : max_a);
 	}
-	for (v = *b; v != NULL; v = v->Next()) {
+	for (const Vehicle *v = *b; v != NULL; v = v->Next()) {
 		loads_b[v->cargo_type] += v->cargo.TotalCount();
 		cap_b[v->cargo_type] += v->cargo_cap;
-		if (cap_b[v->cargo_type] == 0) continue;
-		temp = (loads_b[v->cargo_type] * 1000) / cap_b[v->cargo_type];
-		max_b = (temp > max_b ? temp : max_b);
+	}
+
+	for (CargoID i = 0; i < NUM_CARGO; i++) {
+		if (cap_a[i] != 0) {
+			temp = (loads_a[i] * 1000) / cap_a[i];
+			max_a = (temp > max_a ? temp : max_a);
+		}
+		if (cap_b[i] != 0) {
+			temp = (loads_b[i] * 1000) / cap_b[i];
+			max_b = (temp > max_b ? temp : max_b);
+		}
 	}
 
 	int r = max_a - max_b;
@@ -1209,27 +1212,30 @@ static int CDECL VehicleLoadHighSorter(const Vehicle * const *a, const Vehicle *
 /** Sort vehicles by their load */
 static int CDECL VehicleLoadLowSorter(const Vehicle * const *a, const Vehicle * const *b)
 {
-	const Vehicle *v;
 	CargoArray loads_a, loads_b, cap_a, cap_b;
-	uint min_a = 0, min_b = 0, temp;
+	uint min_a = UINT_MAX, min_b = UINT_MAX, temp;
 
-	/* Find min procentages */
-	for (v = *a; v != NULL; v = v->Next()) {
+	for (const Vehicle *v = *a; v != NULL; v = v->Next()) {
 		loads_a[v->cargo_type] += v->cargo.TotalCount();
 		cap_a[v->cargo_type] += v->cargo_cap;
-		if (cap_a[v->cargo_type] == 0) continue;
-		temp = (loads_a[v->cargo_type] * 1000) / cap_a[v->cargo_type];
-		min_a = (min_a > 0 ? (temp < min_a ? temp : min_a) : temp);
 	}
-	for (v = *b; v != NULL; v = v->Next()) {
+	for (const Vehicle *v = *b; v != NULL; v = v->Next()) {
 		loads_b[v->cargo_type] += v->cargo.TotalCount();
 		cap_b[v->cargo_type] += v->cargo_cap;
-		if (cap_b[v->cargo_type] == 0) continue;
-		temp = (loads_b[v->cargo_type] * 1000) / cap_b[v->cargo_type];
-		min_b = (min_a > 0 ? (temp < min_b ? temp : min_b) : temp);
 	}
 
-	int r = min_a - min_b;
+	for (CargoID i = 0; i < NUM_CARGO; i++) {
+		if (cap_a[i] != 0) {
+			temp = (loads_a[i] * 1000) / cap_a[i];
+			min_a = (temp < min_a ? temp : min_a);
+		}
+		if (cap_b[i] != 0) {
+			temp = (loads_b[i] * 1000) / cap_b[i];
+			min_b = (temp < min_b ? temp : min_b);
+		}
+	}
+
+	int r = (min_a < UINT_MAX ? min_a : 0) - (min_b < UINT_MAX ? min_b : 0);
 	return (r != 0) ? r : VehicleNumberSorter(a, b);
 }
 
@@ -1516,14 +1522,17 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
 					loads[i->cargo_type] += i->cargo.TotalCount();
 					cap[i->cargo_type] += i->cargo_cap;
-					if (cap[i->cargo_type] == 0) {
-						if (max_type == CT_INVALID && cap[i->cargo_type] > 0) max_type = i->cargo_type;
+				}
+
+				for (CargoID i = 0; i < NUM_CARGO; i++) {
+					if (cap[i] == 0) {
+						if (max_type == CT_INVALID && cap[i] > 0) max_type = i;
 						continue;
 					}
-					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
-					if (pct[i->cargo_type] > max_val) {
-						max_type = i->cargo_type;
-						max_val = pct[i->cargo_type];
+					pct[i] = (loads[i] * 1000) / cap[i];
+					if (pct[i] > max_val) {
+						max_type = i;
+						max_val = pct[i];
 					}
 				}
 
@@ -1541,14 +1550,17 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
 					loads[i->cargo_type] += i->cargo.TotalCount();
 					cap[i->cargo_type] += i->cargo_cap;
-					if (cap[i->cargo_type] == 0) {
-						if (min_type == CT_INVALID && cap[i->cargo_type] > 0) min_type = i->cargo_type;
+				}
+
+				for (CargoID i = 0; i < NUM_CARGO; i++) {
+					if (cap[i] == 0) {
+						if (min_type == CT_INVALID && cap[i] > 0) min_type = i;
 						continue;
 					}
-					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
-					if (pct[i->cargo_type] < min_val || min_val == 0) {
-						min_type = i->cargo_type;
-						min_val = pct[i->cargo_type];
+					pct[i] = (loads[i] * 1000) / cap[i];
+					if (pct[i] < min_val || min_val == 0) {
+						min_type = i;
+						min_val = pct[i];
 					}
 				}
 
