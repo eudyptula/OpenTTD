@@ -1511,12 +1511,15 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 			case STR_VEHICLE_LIST_LOAD_HIGH: {
 				CargoArray loads, cap, pct;
 				uint max_val = 0;
-				CargoID max_type;
+				CargoID max_type = CT_INVALID;
 
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
 					loads[i->cargo_type] += i->cargo.TotalCount();
 					cap[i->cargo_type] += i->cargo_cap;
-					if (cap[i->cargo_type] == 0) continue;
+					if (cap[i->cargo_type] == 0) {
+						if (max_type == CT_INVALID && cap[i->cargo_type] > 0) max_type = i->cargo_type;
+						continue;
+					}
 					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
 					if (pct[i->cargo_type] > max_val) {
 						max_type = i->cargo_type;
@@ -1526,19 +1529,22 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 
 				SetDParam(0, loads[max_type]);
 				SetDParam(1, cap[max_type]);
-				SetDParam(2, CargoSpec::Get(max_type)->name);
+				SetDParam(2, ( max_type == CT_INVALID ? STR_EMPTY : CargoSpec::Get(max_type)->name ));
 				SetDParam(3, pct[max_type]/10);
 				break;
 			}
 			case STR_VEHICLE_LIST_LOAD_LOW: {
 				CargoArray loads, cap, pct;
 				uint min_val = 0;
-				CargoID min_type;
+				CargoID min_type = CT_INVALID;
 
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
 					loads[i->cargo_type] += i->cargo.TotalCount();
 					cap[i->cargo_type] += i->cargo_cap;
-					if (cap[i->cargo_type] == 0) continue;
+					if (cap[i->cargo_type] == 0) {
+						if (min_type == CT_INVALID && cap[i->cargo_type] > 0) min_type = i->cargo_type;
+						continue;
+					}
 					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
 					if (pct[i->cargo_type] < min_val || min_val == 0) {
 						min_type = i->cargo_type;
@@ -1548,7 +1554,7 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 
 				SetDParam(0, loads[min_type]);
 				SetDParam(1, cap[min_type]);
-				SetDParam(2, CargoSpec::Get(min_type)->name);
+				SetDParam(2, ( min_type == CT_INVALID ? STR_EMPTY : CargoSpec::Get(min_type)->name ));
 				SetDParam(3, pct[min_type]/10);
 				break;
 			}
