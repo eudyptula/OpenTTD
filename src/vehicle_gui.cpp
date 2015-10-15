@@ -1162,7 +1162,7 @@ static int CDECL VehicleCargoSorter(const Vehicle * const *a, const Vehicle * co
 static int CDECL VehicleLoadSorter(const Vehicle * const *a, const Vehicle * const *b)
 {
 	const Vehicle *v;
-	uint16 diff = 0;
+	int16 diff = 0;
 
 	/* Append the cargo of the connected waggons */
 	for (v = *a; v != NULL; v = v->Next()) diff += v->cargo.TotalCount();
