@@ -50,8 +50,10 @@ static GUIVehicleList::SortFunction VehicleNameSorter;
 static GUIVehicleList::SortFunction VehicleAgeSorter;
 static GUIVehicleList::SortFunction VehicleProfitThisYearSorter;
 static GUIVehicleList::SortFunction VehicleProfitLastYearSorter;
-static GUIVehicleList::SortFunction VehicleLoadSorter;
 static GUIVehicleList::SortFunction VehicleCargoSorter;
+static GUIVehicleList::SortFunction VehicleLoadTotalSorter;
+static GUIVehicleList::SortFunction VehicleLoadHighSorter;
+static GUIVehicleList::SortFunction VehicleLoadLowSorter;
 static GUIVehicleList::SortFunction VehicleReliabilitySorter;
 static GUIVehicleList::SortFunction VehicleMaxSpeedSorter;
 static GUIVehicleList::SortFunction VehicleModelSorter;
@@ -67,8 +69,10 @@ GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs
 	&VehicleAgeSorter,
 	&VehicleProfitThisYearSorter,
 	&VehicleProfitLastYearSorter,
-	&VehicleLoadSorter,
 	&VehicleCargoSorter,
+	&VehicleLoadTotalSorter,
+	&VehicleLoadHighSorter,
+	&VehicleLoadLowSorter,
 	&VehicleReliabilitySorter,
 	&VehicleMaxSpeedSorter,
 	&VehicleModelSorter,
@@ -85,8 +89,10 @@ const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
 	STR_SORT_BY_AGE,
 	STR_SORT_BY_PROFIT_THIS_YEAR,
 	STR_SORT_BY_PROFIT_LAST_YEAR,
-	STR_SORT_BY_CURRENT_LOAD,
 	STR_SORT_BY_TOTAL_CAPACITY,
+	STR_SORT_BY_CURRENT_LOAD_TOTAL,
+	STR_SORT_BY_CURRENT_LOAD_HIGH,
+	STR_SORT_BY_CURRENT_LOAD_LOW,
 	STR_SORT_BY_RELIABILITY,
 	STR_SORT_BY_MAX_SPEED,
 	STR_SORT_BY_MODEL,
@@ -104,8 +110,10 @@ const StringID BaseVehicleListWindow::vehicle_list_details[] = {
 		STR_VEHICLE_LIST_AGE,
 		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
 		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
-		STR_VEHICLE_LIST_LOAD,
-		STR_VEHICLE_LIST_LOAD,
+		STR_VEHICLE_LIST_LOAD_TOTAL,
+		STR_VEHICLE_LIST_LOAD_TOTAL,
+		STR_VEHICLE_LIST_LOAD_HIGH,
+		STR_VEHICLE_LIST_LOAD_LOW,
 		STR_VEHICLE_LIST_RELIABILITY,
 		STR_VEHICLE_LIST_MAX_SPEED,
 		STR_VEHICLE_LIST_MODEL,
@@ -1159,7 +1167,7 @@ static int CDECL VehicleCargoSorter(const Vehicle * const *a, const Vehicle * co
 }
 
 /** Sort vehicles by their load */
-static int CDECL VehicleLoadSorter(const Vehicle * const *a, const Vehicle * const *b)
+static int CDECL VehicleLoadTotalSorter(const Vehicle * const *a, const Vehicle * const *b)
 {
 	const Vehicle *v;
 	int16 diff = 0;
@@ -1169,6 +1177,56 @@ static int CDECL VehicleLoadSorter(const Vehicle * const *a, const Vehicle * con
 	for (v = *b; v != NULL; v = v->Next()) diff -= v->cargo.TotalCount();
 
 	return (diff != 0) ? diff : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by their load */
+static int CDECL VehicleLoadHighSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
+	const Vehicle *v;
+	CargoArray loads_a, loads_b, cap_a, cap_b;
+	uint max_a = 0, max_b = 0, temp;
+
+	/* Find max procentages */
+	for (v = *a; v != NULL; v = v->Next()) {
+		loads_a[v->cargo_type] += v->cargo.TotalCount();
+		cap_a[v->cargo_type] += v->cargo_cap;
+		temp = (loads_a[v->cargo_type] * 1000) / cap_a[v->cargo_type];
+		max_a = (temp > max_a ? temp : max_a);
+	}
+	for (v = *b; v != NULL; v = v->Next()) {
+		loads_b[v->cargo_type] += v->cargo.TotalCount();
+		cap_b[v->cargo_type] += v->cargo_cap;
+		temp = (loads_b[v->cargo_type] * 1000) / cap_b[v->cargo_type];
+		max_b = (temp > max_b ? temp : max_b);
+	}
+
+	int r = max_a - max_b;
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by their load */
+static int CDECL VehicleLoadLowSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
+	const Vehicle *v;
+	CargoArray loads_a, loads_b, cap_a, cap_b;
+	uint min_a = 0, min_b = 0, temp;
+
+	/* Find min procentages */
+	for (v = *a; v != NULL; v = v->Next()) {
+		loads_a[v->cargo_type] += v->cargo.TotalCount();
+		cap_a[v->cargo_type] += v->cargo_cap;
+		temp = (loads_a[v->cargo_type] * 1000) / cap_a[v->cargo_type];
+		min_a = (min_a > 0 ? (temp < min_a ? temp : min_a) : temp);
+	}
+	for (v = *b; v != NULL; v = v->Next()) {
+		loads_b[v->cargo_type] += v->cargo.TotalCount();
+		cap_b[v->cargo_type] += v->cargo_cap;
+		temp = (loads_b[v->cargo_type] * 1000) / cap_b[v->cargo_type];
+		min_b = (min_a > 0 ? (temp < min_b ? temp : min_b) : temp);
+	}
+
+	int r = min_a - min_b;
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
 }
 
 /** Sort vehicles by their reliability */
@@ -1437,13 +1495,55 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				SetDParam(0, v->age / DAYS_IN_LEAP_YEAR);
 				SetDParam(1, v->max_age / DAYS_IN_LEAP_YEAR);
 				break;
-			case STR_VEHICLE_LIST_LOAD: {
+			case STR_VEHICLE_LIST_LOAD_TOTAL: {
 				uint load = 0;
 				for (const Vehicle *i = v; i != NULL; i = i->Next()) load += i->cargo.TotalCount();
 				uint total = v->GetConsistTotalCapacity();
 				SetDParam(0, load);
 				SetDParam(1, total);
 				SetDParam(2, (load * 100) / total);
+				break;
+			}
+			case STR_VEHICLE_LIST_LOAD_HIGH: {
+				CargoArray loads, cap, pct;
+				uint max_val = 0;
+				CargoID max_type;
+
+				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
+					loads[i->cargo_type] += i->cargo.TotalCount();
+					cap[i->cargo_type] += i->cargo_cap;
+					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
+					if (pct[i->cargo_type] > max_val) {
+						max_type = i->cargo_type;
+						max_val = pct[i->cargo_type];
+					}
+				}
+
+				SetDParam(0, loads[max_type]);
+				SetDParam(1, cap[max_type]);
+				SetDParam(2, CargoSpec::Get(max_type)->name);
+				SetDParam(3, pct[max_type]/10);
+				break;
+			}
+			case STR_VEHICLE_LIST_LOAD_LOW: {
+				CargoArray loads, cap, pct;
+				uint min_val = 0;
+				CargoID min_type;
+
+				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
+					loads[i->cargo_type] += i->cargo.TotalCount();
+					cap[i->cargo_type] += i->cargo_cap;
+					pct[i->cargo_type] = (loads[i->cargo_type] * 1000) / cap[i->cargo_type];
+					if (pct[i->cargo_type] < min_val || min_val == 0) {
+						min_type = i->cargo_type;
+						min_val = pct[i->cargo_type];
+					}
+				}
+
+				SetDParam(0, loads[min_type]);
+				SetDParam(1, cap[min_type]);
+				SetDParam(2, CargoSpec::Get(min_type)->name);
+				SetDParam(3, pct[min_type]/10);
 				break;
 			}
 			case STR_VEHICLE_LIST_RELIABILITY:
