@@ -50,6 +50,7 @@ static GUIVehicleList::SortFunction VehicleNameSorter;
 static GUIVehicleList::SortFunction VehicleAgeSorter;
 static GUIVehicleList::SortFunction VehicleProfitThisYearSorter;
 static GUIVehicleList::SortFunction VehicleProfitLastYearSorter;
+static GUIVehicleList::SortFunction VehicleLoadSorter;
 static GUIVehicleList::SortFunction VehicleCargoSorter;
 static GUIVehicleList::SortFunction VehicleReliabilitySorter;
 static GUIVehicleList::SortFunction VehicleMaxSpeedSorter;
@@ -66,6 +67,7 @@ GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs
 	&VehicleAgeSorter,
 	&VehicleProfitThisYearSorter,
 	&VehicleProfitLastYearSorter,
+	&VehicleLoadSorter,
 	&VehicleCargoSorter,
 	&VehicleReliabilitySorter,
 	&VehicleMaxSpeedSorter,
@@ -83,7 +85,8 @@ const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
 	STR_SORT_BY_AGE,
 	STR_SORT_BY_PROFIT_THIS_YEAR,
 	STR_SORT_BY_PROFIT_LAST_YEAR,
-	STR_SORT_BY_TOTAL_CAPACITY_PER_CARGOTYPE,
+	STR_SORT_BY_CURRENT_LOAD,
+	STR_SORT_BY_TOTAL_CAPACITY,
 	STR_SORT_BY_RELIABILITY,
 	STR_SORT_BY_MAX_SPEED,
 	STR_SORT_BY_MODEL,
@@ -101,7 +104,8 @@ const StringID BaseVehicleListWindow::vehicle_list_details[] = {
 		STR_VEHICLE_LIST_AGE,
 		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
 		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
-		STR_VEHICLE_LIST_CAPACITY,
+		STR_VEHICLE_LIST_LOAD,
+		STR_VEHICLE_LIST_LOAD,
 		STR_VEHICLE_LIST_RELIABILITY,
 		STR_VEHICLE_LIST_MAX_SPEED,
 		STR_VEHICLE_LIST_MODEL,
@@ -1150,20 +1154,21 @@ static int CDECL VehicleProfitLastYearSorter(const Vehicle * const *a, const Veh
 /** Sort vehicles by their cargo */
 static int CDECL VehicleCargoSorter(const Vehicle * const *a, const Vehicle * const *b)
 {
+	int r = (*a)->GetConsistTotalCapacity() - (*b)->GetConsistTotalCapacity();
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by their load */
+static int CDECL VehicleLoadSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
 	const Vehicle *v;
-	CargoArray diff;
+	uint16 diff = 0;
 
 	/* Append the cargo of the connected waggons */
-	for (v = *a; v != NULL; v = v->Next()) diff[v->cargo_type] += v->cargo_cap;
-	for (v = *b; v != NULL; v = v->Next()) diff[v->cargo_type] -= v->cargo_cap;
+	for (v = *a; v != NULL; v = v->Next()) diff += v->cargo.TotalCount();
+	for (v = *b; v != NULL; v = v->Next()) diff -= v->cargo.TotalCount();
 
-	int r = 0;
-	for (CargoID i = 0; i < NUM_CARGO; i++) {
-		r = diff[i];
-		if (r != 0) break;
-	}
-
-	return (r != 0) ? r : VehicleNumberSorter(a, b);
+	return (diff != 0) ? diff : VehicleNumberSorter(a, b);
 }
 
 /** Sort vehicles by their reliability */
@@ -1432,9 +1437,15 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 				SetDParam(0, v->age / DAYS_IN_LEAP_YEAR);
 				SetDParam(1, v->max_age / DAYS_IN_LEAP_YEAR);
 				break;
-			case STR_VEHICLE_LIST_CAPACITY:
-				SetDParam(0, v->GetConsistTotalCapacity());
+			case STR_VEHICLE_LIST_LOAD: {
+				uint load = 0;
+				for (const Vehicle *i = v; i != NULL; i = i->Next()) load += i->cargo.TotalCount();
+				uint total = v->GetConsistTotalCapacity();
+				SetDParam(0, load);
+				SetDParam(1, total);
+				SetDParam(2, (load * 100) / total);
 				break;
+			}
 			case STR_VEHICLE_LIST_RELIABILITY:
 				SetDParam(0, ToPercent16(v->reliability));
 				break;
