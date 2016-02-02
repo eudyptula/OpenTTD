@@ -1543,6 +1543,8 @@ static SettingsContainer &GetSettingsTree()
 				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_train"));
 				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_ship"));
 				reverse_orders->Add(new SettingEntry("gui.reverse_orders_dup_aircraft"));
+			}
+
 			SettingsPage *departureboards = interface->Add(new SettingsPage(STR_CONFIG_SETTING_INTERFACE_DEPARTUREBOARDS));
 			{
 				departureboards->Add(new SettingEntry("gui.max_departures"));
