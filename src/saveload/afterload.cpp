@@ -2393,7 +2393,7 @@ bool AfterLoadGame()
 		FOR_ALL_DEPOTS(d) d->build_date = _date;
 	}
 
-	if (IsSavegameVersionBefore(200)) {
+	if (IsSavegameVersionBefore(196)) {
 		Company *c;
 		FOR_ALL_COMPANIES(c) {
 			/* yearly_expenses has 3*15 entries now, saveload code gave us 3*13.
