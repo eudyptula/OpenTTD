@@ -263,8 +263,9 @@
  *  193   26802
  *  194   26881   1.5.x
  *  195   N/A     Last travel time for vehicles added
+ *  196   N/A     Infrastructure Sharing Patch
  */
-extern const uint16 SAVEGAME_VERSION = 195; ///< Current savegame version of OpenTTD.
+extern const uint16 SAVEGAME_VERSION = 196; ///< Current savegame version of OpenTTD.
 
 SavegameType _savegame_type; ///< type of savegame we are loading
 
