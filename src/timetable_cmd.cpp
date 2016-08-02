@@ -444,6 +444,8 @@ void UpdateVehicleTimetable(Vehicle *v, bool travelling)
 		} else if (!travelling && (autofilling || !real_current_order->IsWaitTimetabled())) {
 			ChangeTimetable(v, v->cur_real_order_index, time_to_set, MTF_WAIT_TIME, autofilling);
 		}
+
+		if (travelling) v->GetOrder(v->cur_real_order_index)->SetLastTravelTime(time_to_set);
 	}
 
 	if (v->cur_real_order_index == first_manual_order && travelling) {

@@ -45,6 +45,7 @@ private:
 
 	uint16 wait_time;    ///< How long in ticks to wait at the destination.
 	uint16 travel_time;  ///< How long in ticks the journey to this destination should take.
+	uint16 last_travel_time;
 	uint16 max_speed;    ///< How fast the vehicle may go on the way to the destination.
 
 public:
@@ -185,6 +186,7 @@ public:
 	inline uint16 GetWaitTime() const { return this->wait_time; }
 	/** Get the time in ticks a vehicle will probably take to reach the destination (timetabled or not). */
 	inline uint16 GetTravelTime() const { return this->travel_time; }
+	inline uint16 GetLastTravelTime() const { return this->last_travel_time; }
 
 	/**
 	 * Get the maxmimum speed in km-ish/h a vehicle is allowed to reach on the way to the
@@ -209,6 +211,7 @@ public:
 	 * @param time Time to set as travel time.
 	 */
 	inline void SetTravelTime(uint16 time) { this->travel_time = time; }
+	inline void SetLastTravelTime(uint16 time) { this->last_travel_time = time; }
 
 	/**
 	 * Set the maxmimum speed in km-ish/h a vehicle is allowed to reach on the way to the
