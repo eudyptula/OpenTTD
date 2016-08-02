@@ -40,6 +40,7 @@
 #include "zoom_func.h"
 
 #include "safeguards.h"
+#include "vehicle_base.h"
 
 
 Sorting _sorting;
@@ -50,6 +51,9 @@ static GUIVehicleList::SortFunction VehicleAgeSorter;
 static GUIVehicleList::SortFunction VehicleProfitThisYearSorter;
 static GUIVehicleList::SortFunction VehicleProfitLastYearSorter;
 static GUIVehicleList::SortFunction VehicleCargoSorter;
+static GUIVehicleList::SortFunction VehicleLoadTotalSorter;
+static GUIVehicleList::SortFunction VehicleLoadHighSorter;
+static GUIVehicleList::SortFunction VehicleLoadLowSorter;
 static GUIVehicleList::SortFunction VehicleReliabilitySorter;
 static GUIVehicleList::SortFunction VehicleMaxSpeedSorter;
 static GUIVehicleList::SortFunction VehicleModelSorter;
@@ -57,6 +61,7 @@ static GUIVehicleList::SortFunction VehicleValueSorter;
 static GUIVehicleList::SortFunction VehicleLengthSorter;
 static GUIVehicleList::SortFunction VehicleTimeToLiveSorter;
 static GUIVehicleList::SortFunction VehicleTimetableDelaySorter;
+static GUIVehicleList::SortFunction VehicleTimetableLengthSorter;
 
 GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs[] = {
 	&VehicleNumberSorter,
@@ -65,6 +70,9 @@ GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs
 	&VehicleProfitThisYearSorter,
 	&VehicleProfitLastYearSorter,
 	&VehicleCargoSorter,
+	&VehicleLoadTotalSorter,
+	&VehicleLoadHighSorter,
+	&VehicleLoadLowSorter,
 	&VehicleReliabilitySorter,
 	&VehicleMaxSpeedSorter,
 	&VehicleModelSorter,
@@ -72,6 +80,7 @@ GUIVehicleList::SortFunction * const BaseVehicleListWindow::vehicle_sorter_funcs
 	&VehicleLengthSorter,
 	&VehicleTimeToLiveSorter,
 	&VehicleTimetableDelaySorter,
+	&VehicleTimetableLengthSorter,
 };
 
 const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
@@ -80,7 +89,10 @@ const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
 	STR_SORT_BY_AGE,
 	STR_SORT_BY_PROFIT_THIS_YEAR,
 	STR_SORT_BY_PROFIT_LAST_YEAR,
-	STR_SORT_BY_TOTAL_CAPACITY_PER_CARGOTYPE,
+	STR_SORT_BY_TOTAL_CAPACITY,
+	STR_SORT_BY_CURRENT_LOAD_TOTAL,
+	STR_SORT_BY_CURRENT_LOAD_HIGH,
+	STR_SORT_BY_CURRENT_LOAD_LOW,
 	STR_SORT_BY_RELIABILITY,
 	STR_SORT_BY_MAX_SPEED,
 	STR_SORT_BY_MODEL,
@@ -88,7 +100,29 @@ const StringID BaseVehicleListWindow::vehicle_sorter_names[] = {
 	STR_SORT_BY_LENGTH,
 	STR_SORT_BY_LIFE_TIME,
 	STR_SORT_BY_TIMETABLE_DELAY,
+	STR_SORT_BY_TIMETABLE_LENGTH,
 	INVALID_STRING_ID
+};
+
+const StringID BaseVehicleListWindow::vehicle_list_details[] = {
+		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
+		STR_VEHICLE_LIST_NAME,
+		STR_VEHICLE_LIST_AGE,
+		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
+		STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR,
+		STR_VEHICLE_LIST_LOAD_TOTAL,
+		STR_VEHICLE_LIST_LOAD_TOTAL,
+		STR_VEHICLE_LIST_LOAD_HIGH,
+		STR_VEHICLE_LIST_LOAD_LOW,
+		STR_VEHICLE_LIST_RELIABILITY,
+		STR_VEHICLE_LIST_MAX_SPEED,
+		STR_VEHICLE_LIST_MODEL,
+		STR_VEHICLE_LIST_VALUE,
+		STR_VEHICLE_LIST_LENGTH,
+		STR_VEHICLE_LIST_AGE,
+		STR_VEHICLE_LIST_TIMETABLE_DELAY,
+		STR_VEHICLE_LIST_TIMETABLE_LENGTH,
+		INVALID_STRING_ID
 };
 
 const StringID BaseVehicleListWindow::vehicle_depot_name[] = {
@@ -1135,19 +1169,80 @@ static int CDECL VehicleProfitLastYearSorter(const Vehicle * const *a, const Veh
 /** Sort vehicles by their cargo */
 static int CDECL VehicleCargoSorter(const Vehicle * const *a, const Vehicle * const *b)
 {
+	int r = (*a)->GetConsistTotalCapacity() - (*b)->GetConsistTotalCapacity();
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by their load */
+static int CDECL VehicleLoadTotalSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
 	const Vehicle *v;
-	CargoArray diff;
+	int16 diff = 0;
 
 	/* Append the cargo of the connected waggons */
-	for (v = *a; v != NULL; v = v->Next()) diff[v->cargo_type] += v->cargo_cap;
-	for (v = *b; v != NULL; v = v->Next()) diff[v->cargo_type] -= v->cargo_cap;
+	for (v = *a; v != NULL; v = v->Next()) diff += v->cargo.TotalCount();
+	for (v = *b; v != NULL; v = v->Next()) diff -= v->cargo.TotalCount();
 
-	int r = 0;
-	for (CargoID i = 0; i < NUM_CARGO; i++) {
-		r = diff[i];
-		if (r != 0) break;
+	return (diff != 0) ? diff : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by their load */
+static int CDECL VehicleLoadHighSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
+	CargoArray loads_a, loads_b, cap_a, cap_b;
+	uint max_a = 0, max_b = 0, temp;
+
+	for (const Vehicle *v = *a; v != NULL; v = v->Next()) {
+		loads_a[v->cargo_type] += v->cargo.TotalCount();
+		cap_a[v->cargo_type] += v->cargo_cap;
+	}
+	for (const Vehicle *v = *b; v != NULL; v = v->Next()) {
+		loads_b[v->cargo_type] += v->cargo.TotalCount();
+		cap_b[v->cargo_type] += v->cargo_cap;
 	}
 
+	for (CargoID i = 0; i < NUM_CARGO; i++) {
+		if (cap_a[i] != 0) {
+			temp = (loads_a[i] * 1000) / cap_a[i];
+			max_a = (temp > max_a ? temp : max_a);
+		}
+		if (cap_b[i] != 0) {
+			temp = (loads_b[i] * 1000) / cap_b[i];
+			max_b = (temp > max_b ? temp : max_b);
+		}
+	}
+
+	int r = max_a - max_b;
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by their load */
+static int CDECL VehicleLoadLowSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
+	CargoArray loads_a, loads_b, cap_a, cap_b;
+	uint min_a = UINT_MAX, min_b = UINT_MAX, temp;
+
+	for (const Vehicle *v = *a; v != NULL; v = v->Next()) {
+		loads_a[v->cargo_type] += v->cargo.TotalCount();
+		cap_a[v->cargo_type] += v->cargo_cap;
+	}
+	for (const Vehicle *v = *b; v != NULL; v = v->Next()) {
+		loads_b[v->cargo_type] += v->cargo.TotalCount();
+		cap_b[v->cargo_type] += v->cargo_cap;
+	}
+
+	for (CargoID i = 0; i < NUM_CARGO; i++) {
+		if (cap_a[i] != 0) {
+			temp = (loads_a[i] * 1000) / cap_a[i];
+			min_a = (temp < min_a ? temp : min_a);
+		}
+		if (cap_b[i] != 0) {
+			temp = (loads_b[i] * 1000) / cap_b[i];
+			min_b = (temp < min_b ? temp : min_b);
+		}
+	}
+
+	int r = (min_a < UINT_MAX ? min_a : 0) - (min_b < UINT_MAX ? min_b : 0);
 	return (r != 0) ? r : VehicleNumberSorter(a, b);
 }
 
@@ -1203,6 +1298,15 @@ static int CDECL VehicleTimeToLiveSorter(const Vehicle * const *a, const Vehicle
 static int CDECL VehicleTimetableDelaySorter(const Vehicle * const *a, const Vehicle * const *b)
 {
 	int r = (*a)->lateness_counter - (*b)->lateness_counter;
+	return (r != 0) ? r : VehicleNumberSorter(a, b);
+}
+
+/** Sort vehicles by the timetable length */
+static int CDECL VehicleTimetableLengthSorter(const Vehicle * const *a, const Vehicle * const *b)
+{
+	Ticks a_time = (*a)->orders.list != NULL ? (*a)->orders.list->GetTimetableDurationIncomplete() : 0;
+	Ticks b_time = (*b)->orders.list != NULL ? (*b)->orders.list->GetTimetableDurationIncomplete() : 0;
+	int r = a_time - b_time;
 	return (r != 0) ? r : VehicleNumberSorter(a, b);
 }
 
@@ -1393,11 +1497,114 @@ void BaseVehicleListWindow::DrawVehicleListItems(VehicleID selected_vehicle, int
 		const Vehicle *v = this->vehicles[i];
 		StringID str;
 
-		SetDParam(0, v->GetDisplayProfitThisYear());
-		SetDParam(1, v->GetDisplayProfitLastYear());
-
 		DrawVehicleImage(v, image_left, image_right, y + FONT_HEIGHT_SMALL - 1, selected_vehicle, EIT_IN_LIST, 0);
-		DrawString(text_left, text_right, y + line_height - FONT_HEIGHT_SMALL - WD_FRAMERECT_BOTTOM - 1, STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR);
+
+		str = this->vehicle_list_details[this->vehicles.SortType()];
+		switch(str) {
+			case STR_VEHICLE_LIST_PROFIT_THIS_YEAR_LAST_YEAR:
+				SetDParam(0, v->GetDisplayProfitThisYear());
+				SetDParam(1, v->GetDisplayProfitLastYear());
+				break;
+			case STR_VEHICLE_LIST_NAME:
+				SetDParamStr(0, v->name);
+				break;
+			case STR_VEHICLE_LIST_AGE:
+				SetDParam(0, v->age / DAYS_IN_LEAP_YEAR);
+				SetDParam(1, v->max_age / DAYS_IN_LEAP_YEAR);
+				break;
+			case STR_VEHICLE_LIST_LOAD_TOTAL: {
+				uint load = 0;
+				for (const Vehicle *i = v; i != NULL; i = i->Next()) load += i->cargo.TotalCount();
+				uint total = v->GetConsistTotalCapacity();
+				SetDParam(0, load);
+				SetDParam(1, total);
+				SetDParam(2, (load * 100) / total);
+				break;
+			}
+			case STR_VEHICLE_LIST_LOAD_HIGH: {
+				CargoArray loads, cap, pct;
+				uint max_val = 0;
+				CargoID max_type = CT_INVALID;
+
+				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
+					loads[i->cargo_type] += i->cargo.TotalCount();
+					cap[i->cargo_type] += i->cargo_cap;
+				}
+
+				for (CargoID i = 0; i < NUM_CARGO; i++) {
+					if (cap[i] == 0) {
+						if (max_type == CT_INVALID && cap[i] > 0) max_type = i;
+						continue;
+					}
+					pct[i] = (loads[i] * 1000) / cap[i];
+					if (pct[i] > max_val) {
+						max_type = i;
+						max_val = pct[i];
+					}
+				}
+
+				SetDParam(0, loads[max_type]);
+				SetDParam(1, cap[max_type]);
+				SetDParam(2, ( max_type == CT_INVALID ? STR_EMPTY : CargoSpec::Get(max_type)->name ));
+				SetDParam(3, pct[max_type]/10);
+				break;
+			}
+			case STR_VEHICLE_LIST_LOAD_LOW: {
+				CargoArray loads, cap, pct;
+				uint min_val = 0;
+				CargoID min_type = CT_INVALID;
+
+				for (const Vehicle *i = v; i != NULL; i = i->Next()) {
+					loads[i->cargo_type] += i->cargo.TotalCount();
+					cap[i->cargo_type] += i->cargo_cap;
+				}
+
+				for (CargoID i = 0; i < NUM_CARGO; i++) {
+					if (cap[i] == 0) {
+						if (min_type == CT_INVALID && cap[i] > 0) min_type = i;
+						continue;
+					}
+					pct[i] = (loads[i] * 1000) / cap[i];
+					if (pct[i] < min_val || min_val == 0) {
+						min_type = i;
+						min_val = pct[i];
+					}
+				}
+
+				SetDParam(0, loads[min_type]);
+				SetDParam(1, cap[min_type]);
+				SetDParam(2, ( min_type == CT_INVALID ? STR_EMPTY : CargoSpec::Get(min_type)->name ));
+				SetDParam(3, pct[min_type]/10);
+				break;
+			}
+			case STR_VEHICLE_LIST_RELIABILITY:
+				SetDParam(0, ToPercent16(v->reliability));
+				break;
+			case STR_VEHICLE_LIST_MAX_SPEED:
+				SetDParam(0, v->GetDisplayMaxSpeed());
+				break;
+			case STR_VEHICLE_LIST_MODEL:
+				SetDParam(0, v->engine_type);
+				break;
+			case STR_VEHICLE_LIST_VALUE:
+				SetDParam(0, v->value);
+				break;
+			case STR_VEHICLE_LIST_LENGTH:
+				SetDParam(0, v->GetGroundVehicleCache()->cached_total_length);
+				break;
+			case STR_VEHICLE_LIST_TIMETABLE_DELAY:
+				SetTimetableParams(0, 1, v->lateness_counter);
+				break;
+			case STR_VEHICLE_LIST_TIMETABLE_LENGTH:
+				Ticks t = 0;
+				if (v->orders.list != NULL) {
+					if (!v->orders.list->IsCompleteTimetable()) str = STR_VEHICLE_LIST_TIMETABLE_LENGTH_INCOMPLETE;
+					t = v->orders.list->GetTimetableDurationIncomplete();
+				}
+				SetTimetableParams(0, 1, t);
+				break;
+		}
+		DrawString(text_left, text_right, y + line_height - FONT_HEIGHT_SMALL - WD_FRAMERECT_BOTTOM - 1, str);
 
 		if (v->name != NULL) {
 			/* The vehicle got a name so we will print it */
