@@ -266,6 +266,7 @@
  *  196   N/A     Last travel time for vehicles added
  *  196   Automated timetables and serparation
  *  196   Infrastructure Sharing
+ *  196   Train speed control
  */
 extern const uint16 SAVEGAME_VERSION = 196; ///< Current savegame version of OpenTTD.
 
