@@ -261,9 +261,11 @@
  *  191   26646
  *  192   26700
  *  193   26802
- *  194   26881   1.5.x
+ *  194   26881   1.5.x, 1.6.0
+ *  195   27572   1.6.x
+ *  196   Infrastructure Sharing
  */
-extern const uint16 SAVEGAME_VERSION = 200; ///< Current savegame version of OpenTTD.
+extern const uint16 SAVEGAME_VERSION = 196; ///< Current savegame version of OpenTTD.
 
 SavegameType _savegame_type; ///< type of savegame we are loading
 
