@@ -548,7 +548,7 @@ bool SaveloadCrashWithMissingNewGRFs();
 
 /* Hack to only have to change savegame version numbers in one place.
  * Remove and fill in correct version if patch is ever included in trunk. */
-const int TIMESEP_SV = 188;
+const int TIMESEP_SV = 196;
 
 extern char _savegame_format[8];
 extern bool _do_autosave;
