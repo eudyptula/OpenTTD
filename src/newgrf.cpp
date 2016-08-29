@@ -1402,7 +1402,7 @@ static ChangeInfoResult RoadVehicleChangeInfo(uint engine, int numinfo, int prop
 				break;
 
 			case 0x12: // SFX
-				rvi->sfx = buf->ReadByte();
+				rvi->sfx = GetNewGRFSoundID(_cur.grffile, buf->ReadByte());
 				break;
 
 			case PROP_ROADVEH_POWER: // Power in units of 10 HP.
@@ -1590,7 +1590,7 @@ static ChangeInfoResult ShipVehicleChangeInfo(uint engine, int numinfo, int prop
 				break;
 
 			case 0x10: // SFX
-				svi->sfx = buf->ReadByte();
+				svi->sfx = GetNewGRFSoundID(_cur.grffile, buf->ReadByte());
 				break;
 
 			case 0x11: { // Cargoes available for refitting
@@ -1758,7 +1758,7 @@ static ChangeInfoResult AircraftVehicleChangeInfo(uint engine, int numinfo, int 
 				break;
 
 			case 0x12: // SFX
-				avi->sfx = buf->ReadByte();
+				avi->sfx = GetNewGRFSoundID(_cur.grffile, buf->ReadByte());
 				break;
 
 			case 0x13: { // Cargoes available for refitting
@@ -3010,7 +3010,7 @@ static ChangeInfoResult SoundEffectChangeInfo(uint sid, int numinfo, int prop, B
 	}
 
 	if (sid + numinfo - ORIGINAL_SAMPLE_COUNT > _cur.grffile->num_sounds) {
-		grfmsg(1, "SoundEffectChangeInfo: Attemting to change undefined sound effect (%u), max (%u). Ignoring.", sid + numinfo, ORIGINAL_SAMPLE_COUNT + _cur.grffile->num_sounds);
+		grfmsg(1, "SoundEffectChangeInfo: Attempting to change undefined sound effect (%u), max (%u). Ignoring.", sid + numinfo, ORIGINAL_SAMPLE_COUNT + _cur.grffile->num_sounds);
 		return CIR_INVALID_ID;
 	}
 
@@ -3471,6 +3471,15 @@ static ChangeInfoResult IndustriesChangeInfo(uint indid, int numinfo, int prop, 
 							} else if (itt[k].gfx == 0xFF) {
 								itt[k].ti.x = (int8)GB(itt[k].ti.x, 0, 8);
 								itt[k].ti.y = (int8)GB(itt[k].ti.y, 0, 8);
+
+								/* When there were only 256x256 maps, TileIndex was a uint16 and
+								 * itt[k].ti was just a TileIndexDiff that was added to it.
+								 * As such negative "x" values were shifted into the "y" position.
+								 *   x = -1, y = 1 -> x = 255, y = 0
+								 * Since GRF version 8 the position is interpreted as pair of independent int8.
+								 * For GRF version < 8 we need to emulate the old shifting behaviour.
+								 */
+								if (_cur.grffile->grf_version < 8 && itt[k].ti.x < 0) itt[k].ti.y += 1;
 							}
 						}
 
@@ -6095,7 +6104,7 @@ static void SkipIf(ByteReader *buf)
 
 			case 0x0A: // GRFID is not nor will be active
 				/* This is the only condtype that doesn't get ignored if the GRFID is not found */
-				result = c == NULL || c->flags == GCS_DISABLED || c->status == GCS_NOT_FOUND;
+				result = c == NULL || c->status == GCS_DISABLED || c->status == GCS_NOT_FOUND;
 				break;
 
 			default: grfmsg(1, "SkipIf: Unsupported GRF condition type %02X. Ignoring", condtype); return;
@@ -6412,8 +6421,8 @@ static void SafeParamSet(ByteReader *buf)
 {
 	uint8 target = buf->ReadByte();
 
-	/* Only writing GRF parameters is considered safe */
-	if (target < 0x80) return;
+	/* Writing GRF parameters and some bits of 'misc GRF features' are safe. */
+	if (target < 0x80 || target == 0x9E) return;
 
 	/* GRM could be unsafe, but as here it can only happen after other GRFs
 	 * are loaded, it should be okay. If the GRF tried to use the slots it
@@ -6829,7 +6838,15 @@ static void ParamSet(ByteReader *buf)
 			/* Remove the local flags from the global flags */
 			ClrBit(res, GMB_TRAIN_WIDTH_32_PIXELS);
 
-			_misc_grf_features = res;
+			/* Only copy safe bits for static grfs */
+			if (HasBit(_cur.grfconfig->flags, GCF_STATIC)) {
+				uint32 safe_bits = 0;
+				SetBit(safe_bits, GMB_SECOND_ROCKY_TILE_SET);
+
+				_misc_grf_features = (_misc_grf_features & ~safe_bits) | (res & safe_bits);
+			} else {
+				_misc_grf_features = res;
+			}
 			break;
 
 		case 0x9F: // locale-dependent settings

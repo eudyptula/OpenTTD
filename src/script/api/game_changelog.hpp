@@ -15,9 +15,27 @@
  * functions may still be available if you return an older API version
  * in GetAPIVersion() in info.nut.
  *
- * \b 1.5.0
+ * \b 1.7.0
  *
- * 1.5.0 is not yet released. The following changes are not set in stone yet.
+ * 1.7.0 is not yet released. The following changes are not set in stone yet.
+ *
+ * \b 1.6.0
+ *
+ * No changes
+ *
+ * \b 1.5.3
+ *
+ * No changes
+ *
+ * \b 1.5.2
+ *
+ * No changes
+ *
+ * \b 1.5.1
+ *
+ * No changes
+ *
+ * \b 1.5.0
  *
  * API additions:
  * \li GSList::SwapList
@@ -34,6 +52,11 @@
  * \li GSStationList_CargoWaitingByVia
  * \li GSStationList_CargoWaitingFromByVia
  * \li GSStationList_CargoWaitingViaByFrom
+ *
+ * Other changes:
+ * \li GSNews::Create takes two extra parameters to refer to a location, station,
+ *     industry, or town. The user can click at the news message to jump to the
+ *     referred location.
  *
  * \b 1.4.4
  *

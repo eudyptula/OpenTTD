@@ -11,6 +11,7 @@
 
 #include "../../stdafx.h"
 #include "script_list.hpp"
+#include "script_controller.hpp"
 #include "../../debug.h"
 #include "../../script/squirrel.hpp"
 
@@ -440,24 +441,25 @@ void ScriptList::AddItem(int64 item, int64 value)
 
 	if (this->HasItem(item)) return;
 
-	this->items[item] = 0;
-	this->buckets[0].insert(item);
-
-	this->SetValue(item, value);
+	this->items[item] = value;
+	this->buckets[value].insert(item);
 }
 
 void ScriptList::RemoveItem(int64 item)
 {
 	this->modifications++;
 
-	if (!this->HasItem(item)) return;
+	ScriptListMap::iterator item_iter = this->items.find(item);
+	if (item_iter == this->items.end()) return;
 
-	int64 value = this->GetValue(item);
+	int64 value = item_iter->second;
 
 	this->sorter->Remove(item);
-	this->buckets[value].erase(item);
-	if (this->buckets[value].empty()) this->buckets.erase(value);
-	this->items.erase(item);
+	ScriptListBucket::iterator bucket_iter = this->buckets.find(value);
+	assert(bucket_iter != this->buckets.end());
+	bucket_iter->second.erase(item);
+	if (bucket_iter->second.empty()) this->buckets.erase(bucket_iter);
+	this->items.erase(item_iter);
 }
 
 int64 ScriptList::Begin()
@@ -496,24 +498,26 @@ int32 ScriptList::Count()
 
 int64 ScriptList::GetValue(int64 item)
 {
-	if (!this->HasItem(item)) return 0;
-
-	return this->items[item];
+	ScriptListMap::const_iterator item_iter = this->items.find(item);
+	return item_iter == this->items.end() ? 0 : item_iter->second;
 }
 
 bool ScriptList::SetValue(int64 item, int64 value)
 {
 	this->modifications++;
 
-	if (!this->HasItem(item)) return false;
+	ScriptListMap::iterator item_iter = this->items.find(item);
+	if (item_iter == this->items.end()) return false;
 
-	int64 value_old = this->GetValue(item);
+	int64 value_old = item_iter->second;
 	if (value_old == value) return true;
 
 	this->sorter->Remove(item);
-	this->buckets[value_old].erase(item);
-	if (this->buckets[value_old].empty()) this->buckets.erase(value_old);
-	this->items[item] = value;
+	ScriptListBucket::iterator bucket_iter = this->buckets.find(value_old);
+	assert(bucket_iter != this->buckets.end());
+	bucket_iter->second.erase(item);
+	if (bucket_iter->second.empty()) this->buckets.erase(bucket_iter);
+	item_iter->second = value;
 	this->buckets[value].insert(item);
 
 	return true;
@@ -553,6 +557,8 @@ void ScriptList::Sort(SorterType sorter, bool ascending)
 
 void ScriptList::AddList(ScriptList *list)
 {
+	if (list == this) return;
+
 	ScriptListMap *list_items = &list->items;
 	for (ScriptListMap::iterator iter = list_items->begin(); iter != list_items->end(); iter++) {
 		this->AddItem((*iter).first);
@@ -562,6 +568,8 @@ void ScriptList::AddList(ScriptList *list)
 
 void ScriptList::SwapList(ScriptList *list)
 {
+	if (list == this) return;
+
 	this->items.swap(list->items);
 	this->buckets.swap(list->buckets);
 	Swap(this->sorter, list->sorter);
@@ -691,9 +699,13 @@ void ScriptList::RemoveList(ScriptList *list)
 {
 	this->modifications++;
 
-	ScriptListMap *list_items = &list->items;
-	for (ScriptListMap::iterator iter = list_items->begin(); iter != list_items->end(); iter++) {
-		this->RemoveItem((*iter).first);
+	if (list == this) {
+		Clear();
+	} else {
+		ScriptListMap *list_items = &list->items;
+		for (ScriptListMap::iterator iter = list_items->begin(); iter != list_items->end(); iter++) {
+			this->RemoveItem((*iter).first);
+		}
 	}
 }
 
@@ -753,14 +765,12 @@ void ScriptList::KeepBottom(int32 count)
 
 void ScriptList::KeepList(ScriptList *list)
 {
+	if (list == this) return;
+
 	this->modifications++;
 
 	ScriptList tmp;
-	for (ScriptListMap::iterator iter = this->items.begin(); iter != this->items.end(); iter++) {
-		tmp.AddItem((*iter).first);
-		tmp.SetValue((*iter).first, (*iter).second);
-	}
-
+	tmp.AddList(this);
 	tmp.RemoveList(list);
 	this->RemoveList(&tmp);
 }
@@ -772,9 +782,10 @@ SQInteger ScriptList::_get(HSQUIRRELVM vm)
 	SQInteger idx;
 	sq_getinteger(vm, 2, &idx);
 
-	if (!this->HasItem(idx)) return SQ_ERROR;
+	ScriptListMap::const_iterator item_iter = this->items.find(idx);
+	if (item_iter == this->items.end()) return SQ_ERROR;
 
-	sq_pushinteger(vm, this->GetValue(idx));
+	sq_pushinteger(vm, item_iter->second);
 	return 1;
 }
 
@@ -893,6 +904,16 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 				ScriptObject::SetAllowDoCommand(backup_allow);
 				return sq_throwerror(vm, "return value of valuator is not valid (not integer/bool)");
 			}
+		}
+
+		/* Kill the script when the valuator call takes way too long.
+		 * Triggered by nesting valuators, which then take billions of iterations. */
+		if (ScriptController::GetOpsTillSuspend() < -1000000) {
+			/* See below for explanation. The extra pop is the return value. */
+			sq_pop(vm, nparam + 4);
+
+			ScriptObject::SetAllowDoCommand(backup_allow);
+			return sq_throwerror(vm, "excessive CPU usage in valuator function");
 		}
 
 		/* Was something changed? */

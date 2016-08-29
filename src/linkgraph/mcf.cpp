@@ -33,6 +33,11 @@ public:
 	inline uint GetAnnotation() const { return this->distance; }
 
 	/**
+	 * Update the cached annotation value
+	 */
+	inline void UpdateAnnotation() { }
+
+	/**
 	 * Comparator for std containers.
 	 */
 	struct Comparator {
@@ -47,6 +52,8 @@ public:
  * can only decrease or stay the same if you add more edges.
  */
 class CapacityAnnotation : public Path {
+	int cached_annotation;
+
 public:
 
 	/**
@@ -62,7 +69,15 @@ public:
 	 * Return the actual value of the annotation, in this case the capacity.
 	 * @return Capacity.
 	 */
-	inline int GetAnnotation() const { return this->GetCapacityRatio(); }
+	inline int GetAnnotation() const { return this->cached_annotation; }
+
+	/**
+	 * Update the cached annotation value
+	 */
+	inline void UpdateAnnotation()
+	{
+		this->cached_annotation = this->GetCapacityRatio();
+	}
 
 	/**
 	 * Comparator for std containers.
@@ -121,7 +136,7 @@ private:
 	LinkGraphJob &job; ///< Link graph job we're working with.
 
 	/** Lookup table for getting NodeIDs from StationIDs. */
-	std::map<StationID, NodeID> station_to_node;
+	std::vector<NodeID> station_to_node;
 
 	/** Current iterator in the shares map. */
 	FlowStat::SharesMap::const_iterator it;
@@ -137,7 +152,11 @@ public:
 	FlowEdgeIterator(LinkGraphJob &job) : job(job)
 	{
 		for (NodeID i = 0; i < job.Size(); ++i) {
-			this->station_to_node[job[i].Station()] = i;
+			StationID st = job[i].Station();
+			if (st >= this->station_to_node.size()) {
+				this->station_to_node.resize(st + 1);
+			}
+			this->station_to_node[st] = i;
 		}
 	}
 
@@ -148,15 +167,14 @@ public:
 	 */
 	void SetNode(NodeID source, NodeID node)
 	{
-		static const FlowStat::SharesMap empty;
 		const FlowStatMap &flows = this->job[node].Flows();
 		FlowStatMap::const_iterator it = flows.find(this->job[source].Station());
 		if (it != flows.end()) {
 			this->it = it->second.GetShares()->begin();
 			this->end = it->second.GetShares()->end();
 		} else {
-			this->it = empty.begin();
-			this->end = empty.end();
+			this->it = FlowStat::empty_sharesmap.begin();
+			this->end = FlowStat::empty_sharesmap.end();
 		}
 	}
 
@@ -247,6 +265,7 @@ void MultiCommodityFlow::Dijkstra(NodeID source_node, PathVector &paths)
 	paths.resize(size, NULL);
 	for (NodeID node = 0; node < size; ++node) {
 		Tannotation *anno = new Tannotation(node, node == source_node);
+		anno->UpdateAnnotation();
 		annos.insert(anno);
 		paths[node] = anno;
 	}
@@ -271,6 +290,7 @@ void MultiCommodityFlow::Dijkstra(NodeID source_node, PathVector &paths)
 			if (dest->IsBetter(source, capacity, capacity - edge.Flow(), distance)) {
 				annos.erase(dest);
 				dest->Fork(source, capacity, capacity - edge.Flow(), distance);
+				dest->UpdateAnnotation();
 				annos.insert(dest);
 			}
 		}
@@ -379,11 +399,10 @@ void MCF1stPass::EliminateCycle(PathVector &path, Path *cycle_begin, uint flow)
  */
 bool MCF1stPass::EliminateCycles(PathVector &path, NodeID origin_id, NodeID next_id)
 {
-	static Path *invalid_path = new Path(INVALID_NODE, true);
 	Path *at_next_pos = path[next_id];
 
 	/* this node has already been searched */
-	if (at_next_pos == invalid_path) return false;
+	if (at_next_pos == Path::invalid_path) return false;
 
 	if (at_next_pos == NULL) {
 		/* Summarize paths; add up the paths with the same source and next hop
@@ -431,7 +450,7 @@ bool MCF1stPass::EliminateCycles(PathVector &path, NodeID origin_id, NodeID next
 		 * could be found in this branch, thus it has to be searched again next
 		 * time we spot it.
 		 */
-		path[next_id] = found ? NULL : invalid_path;
+		path[next_id] = found ? NULL : Path::invalid_path;
 		return found;
 	}
 

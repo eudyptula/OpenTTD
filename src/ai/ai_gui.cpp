@@ -28,6 +28,7 @@
 #include "../widgets/dropdown_type.h"
 #include "../widgets/dropdown_func.h"
 #include "../hotkeys.h"
+#include "../core/geometry_func.hpp"
 
 #include "ai.hpp"
 #include "ai_gui.hpp"
@@ -766,6 +767,22 @@ struct AIConfigWindow : public Window {
 				this->line_height = FONT_HEIGHT_NORMAL + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
 				size->height = 8 * this->line_height;
 				break;
+
+			case WID_AIC_CHANGE: {
+				SetDParam(0, STR_AI_CONFIG_CHANGE_GAMESCRIPT);
+				Dimension dim = GetStringBoundingBox(STR_AI_CONFIG_CHANGE);
+
+				SetDParam(0, STR_AI_CONFIG_CHANGE_NONE);
+				dim = maxdim(dim, GetStringBoundingBox(STR_AI_CONFIG_CHANGE));
+
+				SetDParam(0, STR_AI_CONFIG_CHANGE_AI);
+				dim = maxdim(dim, GetStringBoundingBox(STR_AI_CONFIG_CHANGE));
+
+				dim.width += padding.width;
+				dim.height += padding.height;
+				*size = maxdim(*size, dim);
+				break;
+			}
 		}
 	}
 
@@ -901,8 +918,7 @@ struct AIConfigWindow : public Window {
 					ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
 				} else {
 #if defined(ENABLE_NETWORK)
-					ShowNetworkContentListWindow(NULL, CONTENT_TYPE_AI);
-					_network_content_client.RequestContentList(CONTENT_TYPE_GAME);
+					ShowNetworkContentListWindow(NULL, CONTENT_TYPE_AI, CONTENT_TYPE_GAME);
 #endif
 				}
 				break;
@@ -970,7 +986,7 @@ struct AIDebugWindow : public Window {
 	static const int top_offset;    ///< Offset of the text at the top of the WID_AID_LOG_PANEL.
 	static const int bottom_offset; ///< Offset of the text at the bottom of the WID_AID_LOG_PANEL.
 
-	static const unsigned int MAX_BREAK_STR_STRING_LENGTH = 256; ///< Maximum length of the break string.
+	static const uint MAX_BREAK_STR_STRING_LENGTH = 256;   ///< Maximum length of the break string.
 
 	static CompanyID ai_debug_company;                     ///< The AI that is (was last) being debugged.
 	int redraw_timer;                                      ///< Timer for redrawing the window, otherwise it'll happen every tick.
