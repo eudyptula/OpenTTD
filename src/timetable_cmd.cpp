@@ -655,15 +655,7 @@ void UpdateVehicleTimetable(Vehicle *v, bool travelling)
 	if (timetabled != 0 && HasBit(v->vehicle_flags, VF_AUTOMATE_TIMETABLE)) {
 		int32 new_time = travelling ? time_taken : time_loading;
 
-		/* Check for too large a difference from expected time, and if so don't average. */
-		if (!(new_time > (int32)timetabled * 2 || new_time < (int32)timetabled / 2)) {
-			int arrival_error = timetabled - new_time;
-			/* Compute running average, with sign conversion to avoid negative overflow. */
-			new_time = ((int32)timetabled * 4 + new_time + 2) / 5;
-			/* Use arrival_error to finetune order ticks. */
-			if (arrival_error < 0) new_time++;
-			if (arrival_error > 0) new_time--;
-		} else if (new_time > (int32)timetabled * 4 && travelling) {
+		if (new_time > (int32)timetabled * 4 && travelling) {
 			/* Possible jam, clear time and restart timetable for all vehicles.
 			 * Otherwise we risk trains blocking 1-lane stations for long times. */
 			ChangeTimetable(v, v->cur_real_order_index, 0, travelling ? MTF_TRAVEL_TIME : MTF_WAIT_TIME, true);
@@ -674,6 +666,17 @@ void UpdateVehicleTimetable(Vehicle *v, bool travelling)
 			}
 			return;
 		}
+
+		/* Compute running average, with sign conversion to avoid negative overflow. */
+		int arrival_error = timetabled - new_time;
+		if (new_time > (int32)timetabled) {
+			new_time = ((int32)timetabled * 4 + new_time + 2) / 5;
+		} else {
+			new_time = ((int32)timetabled + new_time + 2) / 2;
+		}
+		/* Use arrival_error to finetune order ticks. */
+		if (arrival_error < 0) new_time++;
+		if (arrival_error > 0) new_time--;
 
 		if (new_time < 1) new_time = 1;
 		if (new_time != (int32)timetabled)
