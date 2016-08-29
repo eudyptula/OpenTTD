@@ -841,6 +841,9 @@ public:
 
 						DoCommandP(0, this->vli.index, 0, CMD_REMOVE_ALL_VEHICLES_GROUP | CMD_MSG(STR_ERROR_GROUP_CAN_T_REMOVE_ALL_VEHICLES));
 						break;
+					case ADI_AUTO_GROUP: // Automatically group all vehicles
+						DoCommandP(0, this->vli.index, this->vli.vtype, CMD_AUTO_GROUP_VEHICLES_GROUP | CMD_MSG(STR_ERROR_GROUP_CAN_T_AUTO_GROUP_VEHICLES));
+						break;
 					default: NOT_REACHED();
 				}
 				break;
