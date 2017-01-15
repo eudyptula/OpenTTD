@@ -46,6 +46,7 @@
 #include "table/strings.h"
 
 #include "safeguards.h"
+#include "overlay_cmd.h"
 
 static int _rename_id = 1;
 static int _rename_what = -1;
@@ -341,8 +342,14 @@ struct MainWindow : Window
 			}
 
 			case GHK_RESET_OBJECT_TO_PLACE: ResetObjectToPlace(); break;
-			case GHK_DELETE_WINDOWS: DeleteNonVitalWindows(); break;
-			case GHK_DELETE_NONVITAL_WINDOWS: DeleteAllNonVitalWindows(); break;
+			case GHK_DELETE_WINDOWS:
+				DeleteNonVitalWindows();
+				Overlays::Instance()->Clear();
+				break;
+			case GHK_DELETE_NONVITAL_WINDOWS:
+                DeleteAllNonVitalWindows();
+                Overlays::Instance()->Clear();
+                break;
 			case GHK_REFRESH_SCREEN: MarkWholeScreenDirty(); break;
 
 			case GHK_CRASH: // Crash the game
