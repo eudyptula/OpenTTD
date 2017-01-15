@@ -42,3 +42,6 @@ src/os/windows/ottdres.rc
 !/config.lib
 !*.in
 *.tmp
+/.project
+/.cproject
+/.idea/*

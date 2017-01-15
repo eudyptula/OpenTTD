@@ -1118,9 +1118,9 @@ STR_CONFIG_SETTING_TYPE_DROPDOWN_GAME_MENU                      :Thiết lập t
 STR_CONFIG_SETTING_TYPE_DROPDOWN_GAME_INGAME                    :Thiết lập trò chơi (chứa trong save; chỉ có tác dụng với ván chơi hiện tại)
 STR_CONFIG_SETTING_TYPE_DROPDOWN_COMPANY_MENU                   :Thiết lập công ty (chứa trong save; chỉ tác động với ván chơi mới)
 STR_CONFIG_SETTING_TYPE_DROPDOWN_COMPANY_INGAME                 :Thiết lập công ty (lưu trong save; chỉ tác động tới công ty hiện tại)
-STR_CONFIG_SETTING_CATEGORY_HIDES                               :{BLACK}Hiện tất cả kết quả tìm kiếm theo {}{SILVER}Phân loại {BLACK}cho {WHITE}{STRING}
-STR_CONFIG_SETTING_TYPE_HIDES                                   :{BLACK}Hiện tất cả kết quả tìm kiếm theo {}{SILVER}Kiểu {BLACK}cho {WHITE}tất cả kiểu thiết lập
-STR_CONFIG_SETTING_CATEGORY_AND_TYPE_HIDES                      :{BLACK}Hiện tất cả kết quả tìm kiếm theo {}{SILVER}Phân loại {BLACK}cho {WHITE}{STRING} {BLACK}và {SILVER}Kiểu {BLACK}cho {WHITE}tất cả kiểu thiết lập
+STR_CONFIG_SETTING_CATEGORY_HIDES                               :{BLACK}Hiện tất cả kết quả tìm kiếm theo{}{SILVER}Phân loại {BLACK}cho {WHITE}{STRING}
+STR_CONFIG_SETTING_TYPE_HIDES                                   :{BLACK}Hiện tất cả kết quả tìm kiếm theo{}{SILVER}Kiểu {BLACK}cho {WHITE}tất cả kiểu thiết lập
+STR_CONFIG_SETTING_CATEGORY_AND_TYPE_HIDES                      :{BLACK}Hiện tất cả kết quả tìm kiếm theo{}{SILVER}Phân loại {BLACK}cho {WHITE}{STRING} {BLACK}và {SILVER}Kiểu {BLACK}cho {WHITE}tất cả kiểu thiết lập
 STR_CONFIG_SETTINGS_NONE                                        :{WHITE}- Không -
 
 STR_CONFIG_SETTING_OFF                                          :Tắt
@@ -2315,7 +2315,7 @@ STR_RAIL_TOOLBAR_TOOLTIP_BUILD_AUTORAIL                         :{BLACK}Xây d�
 STR_RAIL_TOOLBAR_TOOLTIP_BUILD_TRAIN_DEPOT_FOR_BUILDING         :{BLACK}Xây xưởng tàu hoả (để chế tạo và bảo dưỡng tàu). Shift để xem chi phí dự tính
 STR_RAIL_TOOLBAR_TOOLTIP_CONVERT_RAIL_TO_WAYPOINT               :{BLACK}Chuyển từ ray sang điểm mốc. Ctrl để nối các điểm mốc. Shift để xem chi phí dự tính
 STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_STATION                 :{BLACK}Xây nhà ga tàu hoả. Ctrl để nối các nhà ga. Shift để xem chi phí dự tính
-STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_SIGNALS                 :{BLACK}Xây đèn tín hiệu đường sắt. Ctrl đổi dùng đèn/cờ tín hiệu{}Kéo thả để xây đèn tín hiệu theo đoạn kéo thả. Ctrl + kéo chuột theo đường ray khi xây sẽ xây loạt đèn tín hiệu cho tới điểm ngã ba, tư kế tiếp {}Ctrl+Click để mở cửa sổ chọn loại đèn tin hiệu. Shift để xem chi phí dự tính
+STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_SIGNALS                 :{BLACK}Xây đèn tín hiệu đường sắt. Ctrl đổi dùng đèn/cờ tín hiệu{}Kéo thả để xây đèn tín hiệu theo đoạn kéo thả. Ctrl + kéo chuột theo đường ray khi xây sẽ xây loạt đèn tín hiệu cho tới điểm ngã ba, tư kế tiếp{}Ctrl+Click để mở cửa sổ chọn loại đèn tin hiệu. Shift để xem chi phí dự tính
 STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_BRIDGE                  :{BLACK}Xây cầu tàu hoả. Shift để xem chi phí dự tính
 STR_RAIL_TOOLBAR_TOOLTIP_BUILD_RAILROAD_TUNNEL                  :{BLACK}Xây hầm tàu hoả. Shift để xem chi phí dự tính
 STR_RAIL_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR                :{BLACK}Chuyển chế độ xây/phá cho đường ray, đèn tín hiệu, điểm mốc và nhà ga. Giữ Ctrl để phá bỏ đường ray tính từ điểm mốc hay nhà ga
@@ -2359,7 +2359,7 @@ STR_BUILD_SIGNAL_SEMAPHORE_EXIT_TOOLTIP                         :{BLACK}Đèn (c
 STR_BUILD_SIGNAL_SEMAPHORE_COMBO_TOOLTIP                        :{BLACK}Đèn (cờ) tín hiệu kết hợp{}Nó vừa là đèn tín hiệu cửa thoát (với đèn nhập ở phía trước nó) và vừa là đèn tín hiệu cửa nhập (đối với đèn thoát ở sau nó). Loại đèn này cho phép tạo nhiều lớp đèn cho một hệ thống tín hiệu phức tạp.
 STR_BUILD_SIGNAL_SEMAPHORE_PBS_TOOLTIP                          :{BLACK}Đèn (cờ) tín hiệu giành đường{}Đèn tín hiệu giành đường cho phép nhiều hơn 1 đoàn tàu có thể đi vào 1 khu vực khoá, nếu như mỗi đoàn tàu có thể giành lấy một con đường tới một điểm đến một cách an toàn. Đèn tín hiệu giành đường tiêu chuẩn cho thể cho phép đi qua từ phía sau của đèn.
 STR_BUILD_SIGNAL_SEMAPHORE_PBS_OWAY_TOOLTIP                     :{BLACK}Đèn (cờ) tín hiệu giành đường một chiều{}Đèn tín hiệu giành đường cho phép nhiều hơn 1 đoàn tàu có thể đi vào 1 khu vực khoá, nếu như mỗi đoàn tàu có thể giành lấy một con đường tới một điểm đến một cách an toàn. Đèn tín hiệu giành đường tiêu chuẩn cho thể cho phép đi qua từ phía sau của đèn.
-STR_BUILD_SIGNAL_ELECTRIC_NORM_TOOLTIP                          :{BLACK}Đèn tín hiệu (điện) {}Đèn tín hiệu cơ bản, chỉ cho phép một đoàn toàn đi vào một khu vực khoá của đèn.
+STR_BUILD_SIGNAL_ELECTRIC_NORM_TOOLTIP                          :{BLACK}Đèn tín hiệu (điện){}Đèn tín hiệu cơ bản, chỉ cho phép một đoàn toàn đi vào một khu vực khoá của đèn.
 STR_BUILD_SIGNAL_ELECTRIC_ENTRY_TOOLTIP                         :{BLACK}Đèn tín hiệu cửa nhập (điện){}Sẽ xanh nếu một hoặc nhiều đèn tín hiệu cửa thoát ở phía sau màu xanh. Không thì sẽ đỏ.
 STR_BUILD_SIGNAL_ELECTRIC_EXIT_TOOLTIP                          :{BLACK}Đèn tín hiệu cửa thoát (điện){}Tương tự đèn tín hiệu khoá, nhưng cần có để đổi trạng thái của đèn tín hiệu loại cửa nhập & kết hợp nằm trước nó.
 STR_BUILD_SIGNAL_ELECTRIC_COMBO_TOOLTIP                         :{BLACK}Đèn tín hiệu kết hợp (điện){}Nó vừa là đèn tín hiệu cửa thoát (với đèn nhập ở phía trước nó) và vừa là đèn tín hiệu cửa nhập (đối với đèn thoát ở sau nó). Loại đèn này cho phép tạo nhiều lớp đèn cho một hệ thống tín hiệu phức tạp.
@@ -2601,29 +2601,29 @@ STR_LAI_CLEAR_DESCRIPTION_FIELDS                                :Cánh đồng
 STR_LAI_CLEAR_DESCRIPTION_SNOW_COVERED_LAND                     :Đất tuyết phủ
 STR_LAI_CLEAR_DESCRIPTION_DESERT                                :Hoang mạc
 
-STR_LAI_RAIL_DESCRIPTION_TRACK                                  :Đường ray {STRING}
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_SIGNALS              :Đường ray {STRING} với đèn hiệu khóa
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRESIGNALS                  :Đường ray {STRING} với đèn tín hiệu báo trước
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXITSIGNALS                 :Đường ray {STRING} với đèn tín hiệu cửa thoát
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBOSIGNALS                :Đường ray {STRING} với đèn tín hiệu kết hợp
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBSSIGNALS                  :Đường ray {STRING} với đèn dẫn đường
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NOENTRYSIGNALS              :Đường ray {STRING} với đèn dẫn đường 1-chiều
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PRESIGNALS           :Đường ray {STRING} với đèn hiệu khóa và đèn tín hiệu báo trước
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_EXITSIGNALS          :Đường ray {STRING} với đèn hiệu khóa và đèn tín hiệu cửa thoát
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_COMBOSIGNALS         :Đường ray {STRING} với đèn hiệu khóa và đèn tín hiệu kết hợp
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PBSSIGNALS           :Đường ray {STRING} với đèn hiệu khóa và đèn dẫn đường
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_NOENTRYSIGNALS       :Đường ray {STRING} với đèn hiệu khóa và đèn dẫn đường 1-chiều
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_EXITSIGNALS             :Đường ray {STRING} với đèn tín hiệu báo trước và đèn tín hiệu cửa thoát
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_COMBOSIGNALS            :Đường ray {STRING} với đèn tín hiệu báo trước và đèn tín hiệu kết hợp
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_PBSSIGNALS              :Đường ray {STRING} với đèn tín hiệu báo trước và đèn dẫn đường
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_NOENTRYSIGNALS          :Đường ray {STRING} với đèn tín hiệu báo trước và đèn dẫn đường 1-chiều
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_COMBOSIGNALS           :Đường ray {STRING} với đèn tín hiệu cửa thoát và đèn tín hiệu kết hợp
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_PBSSIGNALS             :Đường ray {STRING} với đèn tín hiệu cửa thoát và đèn dẫn đường
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_NOENTRYSIGNALS         :Đường ray {STRING} với đèn tín hiệu cửa thoát và đèn dẫn đường 1-chiều
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_PBSSIGNALS            :Đường ray {STRING} với đèn tín hiệu kết hợp và đèn dẫn đường
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_NOENTRYSIGNALS        :Đường ray {STRING} với đèn tín hiệu kết hợp và đèn dẫn đường 1-chiều
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBS_NOENTRYSIGNALS          :Đường ray {STRING} với đèn dẫn đường và đèn dẫn đường 1-chiều
-STR_LAI_RAIL_DESCRIPTION_TRAIN_DEPOT                            :Xưởng tàu hỏa {STRING}
+STR_LAI_RAIL_DESCRIPTION_TRACK                                  :Đường ray Đường ray
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_SIGNALS              :Đường ray Đường ray với đèn hiệu khóa
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRESIGNALS                  :Đường ray Đường ray với đèn tín hiệu báo trước
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXITSIGNALS                 :Đường ray Đường ray với đèn tín hiệu cửa thoát
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBOSIGNALS                :Đường ray Đường ray với đèn tín hiệu kết hợp
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBSSIGNALS                  :Đường ray Đường ray với đèn dẫn đường
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NOENTRYSIGNALS              :Đường ray Đường ray với đèn dẫn đường 1-chiều
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PRESIGNALS           :Đường ray Đường ray với đèn hiệu khóa và đèn tín hiệu báo trước
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_EXITSIGNALS          :Đường ray Đường ray với đèn hiệu khóa và đèn tín hiệu cửa thoát
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_COMBOSIGNALS         :Đường ray Đường ray với đèn hiệu khóa và đèn tín hiệu kết hợp
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PBSSIGNALS           :Đường ray Đường ray với đèn hiệu khóa và đèn dẫn đường
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_NOENTRYSIGNALS       :Đường ray Đường ray với đèn hiệu khóa và đèn dẫn đường 1-chiều
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_EXITSIGNALS             :Đường ray Đường ray với đèn tín hiệu báo trước và đèn tín hiệu cửa thoát
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_COMBOSIGNALS            :Đường ray Đường ray với đèn tín hiệu báo trước và đèn tín hiệu kết hợp
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_PBSSIGNALS              :Đường ray Đường ray với đèn tín hiệu báo trước và đèn dẫn đường
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_NOENTRYSIGNALS          :Đường ray Đường ray với đèn tín hiệu báo trước và đèn dẫn đường 1-chiều
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_COMBOSIGNALS           :Đường ray Đường ray với đèn tín hiệu cửa thoát và đèn tín hiệu kết hợp
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_PBSSIGNALS             :Đường ray Đường ray với đèn tín hiệu cửa thoát và đèn dẫn đường
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_NOENTRYSIGNALS         :Đường ray Đường ray với đèn tín hiệu cửa thoát và đèn dẫn đường 1-chiều
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_PBSSIGNALS            :Đường ray Đường ray với đèn tín hiệu kết hợp và đèn dẫn đường
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_NOENTRYSIGNALS        :Đường ray Đường ray với đèn tín hiệu kết hợp và đèn dẫn đường 1-chiều
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBS_NOENTRYSIGNALS          :Đường ray Đường ray với đèn dẫn đường và đèn dẫn đường 1-chiều
+STR_LAI_RAIL_DESCRIPTION_TRAIN_DEPOT                            :Xưởng tàu hỏa Đường ray
 
 STR_LAI_ROAD_DESCRIPTION_ROAD                                   :Đường bộ
 STR_LAI_ROAD_DESCRIPTION_ROAD_WITH_STREETLIGHTS                 :Đường phố có đèn
@@ -2687,7 +2687,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Đất công ty
 STR_ABOUT_OPENTTD                                               :{WHITE}Về OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Nguyên tác bản quyền {COPYRIGHT} 1995 Chris Sawyer, All rights reserved
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD phiên bản {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2015 Nhóm OpenTTD
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2016 Nhóm OpenTTD
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}Lưu Ván Chơi
@@ -2874,7 +2874,7 @@ STR_SPRITE_ALIGNER_GOTO_TOOLTIP                                 :{BLACK}Nhảy t
 STR_SPRITE_ALIGNER_PREVIOUS_BUTTON                              :{BLACK}Sprite trước
 STR_SPRITE_ALIGNER_PREVIOUS_TOOLTIP                             :{BLACK}Xử lý sprite bình thường ở trước, bỏ qua các loại pseudo/recolour/font sprite căn theo điểm bắt đầu
 STR_SPRITE_ALIGNER_SPRITE_TOOLTIP                               :{BLACK}Theo những thông tin của sprite đã chọn. Thì việc căn chỉnh khi vẽ đối với sprite này sẽ bị bỏ qua
-STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Di chuyển sprite xung quanh, thay đổi X và Y offsets
+STR_SPRITE_ALIGNER_MOVE_TOOLTIP                                 :{BLACK}Di chuyển sprite xung quanh, thay đổi X và Y offsets. Ctrl+Click để di chuyển sprite tám đơn vị một lúc
 STR_SPRITE_ALIGNER_RESET_BUTTON                                 :{BLACK}Đặt lại tương đối
 STR_SPRITE_ALIGNER_RESET_TOOLTIP                                :{BLACK}Đặt lại các dịch chuyển tương đối hiện tại
 STR_SPRITE_ALIGNER_OFFSETS_ABS                                  :{BLACK} dịch X: {NUM}, dịch Y: {NUM} (tuyệt đối)
@@ -2889,7 +2889,7 @@ STR_NEWGRF_ERROR_MSG_INFO                                       :{SILVER}{STRING
 STR_NEWGRF_ERROR_MSG_WARNING                                    :{RED}Cảnh báo: {SILVER}{STRING}
 STR_NEWGRF_ERROR_MSG_ERROR                                      :{RED}Lỗi: {SILVER}{STRING}
 STR_NEWGRF_ERROR_MSG_FATAL                                      :{RED}Lỗi nghiêm trọng: {SILVER}{STRING}
-STR_NEWGRF_ERROR_FATAL_POPUP                                    :{WHITE}Xảy ra lỗi NewGRF nghiêm trọng: {}{STRING}
+STR_NEWGRF_ERROR_FATAL_POPUP                                    :{WHITE}Xảy ra lỗi NewGRF nghiêm trọng:{}{STRING}
 STR_NEWGRF_ERROR_VERSION_NUMBER                                 :{1:STRING} sẽ không hoạt động với phiên bản TTDPatch version theo như báo cáo của OpenTTD.
 STR_NEWGRF_ERROR_DOS_OR_WINDOWS                                 :{1:STRING} để dành cho phiên bản {STRING} của TTD.
 STR_NEWGRF_ERROR_UNSET_SWITCH                                   :{1:STRING} được thiết kế để xài với {STRING}
@@ -3557,7 +3557,6 @@ STR_REPLACE_REPLACING_WHEN_OLD                                  :{ENGINE} khi đ
 STR_REPLACE_VEHICLES_STOP                                       :{BLACK}Ngừng thay thế phương tiện
 STR_REPLACE_HELP_STOP_BUTTON                                    :{BLACK}Bấm để ngừng việc thay thế kiểu đầu máy đã chọn
 
-STR_REPLACE_ENGINE_WAGON_SELECT                                 :{BLACK}Thay thế: {ORANGE}{STRING}
 STR_REPLACE_ENGINE_WAGON_SELECT_HELP                            :{BLACK}Chuyển qua lại cửa sổ thay thế đầu máy và toa xe
 STR_REPLACE_ENGINES                                             :Đầu máy
 STR_REPLACE_WAGONS                                              :Toa xe
