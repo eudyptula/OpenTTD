@@ -266,6 +266,7 @@
  *  196   Automated timetables and separation
  *  196   Infrastructure Sharing
  *  196   Train speed control
+ *  196   Last travel time for vehicles added
  *  197   Signal in tunnels and bridges patch
  */
 extern const uint16 SAVEGAME_VERSION = 197; ///< Current savegame version of OpenTTD.
