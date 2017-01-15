@@ -20,6 +20,7 @@
 #include "vehicle_type.h"
 #include "core/multimap.hpp"
 #include <list>
+#include <algorithm>
 
 /** Unique identifier for a single cargo packet. */
 typedef uint32 CargoPacketID;
@@ -522,6 +523,27 @@ public:
 	inline uint AvailableCount() const
 	{
 		return this->count;
+	}
+	
+	inline uint AvailableMaxCount() const
+	{
+		// TODO This is used for sorting, inefficient to compute all the time, store it global
+		std::map<StationID, uint> count_map;
+		std::for_each(packets.begin(), packets.end(), [&count_map](const StationCargoPacketMap::value_type &pair){
+			const StationID &next = pair.first;
+			const std::list<CargoPacket *> &cargo_list = pair.second;
+			std::for_each(cargo_list.begin(), cargo_list.end(), [&next,&count_map](const CargoPacket *packet){
+				count_map[next] += packet->Count();
+			});
+		});
+
+		const std::map<StationID, uint>::iterator &max_element =
+				std::max_element(count_map.begin(), count_map.end(),
+								 [] (const std::map<StationID, uint>::value_type &p1, const std::map<StationID, uint>::value_type &p2) {
+									 return p1.second < p2.second;
+								 }
+				);
+		return  max_element->second;
 	}
 
 	/**
