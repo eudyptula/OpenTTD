@@ -178,6 +178,8 @@ DropDownList *BaseVehicleListWindow::BuildActionDropdownList(bool show_autorepla
 		*list->Append() = new DropDownListStringItem(STR_GROUP_REMOVE_ALL_VEHICLES, ADI_REMOVE_ALL, false);
 	}
 
+    *list->Append() = new DropDownListStringItem(STR_GROUP_AUTO_GROUP_VEHICLES, ADI_AUTO_GROUP, false);
+
 	return list;
 }
 
