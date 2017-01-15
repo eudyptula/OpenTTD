@@ -1285,7 +1285,7 @@ make_compiler_cflags() {
 
 		# -W alone doesn't enable all warnings enabled by -Wall; on the other hand,
 		# -Weverything enables too many useless warnings that can't be disabled (as of 3.0)
-		flags="$flags -Wall -W"
+		flags="$flags -Wall -W -Wextra"
 
 		# warning: unused parameter '...'
 		flags="$flags -Wno-unused-parameter"
@@ -1324,6 +1324,11 @@ make_compiler_cflags() {
 		if [ "$enable_assert" -eq "0" ]; then
 			# do not warn about unused variables when building without asserts
 			flags="$flags -Wno-unused-variable"
+		fi
+
+		if [ "$cc_version" -ge "33" ]; then
+			# clang completed C++11 support in version 3.3
+			flags="$flags -std=c++11"
 		fi
 
 		# rdynamic is used to get useful stack traces from crash reports.
@@ -1394,11 +1399,14 @@ make_compiler_cflags() {
 			flags="$flags -fno-tree-vrp"
 		fi
 
-		if [ $cc_version -ge 407 ]; then
+		if [ $cc_version -eq 407 ]; then
 			# Disable -Wnarrowing which gives many warnings, such as:
 			# warning: narrowing conversion of '...' from 'unsigned int' to 'int' inside { } [-Wnarrowing]
 			# They are valid according to the C++ standard, but useless.
 			cxxflags="$cxxflags -Wno-narrowing"
+		fi
+
+		if [ $cc_version -ge 407 ]; then
 			# Disable bogus 'attempt to free a non-heap object' warning
 			flags="$flags -Wno-free-nonheap-object"
 		fi
@@ -1602,23 +1610,6 @@ make_cflags_and_ldflags() {
 			# Universal builds set this elsewhere
 			CFLAGS="$OSX_SYSROOT $CFLAGS"
 			LDFLAGS="$OSX_LD_SYSROOT $LDFLAGS"
-		fi
-
-		if [ "$enable_universal" = "0" ] && [ $cc_version -gt 400 ]; then
-			# Only set the min version when not doing an universal build.
-			# Universal builds set the version elsewhere.
-			if [ "$cpu_type" = "64" ]; then
-				CFLAGS="$CFLAGS -mmacosx-version-min=10.5"
-			else
-				gcc_cpu=`$cc_host -dumpmachine`
-				if [ "`echo $gcc_cpu | cut -c 1-3`" = "ppc" -o "`echo $gcc_cpu | cut -c 1-7`" = "powerpc" ]; then
-					# PowerPC build can run on 10.3
-					CFLAGS="$CFLAGS -mmacosx-version-min=10.3"
-				else
-					# Intel is only available starting from 10.4
-					CFLAGS="$CFLAGS -mmacosx-version-min=10.4"
-				fi
-			fi
 		fi
 	fi
 
