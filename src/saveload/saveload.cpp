@@ -265,8 +265,9 @@
  *  195   27572   1.6.x
  *  196   Automated timetables and separation
  *  196   Infrastructure Sharing
+ *  197   Signal in tunnels and bridges patch
  */
-extern const uint16 SAVEGAME_VERSION = 196; ///< Current savegame version of OpenTTD.
+extern const uint16 SAVEGAME_VERSION = 197; ///< Current savegame version of OpenTTD.
 
 SavegameType _savegame_type; ///< type of savegame we are loading
 FileToSaveLoad _file_to_saveload; ///< File to save or load in the openttd loop.
