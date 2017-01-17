@@ -807,7 +807,7 @@ CommandCost CmdAutoGroupVehiclesGroup(TileIndex tile, DoCommandFlag flags, uint3
     GroupID old_g_id = p1;
     Group *old_g = Group::GetIfValid(old_g_id);
 
-    if (old_g_id != ALL_GROUP && (old_g == NULL || old_g->owner != _current_company)) return CMD_ERROR;
+    if (old_g_id != ALL_GROUP  && old_g_id != DEFAULT_GROUP && (old_g == NULL || old_g->owner != _current_company)) return CMD_ERROR;
 
     if (flags & DC_EXEC) {
         Vehicle *v;
