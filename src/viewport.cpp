@@ -3678,7 +3678,7 @@ static LineSnapPoint LineSnapPointAtRailTrackEndpoint(TileIndex tile, DiagDirect
 
 	/* Check whether to extend the snap point over a tunnel/bridge/station etc. */
 	tile = TileAddByDiagDir(tile, exit_dir);
-	if (extended != NULL && IsTileOwner(tile, _local_company) && !IsTileType(tile, MP_RAILWAY) && !IsTileType(tile, MP_ROAD) &&
+	if (extended != NULL && !IsTileType(tile, MP_HOUSE) && !IsTileType(tile, MP_INDUSTRY) && IsTileOwner(tile, _local_company) && !IsTileType(tile, MP_RAILWAY) && !IsTileType(tile, MP_ROAD) &&
 			TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_RAIL, INVALID_DIAGDIR)) == AxisToTrackBits(DiagDirToAxis(exit_dir))) {
 		/* Check if this is a bridge and move the tile to the other end if so. */
 		if (IsTileType(tile, MP_TUNNELBRIDGE)) tile = GetOtherTunnelBridgeEnd(tile);
