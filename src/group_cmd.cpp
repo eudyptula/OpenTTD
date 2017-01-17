@@ -564,8 +564,8 @@ static uint8 GroupSpecificName(Vehicle *v, char *str, char *str_last)
             else if (l == NULL) l = d;
             else if (d->count < l->count) l = d;
         }
-        first = f->order;
-        last = l->order;
+        if (f != NULL) first = f->order;
+        if (l != NULL) last = l->order;
     }
     if(last == NULL || first == NULL) return 1;
 
