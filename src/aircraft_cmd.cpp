@@ -131,6 +131,11 @@ static StationID FindNearestHangar(const Aircraft *v)
 
 		const AirportFTAClass *afc = st->airport.GetFTA();
 		if (!st->airport.HasHangar() || (
+					/* the airport needs to have facilities for this plane type */
+					(AircraftVehInfo(v->engine_type)->subtype & AIR_CTOL) ?
+					!(afc->flags & AirportFTAClass::AIRPLANES) :
+					!(afc->flags & AirportFTAClass::HELICOPTERS)
+					) || (
 					/* don't crash the plane if we know it can't land at the airport */
 					(afc->flags & AirportFTAClass::SHORT_STRIP) &&
 					(avi->subtype & AIR_FAST) &&
@@ -311,6 +316,9 @@ CommandCost CmdBuildAircraft(TileIndex tile, DoCommandFlag flags, const Engine *
 
 		v->reliability = e->reliability;
 		v->reliability_spd_dec = e->reliability_spd_dec;
+		/* higher speed means higher breakdown chance */
+		/* to somewhat compensate for the fact that fast aircraft spend less time in the air */
+		v->breakdown_chance_factor = Clamp(64 + (AircraftVehInfo(v->engine_type)->max_speed >> 3), 0, 255);
 		v->max_age = e->GetLifeLengthInDays();
 
 		_new_vehicle_id = v->index;
@@ -655,7 +663,7 @@ static int UpdateAircraftSpeed(Aircraft *v, uint speed_limit = SPEED_LIMIT_NONE,
 	spd = min(v->cur_speed + (spd >> 8) + (v->subspeed < t), speed_limit);
 
 	/* adjust speed for broken vehicles */
-	if (v->vehstatus & VS_AIRCRAFT_BROKEN) spd = min(spd, SPEED_LIMIT_BROKEN);
+	if (v->breakdown_ctr == 1 && v->breakdown_type == BREAKDOWN_AIRCRAFT_SPEED) spd = min(v->breakdown_severity << 3, spd);
 
 	/* updates statusbar only if speed have changed to save CPU time */
 	if (spd != v->cur_speed) {
@@ -1108,6 +1116,51 @@ static bool AircraftController(Aircraft *v)
 }
 
 /**
+ * Send a broken plane that needs to visit a depot to the correct location.
+ * @param v The airplane in question
+ */
+void FindBreakdownDestination(Aircraft *v)
+{
+	assert(v->type == VEH_AIRCRAFT && v->breakdown_ctr == 1);
+
+	DestinationID destination = INVALID_STATION;
+	if (v->breakdown_type == BREAKDOWN_AIRCRAFT_DEPOT) {
+		/* Go to a hangar, if possible at our current destination */
+		v->FindClosestDepot(NULL, &destination, NULL);
+	} else if (v->breakdown_type == BREAKDOWN_AIRCRAFT_EM_LANDING) {
+		/* Go to the nearest airport with a hangar */
+		destination = FindNearestHangar(v);
+	} else {
+		NOT_REACHED();
+	}
+
+	if(destination != INVALID_STATION) {
+		if(destination != v->current_order.GetDestination()) {
+			v->current_order.MakeGoToDepot(destination, ODTFB_BREAKDOWN);
+			if (v->state == FLYING) {
+				/* Do not change airport if in the middle of another airport's state machine,
+				 * as this can result in the airport being left in a blocked state */
+				AircraftNextAirportPos_and_Order(v);
+			}
+		} else {
+			v->current_order.MakeGoToDepot(destination, ODTFB_BREAKDOWN);
+		}
+	} else {
+		if (v->state != FLYING && v->targetairport != INVALID_STATION) {
+			/* Crashing whilst in an airport state machine is inconvenient
+			 * as any blocks would need to then be marked unoccupied.
+			 * Change the breakdown type to a speed reduction. */
+			v->breakdown_type = BREAKDOWN_AIRCRAFT_SPEED;
+			v->breakdown_severity = 15; /* very slow */
+			return;
+		}
+		/* If no hangar was found, crash */
+		v->targetairport = INVALID_STATION;
+		CrashAirplane(v);
+	}
+}
+
+/**
  * Handle crashed aircraft \a v.
  * @param v Crashed aircraft.
  */
@@ -1187,8 +1240,9 @@ static void HandleAircraftSmoke(Aircraft *v, bool mode)
 
 	if (!(v->vehstatus & VS_AIRCRAFT_BROKEN)) return;
 
+	/* breakdown-related speed limits are lifted when we are on the ground */
 	/* Stop smoking when landed */
-	if (v->cur_speed < 10) {
+	if (v->state != FLYING && v->state != LANDING && v->breakdown_type == BREAKDOWN_AIRCRAFT_SPEED) {
 		v->vehstatus &= ~VS_AIRCRAFT_BROKEN;
 		v->breakdown_ctr = 0;
 		return;
@@ -1307,12 +1361,17 @@ static void MaybeCrashAirplane(Aircraft *v)
 
 	/* FIXME -- MaybeCrashAirplane -> increase crashing chances of very modern airplanes on smaller than AT_METROPOLITAN airports */
 	uint32 prob = (0x4000 << _settings_game.vehicle.plane_crashes);
+
 	if ((st->airport.GetFTA()->flags & AirportFTAClass::SHORT_STRIP) &&
 			(AircraftVehInfo(v->engine_type)->subtype & AIR_FAST) &&
 			!_cheats.no_jetcrash.value) {
 		prob /= 20;
 	} else {
 		prob /= 1500;
+	}
+	if (_settings_game.vehicle.improved_breakdowns && v->breakdown_ctr == 1 && v->breakdown_type == BREAKDOWN_AIRCRAFT_EM_LANDING) {
+		/* Airplanes that are attempting an emergency landing have a 2% chance to crash */
+		prob = max<uint32>(prob, 0x10000 / 50);
 	}
 
 	if (GB(Random(), 0, 22) > prob) return;

@@ -2836,6 +2836,53 @@ bool AfterLoadGame()
 		}
 	}
 
+	/* Set some breakdown-related variables to the correct values. */
+	if (IsSavegameVersionBefore(SL_IB)) {
+
+		Vehicle *v;
+		FOR_ALL_VEHICLES(v) {
+			switch(v->type) {
+				case VEH_TRAIN: {
+					if (Train::From(v)->IsFrontEngine()) {
+						if (v->breakdown_ctr == 1) SetBit(Train::From(v)->flags, VRF_BREAKDOWN_STOPPED);
+					} else if (Train::From(v)->IsEngine() || Train::From(v)->IsMultiheaded()) {
+						/** Non-front engines could have a reliability of 0.
+						 * Set it to the reliability of the front engine or the maximum, whichever is lower. */
+						const Engine *e = Engine::Get(v->engine_type);
+						v->reliability_spd_dec = e->reliability_spd_dec;
+						v->reliability = min(v->First()->reliability, e->reliability);
+					}
+				}
+				/* FALL THROUGH */
+				case VEH_ROAD:
+					v->breakdown_chance_factor = 128;
+					break;
+				case VEH_SHIP:
+					v->breakdown_chance_factor = 64;
+					break;
+				case VEH_AIRCRAFT:
+					v->breakdown_chance_factor = Clamp(64 + (AircraftVehInfo(v->engine_type)->max_speed >> 3), 0, 255);
+					v->breakdown_severity = 40;
+					break;
+				default: break;
+			}
+		}
+	} else {
+		Vehicle *v;
+		FOR_ALL_VEHICLES(v) {
+			switch(v->type) {
+				case VEH_AIRCRAFT:
+					if (v->breakdown_type == BREAKDOWN_AIRCRAFT_SPEED && v->breakdown_severity == 0) {
+						v->breakdown_severity = max(1, min(v->vcache.cached_max_speed >> 4, 255));
+					}
+					break;
+
+				default:
+					break;
+			}
+		}
+	}
+
 	/* The road owner of standard road stops was not properly accounted for. */
 	if (IsSavegameVersionBefore(172)) {
 		for (TileIndex t = 0; t < map_size; t++) {

@@ -306,6 +306,7 @@ CommandCost CmdBuildRoadVehicle(TileIndex tile, DoCommandFlag flags, const Engin
 
 		v->reliability = e->reliability;
 		v->reliability_spd_dec = e->reliability_spd_dec;
+		v->breakdown_chance_factor = 128;
 		v->max_age = e->GetLifeLengthInDays();
 		_new_vehicle_id = v->index;
 
@@ -391,7 +392,6 @@ CommandCost CmdTurnRoadVeh(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 
 	if ((v->vehstatus & VS_STOPPED) ||
 			(v->vehstatus & VS_CRASHED) ||
-			v->breakdown_ctr != 0 ||
 			v->overtaking != 0 ||
 			v->state == RVSB_WORMHOLE ||
 			v->IsInDepot() ||
@@ -824,6 +824,9 @@ static void RoadVehCheckOvertake(RoadVehicle *v, RoadVehicle *u)
 
 	/* For now, articulated road vehicles can't overtake anything. */
 	if (v->HasArticulatedPart()) return;
+
+	/* Don't overtake if the vehicle is broken or about to break down */
+	if (v->breakdown_ctr != 0) return;
 
 	/* Vehicles are not driving in same direction || direction is not a diagonal direction */
 	if (v->direction != u->direction || !(v->direction & 1)) return;

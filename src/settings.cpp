@@ -1017,6 +1017,14 @@ static bool RoadVehAccelerationModelChanged(int32 p1)
 			}
 		}
 	}
+	if (_settings_game.vehicle.roadveh_acceleration_model == AM_ORIGINAL || !_settings_game.vehicle.improved_breakdowns) {
+		RoadVehicle *rv;
+		FOR_ALL_ROADVEHICLES(rv) {
+			if (rv->IsFrontEngine()) {
+				rv->breakdown_chance_factor = 128;
+			}
+		}
+	}
 
 	/* These windows show acceleration values only when realistic acceleration is on. They must be redrawn after a setting change. */
 	SetWindowClassesDirty(WC_ENGINE_PREVIEW);
@@ -1332,6 +1340,33 @@ static bool CheckSharingWater(int32 p1)
 static bool CheckSharingAir(int32 p1)
 {
 	return CheckSharingChangePossible(VEH_AIRCRAFT);
+}
+
+static bool ImprovedBreakdownsSettingChanged(int32 p1)
+{
+	if (!_settings_game.vehicle.improved_breakdowns) return true;
+
+	Vehicle *v;
+	FOR_ALL_VEHICLES(v) {
+		switch(v->type) {
+			case VEH_TRAIN:
+				if (v->IsFrontEngine()) {
+					v->breakdown_chance_factor = 128;
+					Train::From(v)->UpdateAcceleration();
+				}
+				break;
+
+			case VEH_ROAD:
+				if (v->IsFrontEngine()) {
+					v->breakdown_chance_factor = 128;
+				}
+				break;
+
+			default:
+				break;
+		}
+	}
+	return true;
 }
 
 #ifdef ENABLE_NETWORK
