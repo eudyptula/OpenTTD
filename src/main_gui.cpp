@@ -348,10 +348,10 @@ struct MainWindow : Window
 				MarkWholeScreenDirty();
 				break;
 			case GHK_DELETE_NONVITAL_WINDOWS:
-                DeleteAllNonVitalWindows();
-                Overlays::Instance()->Clear();
+				DeleteAllNonVitalWindows();
+				Overlays::Instance()->Clear();
 				MarkWholeScreenDirty();
-                break;
+				break;
 			case GHK_REFRESH_SCREEN: MarkWholeScreenDirty(); break;
 
 			case GHK_CRASH: // Crash the game
