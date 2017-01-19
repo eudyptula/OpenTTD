@@ -3188,7 +3188,7 @@ static bool IsToCloseBehindTrain(Vehicle *v, TileIndex tile, bool check_endtile)
 		}
 		return true;
 	}
-    /* Cover blind spot at end of tunnel bridge. */
+	/* Cover blind spot at end of tunnel bridge. */
 	if (check_endtile){
 		if (HasVehicleOnPos(GetOtherTunnelBridgeEnd(t->tile), v, &FindSpaceBetweenTrainsEnum)) {
 			/* Revert train if not going with tunnel direction. */
