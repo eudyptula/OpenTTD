@@ -2487,7 +2487,8 @@ void Vehicle::HandleWaiting(bool stop_waiting)
 			break;
 		}
 
-		default: return;
+		default:
+			return;
 	}
 }
 
