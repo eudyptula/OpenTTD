@@ -27,12 +27,15 @@
 #include "../effectvehicle_base.h"
 #include "../engine_func.h"
 #include "../company_base.h"
+#include "../disaster_vehicle.h"
 #include "saveload_internal.h"
 #include "oldloader.h"
 
 #include "table/strings.h"
 #include "../table/engines.h"
 #include "../table/townname.h"
+
+#include "../safeguards.h"
 
 static bool _read_ttdpatch_flags;    ///< Have we (tried to) read TTDPatch extra flags?
 static uint16 _old_extra_chunk_nums; ///< Number of extra TTDPatch chunks
@@ -708,10 +711,11 @@ static bool LoadOldGood(LoadgameState *ls, int num)
 
 	if (!LoadChunk(ls, ge, goods_chunk)) return false;
 
-	SB(ge->acceptance_pickup, GoodsEntry::GES_ACCEPTANCE, 1, HasBit(_waiting_acceptance, 15));
-	SB(ge->acceptance_pickup, GoodsEntry::GES_PICKUP, 1, _cargo_source != 0xFF);
+	SB(ge->status, GoodsEntry::GES_ACCEPTANCE, 1, HasBit(_waiting_acceptance, 15));
+	SB(ge->status, GoodsEntry::GES_RATING, 1, _cargo_source != 0xFF);
 	if (GB(_waiting_acceptance, 0, 12) != 0 && CargoPacket::CanAllocateItem()) {
-		ge->cargo.Append(new CargoPacket(GB(_waiting_acceptance, 0, 12), _cargo_days, (_cargo_source == 0xFF) ? INVALID_STATION : _cargo_source, 0, 0));
+		ge->cargo.Append(new CargoPacket(GB(_waiting_acceptance, 0, 12), _cargo_days, (_cargo_source == 0xFF) ? INVALID_STATION : _cargo_source, 0, 0),
+				INVALID_STATION);
 	}
 
 	return true;
@@ -1161,7 +1165,7 @@ static const OldChunks vehicle_chunk[] = {
 
 	OCL_SVAR(  OC_UINT8, Vehicle, owner ),
 	OCL_SVAR(   OC_TILE, Vehicle, tile ),
-	OCL_SVAR( OC_FILE_U16 | OC_VAR_U32, Vehicle, cur_image ),
+	OCL_SVAR( OC_FILE_U16 | OC_VAR_U32, Vehicle, sprite_seq.seq[0].sprite ),
 
 	OCL_NULL( 8 ),        ///< Vehicle sprite box, calculated automatically
 
@@ -1252,8 +1256,9 @@ bool LoadOldVehicle(LoadgameState *ls, int num)
 
 			if (!LoadChunk(ls, v, vehicle_chunk)) return false;
 			if (v == NULL) continue;
+			v->refit_cap = v->cargo_cap;
 
-			SpriteID sprite = v->cur_image;
+			SpriteID sprite = v->sprite_seq.seq[0].sprite;
 			/* no need to override other sprites */
 			if (IsInsideMM(sprite, 1460, 1465)) {
 				sprite += 580; // aircraft smoke puff
@@ -1264,7 +1269,7 @@ bool LoadOldVehicle(LoadgameState *ls, int num)
 			} else if (IsInsideMM(sprite, 2516, 2539)) {
 				sprite += 1385; // rotor or disaster-related vehicles
 			}
-			v->cur_image = sprite;
+			v->sprite_seq.seq[0].sprite = sprite;
 
 			switch (v->type) {
 				case VEH_TRAIN: {
@@ -1490,10 +1495,10 @@ static bool LoadOldMapPart1(LoadgameState *ls, int num)
 		}
 		for (uint i = 0; i < OLD_MAP_SIZE / 4; i++) {
 			byte b = ReadByte(ls);
-			_m[i * 4 + 0].m6 = GB(b, 0, 2);
-			_m[i * 4 + 1].m6 = GB(b, 2, 2);
-			_m[i * 4 + 2].m6 = GB(b, 4, 2);
-			_m[i * 4 + 3].m6 = GB(b, 6, 2);
+			_me[i * 4 + 0].m6 = GB(b, 0, 2);
+			_me[i * 4 + 1].m6 = GB(b, 2, 2);
+			_me[i * 4 + 2].m6 = GB(b, 4, 2);
+			_me[i * 4 + 3].m6 = GB(b, 6, 2);
 		}
 	}
 
@@ -1505,7 +1510,7 @@ static bool LoadOldMapPart2(LoadgameState *ls, int num)
 	uint i;
 
 	for (i = 0; i < OLD_MAP_SIZE; i++) {
-		_m[i].type_height = ReadByte(ls);
+		_m[i].type = ReadByte(ls);
 	}
 	for (i = 0; i < OLD_MAP_SIZE; i++) {
 		_m[i].m5 = ReadByte(ls);
@@ -1575,6 +1580,7 @@ extern uint16 _disaster_delay;
 extern byte _trees_tick_ctr;
 extern byte _age_cargo_skip_counter; // From misc_sl.cpp
 extern uint8 _old_diff_level;
+extern uint8 _old_units;
 static const OldChunks main_chunk[] = {
 	OCL_ASSERT( OC_TTD, 0 ),
 	OCL_ASSERT( OC_TTO, 0 ),
@@ -1703,7 +1709,7 @@ static const OldChunks main_chunk[] = {
 	OCL_NULL( 1 ),               ///< Station tick counter, no longer in use
 
 	OCL_VAR (  OC_UINT8,    1, &_settings_game.locale.currency ),
-	OCL_VAR (  OC_UINT8,    1, &_settings_game.locale.units ),
+	OCL_VAR (  OC_UINT8,    1, &_old_units ),
 	OCL_VAR ( OC_FILE_U8 | OC_VAR_U32,    1, &_cur_company_tick_index ),
 
 	OCL_NULL( 2 ),               ///< Date stuff, calculated automatically

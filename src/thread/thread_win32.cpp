@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <process.h>
+#include "../os/windows/win32.h"
+
+#include "../safeguards.h"
 
 /**
  * Win32 thread version for ThreadObject.
@@ -27,17 +30,19 @@ private:
 	OTTDThreadFunc proc; ///< External thread procedure.
 	void *param;         ///< Parameter for the external thread procedure.
 	bool self_destruct;  ///< Free ourselves when done?
+	const char *name;    ///< Thread name.
 
 public:
 	/**
 	 * Create a win32 thread and start it, calling proc(param).
 	 */
-	ThreadObject_Win32(OTTDThreadFunc proc, void *param, bool self_destruct) :
+	ThreadObject_Win32(OTTDThreadFunc proc, void *param, bool self_destruct, const char *name) :
 		thread(NULL),
 		id(0),
 		proc(proc),
 		param(param),
-		self_destruct(self_destruct)
+		self_destruct(self_destruct),
+		name(name)
 	{
 		this->thread = (HANDLE)_beginthreadex(NULL, 0, &stThreadProc, this, CREATE_SUSPENDED, &this->id);
 		if (this->thread == NULL) return;
@@ -83,6 +88,10 @@ private:
 	 */
 	void ThreadProc()
 	{
+#ifdef _MSC_VER
+		/* Set thread name for debuggers. Has to be done from the thread due to a race condition in older MS debuggers. */
+		SetWin32ThreadName(-1, this->name);
+#endif
 		try {
 			this->proc(this->param);
 		} catch (OTTDThreadExitSignal) {
@@ -94,9 +103,9 @@ private:
 	}
 };
 
-/* static */ bool ThreadObject::New(OTTDThreadFunc proc, void *param, ThreadObject **thread)
+/* static */ bool ThreadObject::New(OTTDThreadFunc proc, void *param, ThreadObject **thread, const char *name)
 {
-	ThreadObject *to = new ThreadObject_Win32(proc, param, thread == NULL);
+	ThreadObject *to = new ThreadObject_Win32(proc, param, thread == NULL, name);
 	if (thread != NULL) *thread = to;
 	return true;
 }
@@ -108,9 +117,10 @@ class ThreadMutex_Win32 : public ThreadMutex {
 private:
 	CRITICAL_SECTION critical_section; ///< The critical section we would enter.
 	HANDLE event;                      ///< Event for signalling.
+	uint recursive_count;     ///< Recursive lock count.
 
 public:
-	ThreadMutex_Win32()
+	ThreadMutex_Win32() : recursive_count(0)
 	{
 		InitializeCriticalSection(&this->critical_section);
 		this->event = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -122,18 +132,24 @@ public:
 		CloseHandle(this->event);
 	}
 
-	/* virtual */ void BeginCritical()
+	/* virtual */ void BeginCritical(bool allow_recursive = false)
 	{
+		/* windows mutex is recursive by itself */
 		EnterCriticalSection(&this->critical_section);
+		this->recursive_count++;
+		if (!allow_recursive && this->recursive_count != 1) NOT_REACHED();
 	}
 
-	/* virtual */ void EndCritical()
+	/* virtual */ void EndCritical(bool allow_recursive = false)
 	{
+		if (!allow_recursive && this->recursive_count != 1) NOT_REACHED();
+		this->recursive_count--;
 		LeaveCriticalSection(&this->critical_section);
 	}
 
 	/* virtual */ void WaitForSignal()
 	{
+		assert(this->recursive_count == 1); // Do we need to call Begin/EndCritical multiple times otherwise?
 		this->EndCritical();
 		WaitForSingleObject(this->event, INFINITE);
 		this->BeginCritical();

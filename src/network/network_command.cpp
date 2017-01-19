@@ -19,13 +19,15 @@
 #include "../company_func.h"
 #include "../settings_type.h"
 
+#include "../safeguards.h"
+
 /** Table with all the callbacks we'll use for conversion*/
 static CommandCallback * const _callback_table[] = {
 	/* 0x00 */ NULL,
 	/* 0x01 */ CcBuildPrimaryVehicle,
 	/* 0x02 */ CcBuildAirport,
 	/* 0x03 */ CcBuildBridge,
-	/* 0x04 */ CcBuildCanal,
+	/* 0x04 */ CcPlaySound_SPLAT_WATER,
 	/* 0x05 */ CcBuildDocks,
 	/* 0x06 */ CcFoundTown,
 	/* 0x07 */ CcBuildRoadTunnel,
@@ -34,9 +36,9 @@ static CommandCallback * const _callback_table[] = {
 	/* 0x0A */ CcRoadDepot,
 	/* 0x0B */ CcRailDepot,
 	/* 0x0C */ CcPlaceSign,
-	/* 0x0D */ CcPlaySound10,
-	/* 0x0E */ CcPlaySound1D,
-	/* 0x0F */ CcPlaySound1E,
+	/* 0x0D */ CcPlaySound_EXPLOSION,
+	/* 0x0E */ CcPlaySound_SPLAT_OTHER,
+	/* 0x0F */ CcPlaySound_SPLAT_RAIL,
 	/* 0x10 */ CcStation,
 	/* 0x11 */ CcTerraform,
 	/* 0x12 */ CcAI,
@@ -235,7 +237,7 @@ void NetworkFreeLocalCommandQueue()
  * @param cp    The command that has to be distributed.
  * @param owner The client that owns the command,
  */
-static void DistributeCommandPacket(CommandPacket cp, const NetworkClientSocket *owner)
+static void DistributeCommandPacket(CommandPacket &cp, const NetworkClientSocket *owner)
 {
 	CommandCallback *callback = cp.callback;
 	cp.frame = _frame_counter_max + 1;

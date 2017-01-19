@@ -129,6 +129,7 @@ AWKCOMMAND='
 		if ($0 == "DIRECTMUSIC" && "'$with_direct_music'" == "0")  { next; }
 		if ($0 == "LIBTIMIDITY" && "'$libtimidity'" == "" )        { next; }
 		if ($0 == "HAVE_THREAD" && "'$with_threads'" == "0")       { next; }
+		if ($0 == "SSE"         && "'$with_sse'" != "1")           { next; }
 
 		skip += 1;
 
@@ -148,7 +149,7 @@ AWKCOMMAND='
 
 # Read the source.list and process it
 # Please escape ALL " within ` because e.g. "" terminates the string in some sh implementations
-SRCS="`< $ROOT_DIR/source.list tr '\r' '\n' | $awk \"$AWKCOMMAND\" | $PIPE_SORT`"
+SRCS="`< $ROOT_DIR/source.list tr '\r' '\n' | $awk \"$AWKCOMMAND\" | LC_ALL=C $PIPE_SORT`"
 
 OBJS_C="`  echo \"$SRCS\" | $awk ' { ORS = \" \" } /\.c$/   { gsub(\".c$\",   \".o\", $0); print $0; }'`"
 OBJS_CPP="`echo \"$SRCS\" | $awk ' { ORS = \" \" } /\.cpp$/ { gsub(\".cpp$\", \".o\", $0); print $0; }'`"

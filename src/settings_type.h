@@ -17,6 +17,8 @@
 #include "transport_type.h"
 #include "network/core/config.h"
 #include "company_type.h"
+#include "cargotype.h"
+#include "linkgraph/linkgraph_type.h"
 #include "zoom_type.h"
 #include "openttd.h"
 
@@ -81,7 +83,7 @@ struct GUISettings {
 	uint8  stop_location;                    ///< what is the default stop location of trains?
 	uint8  auto_scrolling;                   ///< scroll when moving mouse to the edge (see #ViewportAutoscrolling)
 	byte   errmsg_duration;                  ///< duration of error message
-	byte   hover_delay;                      ///< time required to activate a hover event, in seconds
+	uint16 hover_delay_ms;                   ///< time required to activate a hover event, in milliseconds
 	bool   link_terraform_toolbar;           ///< display terraform toolbar when displaying rail, road, water and airport toolbars
 	uint8  smallmap_land_colour;             ///< colour used for land and heightmap at the smallmap
 	bool   reverse_scroll;                   ///< right-Click-Scrolling scrolls in the opposite direction
@@ -137,8 +139,12 @@ struct GUISettings {
 
 	uint16 console_backlog_timeout;          ///< the minimum amount of time items should be in the console backlog before they will be removed in ~3 seconds granularity.
 	uint16 console_backlog_length;           ///< the minimum amount of items in the console backlog before items will be removed.
+
+	uint8  station_gui_group_order;          ///< the order of grouping cargo entries in the station gui
+	uint8  station_gui_sort_by;              ///< sort cargo entries in the station gui by station name or amount
+	uint8  station_gui_sort_order;           ///< the sort order of entries in the station gui - ascending or descending
 #ifdef ENABLE_NETWORK
-	uint16 network_chat_box_width;           ///< width of the chat box in pixels
+	uint16 network_chat_box_width_pct;       ///< width of the chat box in percent
 	uint8  network_chat_box_height;          ///< height of the chat box in lines
 	uint16 network_chat_timeout;             ///< timeout of chat messages in seconds
 #endif
@@ -188,7 +194,12 @@ struct MusicSettings {
 /** Settings related to currency/unit systems. */
 struct LocaleSettings {
 	byte   currency;                         ///< currency we currently use
-	byte   units;                            ///< unit system we show everything
+	byte   units_velocity;                   ///< unit system for velocity
+	byte   units_power;                      ///< unit system for power
+	byte   units_weight;                     ///< unit system for weight
+	byte   units_volume;                     ///< unit system for volume
+	byte   units_force;                      ///< unit system for force
+	byte   units_height;                     ///< unit system for height
 	char  *digit_group_separator;            ///< thousand separator for non-currencies
 	char  *digit_group_separator_currency;   ///< thousand separator for currencies
 	char  *digit_decimal_separator;          ///< decimal separator
@@ -267,7 +278,7 @@ struct GameCreationSettings {
 	uint8  map_y;                            ///< Y size of map
 	byte   land_generator;                   ///< the landscape generator
 	byte   oil_refinery_limit;               ///< distance oil refineries allowed from map edge
-	byte   snow_line_height;                 ///< a number 0-15 that configured snow line height
+	byte   snow_line_height;                 ///< the configured snow line height
 	byte   tgen_smoothness;                  ///< how rough is the terrain from 0-3
 	byte   tree_placer;                      ///< the tree placer algorithm
 	byte   heightmap_rotation;               ///< rotation director for the heightmap
@@ -285,9 +296,11 @@ struct GameCreationSettings {
 
 /** Settings related to construction in-game */
 struct ConstructionSettings {
+	uint8  max_heightlevel;                  ///< maximum allowed heightlevel
 	bool   build_on_slopes;                  ///< allow building on slopes
 	bool   autoslope;                        ///< allow terraforming under things
 	uint16 max_bridge_length;                ///< maximum length of bridges
+	byte   max_bridge_height;                ///< maximum height of bridges
 	uint16 max_tunnel_length;                ///< maximum length of tunnels
 	byte   train_signal_side;                ///< show signals on left / driving / right side
 	bool   extra_dynamite;                   ///< extra dynamite
@@ -477,6 +490,26 @@ struct EconomySettings {
 	bool   infrastructure_maintenance;       ///< enable monthly maintenance fee for owner infrastructure
 };
 
+struct LinkGraphSettings {
+	uint16 recalc_time;                         ///< time (in days) for recalculating each link graph component.
+	uint16 recalc_interval;                     ///< time (in days) between subsequent checks for link graphs to be calculated.
+	DistributionTypeByte distribution_pax;      ///< distribution type for passengers
+	DistributionTypeByte distribution_mail;     ///< distribution type for mail
+	DistributionTypeByte distribution_armoured; ///< distribution type for armoured cargo class
+	DistributionTypeByte distribution_default;  ///< distribution type for all other goods
+	uint8 accuracy;                             ///< accuracy when calculating things on the link graph. low accuracy => low running time
+	uint8 demand_size;                          ///< influence of supply ("station size") on the demand function
+	uint8 demand_distance;                      ///< influence of distance between stations on the demand function
+	uint8 short_path_saturation;                ///< percentage up to which short paths are saturated before saturating most capacious paths
+
+	inline DistributionType GetDistributionType(CargoID cargo) const {
+		if (IsCargoInClass(cargo, CC_PASSENGERS)) return this->distribution_pax;
+		if (IsCargoInClass(cargo, CC_MAIL)) return this->distribution_mail;
+		if (IsCargoInClass(cargo, CC_ARMOURED)) return this->distribution_armoured;
+		return this->distribution_default;
+	}
+};
+
 /** Settings related to stations. */
 struct StationSettings {
 	bool   modified_catchment;               ///< different-size catchment areas
@@ -517,6 +550,7 @@ struct GameSettings {
 	OrderSettings        order;              ///< settings related to orders
 	VehicleSettings      vehicle;            ///< options for vehicles
 	EconomySettings      economy;            ///< settings to change the economy
+	LinkGraphSettings    linkgraph;          ///< settings for link graph calculations
 	StationSettings      station;            ///< settings related to station management
 	LocaleSettings       locale;             ///< settings related to used currency/unit system in the current game
 };

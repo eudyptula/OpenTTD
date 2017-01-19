@@ -27,6 +27,13 @@ public:
 	 * @api -all
 	 */
 	virtual const char *GetEncodedText() = 0;
+
+	/**
+	 * Convert a #ScriptText into a decoded normal string.
+	 * @return A string (in a static buffer), or NULL.
+	 * @api -all
+	 */
+	const char *GetDecodedText();
 };
 
 /**
@@ -35,9 +42,8 @@ public:
  */
 class RawText : public Text {
 public:
-	RawText(const char *text) :
-	  text(strdup(text)) {}
-	~RawText() { free(this->text); }
+	RawText(const char *text);
+	~RawText();
 
 	/* virtual */ const char *GetEncodedText() { return this->text; }
 private:
@@ -118,12 +124,15 @@ public:
 	ScriptText *AddParam(Object value);
 #endif /* DOXYGEN_API */
 
-	/* virtual */ const char *GetEncodedText();
+	/**
+	 * @api -all
+	 */
+	virtual const char *GetEncodedText();
 
 private:
 	StringID string;
 	char *params[SCRIPT_TEXT_MAX_PARAMETERS];
-	int parami[SCRIPT_TEXT_MAX_PARAMETERS];
+	int64 parami[SCRIPT_TEXT_MAX_PARAMETERS];
 	ScriptText *paramt[SCRIPT_TEXT_MAX_PARAMETERS];
 	int paramc;
 

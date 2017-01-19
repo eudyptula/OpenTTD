@@ -21,6 +21,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /**
  * Draws an image of a ship
  * @param v         Front vehicle
@@ -33,19 +35,23 @@ void DrawShipImage(const Vehicle *v, int left, int right, int y, VehicleID selec
 {
 	bool rtl = _current_text_dir == TD_RTL;
 
-	SpriteID sprite = v->GetImage(rtl ? DIR_E : DIR_W, image_type);
-	const Sprite *real_sprite = GetSprite(sprite, ST_NORMAL);
+	VehicleSpriteSeq seq;
+	v->GetImage(rtl ? DIR_E : DIR_W, image_type, &seq);
 
-	int width = UnScaleByZoom(real_sprite->width, ZOOM_LVL_GUI);
-	int x_offs = UnScaleByZoom(real_sprite->x_offs, ZOOM_LVL_GUI);
+	Rect rect;
+	seq.GetBounds(&rect);
+
+	int width = UnScaleGUI(rect.right - rect.left + 1);
+	int x_offs = UnScaleGUI(rect.left);
 	int x = rtl ? right - width - x_offs : left - x_offs;
 
-	DrawSprite(sprite, GetVehiclePalette(v), x, y + 10);
+	y += ScaleGUITrad(10);
+	seq.Draw(x, y, GetVehiclePalette(v), false);
 
 	if (v->index == selection) {
 		x += x_offs;
-		y += UnScaleByZoom(real_sprite->y_offs, ZOOM_LVL_GUI) + 10;
-		DrawFrameRect(x - 1, y - 1, x + width + 1, y + UnScaleByZoom(real_sprite->height, ZOOM_LVL_GUI) + 1, COLOUR_WHITE, FR_BORDERONLY);
+		y += UnScaleGUI(rect.top);
+		DrawFrameRect(x - 1, y - 1, x + width + 1, y + UnScaleGUI(rect.bottom - rect.top + 1) + 1, COLOUR_WHITE, FR_BORDERONLY);
 	}
 }
 
@@ -62,7 +68,7 @@ void DrawShipDetails(const Vehicle *v, int left, int right, int y)
 	SetDParam(0, v->engine_type);
 	SetDParam(1, v->build_year);
 	SetDParam(2, v->value);
-	DrawString(left, right, y, STR_VEHICLE_INFO_BUILT_VALUE, TC_FROMSTRING, SA_LEFT | SA_STRIP);
+	DrawString(left, right, y, STR_VEHICLE_INFO_BUILT_VALUE);
 
 	SetDParam(0, v->cargo_type);
 	SetDParam(1, v->cargo_cap);

@@ -1,6 +1,5 @@
-OpenTTD readme
-Last updated:    2013-04-26
-Release version: 1.3.0
+Last updated:    2015-02-24
+Release version: 1.5.0-beta2
 ------------------------------------------------------------------------
 
 
@@ -27,6 +26,7 @@ Table of contents
  * 8.1) Translation
  * 8.2) Previewing
 9.0) Troubleshooting
+10.0) Licensing
 X.X) Credits
 
 
@@ -36,9 +36,9 @@ OpenTTD is a transport simulation game based upon the popular game Transport
 Tycoon Deluxe, written by Chris Sawyer. It attempts to mimic the original
 game as closely as possible while extending it with new features.
 
-OpenTTD is licensed under the GNU General Public License version 2.0. For
-more information, see the file 'COPYING'.
-
+OpenTTD is licensed under the GNU General Public License version 2.0,
+but includes some 3rd party software under different licenses. See the
+section "Licensing" below for details.
 
 2.0) Contacting
 ---- ----------
@@ -219,9 +219,9 @@ The Windows installer can optionally download and install these packages.
 4.1.2) Original Transport Tycoon Deluxe graphics and sound files
 ------ ---------------------------------------------------------
 If you want to play with the original Transport Tycoon Deluxe data files you
-have to copy the data files from the CD-ROM into the data/ directory. It does
-not matter whether you copy them from the DOS or Windows version of Transport
-Tycoon Deluxe. The Windows install can optionally copy these files.
+have to copy the data files from the CD-ROM into the baseset/ directory. It
+does not matter whether you copy them from the DOS or Windows version of
+Transport Tycoon Deluxe. The Windows install can optionally copy these files.
 You need to copy the following files:
  - sample.cat
  - trg1r.grf or TRG1.GRF
@@ -282,7 +282,8 @@ your operating system:
 		         C:\Documents and Settings\<username>\My Documents\OpenTTD (2000, XP)
 		         C:\Users\<username>\Documents\OpenTTD (Vista, 7)
 		Mac OSX: ~/Documents/OpenTTD
-		Linux:   ~/.openttd
+		Linux:   $XDG_DATA_HOME/openttd which is usually ~/.local/share/openttd when
+		         built with XDG base directory support, otherwise ~/.openttd
 	3. The shared directory
 		Windows: C:\Documents and Settings\All Users\Shared Documents\OpenTTD (2000, XP)
 		         C:\Users\Public\Documents\OpenTTD (Vista, 7)
@@ -307,9 +308,9 @@ chosen main OpenTTD directory:
 	32bpp Sets:          newgrf                  (or a subdirectory thereof)
 	Music Sets:          baseset                 (or a subdirectory thereof)
 	AIs:                 ai                      (or a subdirectory thereof)
-	AI Libraries:        ai/libraries            (or a subdirectory thereof)
+	AI Libraries:        ai/library              (or a subdirectory thereof)
 	Game Scripts (GS):   game                    (or a subdirectory thereof)
-	GS Libraries:        game/libraries          (or a subdirectory thereof)
+	GS Libraries:        game/library            (or a subdirectory thereof)
 	Savegames:           save
 	Automatic Savegames: save/autosave
 	Scenarios:           scenario
@@ -322,10 +323,13 @@ Notes:
 	  others.
 	- The previous search order is also used for NewGRFs and openttd.cfg.
 	- If openttd.cfg is not found, then it will be created using the 2, 4, 1, 3,
-	  5 order.
+	  5 order. When built with XDG base directory support, openttd.cfg will be
+	  created in $XDG_CONFIG_HOME/openttd which is usually ~/.config/openttd.
 	- Savegames will be relative to the config file only if there is no save/
 	  directory in paths with higher priority than the config file path, but
 	  autosaves and screenshots will always be relative to the config file.
+	  Unless the configuration file is in $XDG_CONFIG_HOME/openttd, then all
+	  other files will be saved under $XDG_DATA_HOME/openttd.
 
 The preferred setup:
 Place 3rd party files in shared directory (or in personal directory if you do
@@ -410,7 +414,6 @@ Information logged:
   original Transport Tycoon version
 * Running a modified OpenTTD build
 * Changing settings affecting NewGRF behaviour (non-network-safe settings)
-* Changing landscape (by cheat)
 * Triggering NewGRF bugs
 
 No personal information is stored.
@@ -478,9 +481,9 @@ DOS:
   website. Compilation is straight forward: use make, but do a './configure'
   before the first build. The build binary will need cwsdpmi.exe to be in
   the same directory as the openttd executable. cwsdpmi.exe can be found in
-  the os/dos subdirectory. If you compile with stripping turned on a binary
-  will be generated that does not need cwsdpmi.exe by adding the cswdstub.exe
-  to the created OpenTTD binary.
+  the os/dos/cwsdpmi subdirectory. If you compile with stripping turned on a
+  binary will be generated that does not need cwsdpmi.exe by adding the
+  cswdstub.exe to the created OpenTTD binary.
 
 7.1) Required/optional libraries
 ---- ---------------------------
@@ -507,10 +510,10 @@ no graphical user interface; you would be building a dedicated server.
 The following compilers are known to compile OpenTTD:
   - Microsoft Visual C++ (MSVC) 2005, 2008 and 2010.
     Version 2005 gives bogus warnings about scoping issues.
-  - GNU Compiler Collection (GCC) 3.3 - 4.7.
+  - GNU Compiler Collection (GCC) 3.3 - 4.4, 4.6 - 4.8.
     Versions 4.1 and earlier give bogus warnings about uninitialised variables.
-    Versions 4.4 - 4.6 give bogus warnings about freeing non-heap objects.
-    Versions 4.5 and later give invalid warnings when lto is enabled.
+    Versions 4.4, 4.6 give bogus warnings about freeing non-heap objects.
+    Versions 4.6 and later give invalid warnings when lto is enabled.
   - Intel C++ Compiler (ICC) 12.0.
   - Clang/LLVM 2.9 - 3.0
     Version 2.9 gives bogus warnings about code nonconformity.
@@ -519,6 +522,8 @@ The following compilers are known not to compile OpenTTD:
   - Microsoft Visual C++ (MSVC) 2003 and earlier.
   - GNU Compiler Collection (GCC) 3.2 and earlier.
     These old versions fail due to OpenTTD's template usage.
+  - GNU Compiler Collection (GCC) 4.5. It optimizes enums too aggressively.
+    See http://bugs.openttd.org/task/5513 and references therein.
   - Intel C++ Compiler (ICC) 11.1 and earlier.
     Version 10.0 and earlier fail a configure check and fail with recent system
         headers.
@@ -582,10 +587,9 @@ Note: Do not alter the following parts of the file:
 8.2) Previewing
 ---- ----------
 In order to view the translation in the game, you need to compile your language
-file with the strgen utility. You can download the precompiled strgen from:
-http://www.openttd.org/download-strgen
-To compile it yourself just take the normal OpenTTD sources and build that.
-During the build process the strgen utility will be made.
+file with the strgen utility. As this utility is tailored to a specific OpenTTD
+version, you need to compile it yourself. Just take the normal OpenTTD sources
+and build that. During the build process the strgen utility will be made.
 
 strgen is a command-line utility. It takes the language filename as parameter.
 Example:
@@ -643,49 +647,80 @@ development section (http://www.tt-forums.net/viewforum.php?f=66) or GrfCrawler
 (see section 4.2 'OpenTTD directories') and rescan the list of available NewGRFs.
 Once you have all missing files, you are set to go.
 
+10.0) Licensing
+----- ---------
+OpenTTD is licensed under the GNU General Public License version 2.0. For
+the complete license text, see the file 'COPYING'. This license applies
+to all files in this distribution, except as noted below.
+
+The squirrel implementation in src/3rdparty/squirrel is licensed under
+the Zlib license. See src/3rdparty/squirrel/COPYRIGHT for the complete
+license text.
+
+The md5 implementation in src/3rdparty/md5 is licensed under the Zlib
+license. See the comments in the source files in src/3rdparty/md5 for
+the complete license text.
+
+The implementations of Posix getaddrinfo and getnameinfo for OS/2 in
+src/3rdparty/os2 are distributed partly under the GNU Lesser General Public
+License 2.1, and partly under the (3-clause) BSD license. The exact licensing
+terms can be found in src/3rdparty/os2/getaddrinfo.c resp.
+src/3rdparty/os2/getnameinfo.c.
+
+The exe2coff implementation in os/dos/exe2coff is available under the
+GPL, with a number of additional terms. See os/dos/exe2coff/copying and
+os/dos/exe2coff/copying.dj for the exact licensing terms.
+
+The CWSDPMI implementation in os/dos/cwsdpmi is distributed under a
+custom binary-only license that prohibits modification. The exact
+licensing terms can be found in os/dos/cwsdpmi/cwsdpmi.txt. The sources
+for these files can be downloaded at its author site, at:
+http://homer.rice.edu/~sandmann/cwsdpmi/csdpmi5s.zip
 
 X.X) Credits
 ---- -------
 The OpenTTD team (in alphabetical order):
-  Albert Hofkamp (Alberth)        - GUI expert
-  Jean-François Claeys (Belugas)  - GUI, newindustries and more
-  Matthijs Kooijman (blathijs)    - Pathfinder-guru, pool rework
-  Christoph Elsenhans (frosch)    - General coding
-  Loïc Guilloux (glx)             - Windows Expert
-  Michael Lutz (michi_cc)         - Path based signals
-  Owen Rudge (orudge)             - Forum host, OS/2 port
-  Peter Nelson (peter1138)        - Spiritual descendant from newGRF gods
-  Ingo von Borstel (planetmaker)  - Support
-  Remko Bijker (Rubidium)         - Lead coder and way more
-  Zdeněk Sojka (SmatZ)            - Bug finder and fixer
-  José Soler (Terkhen)            - General coding
-  Thijs Marinussen (Yexo)         - AI Framework
-  Leif Linse (Zuu)                - AI/Game Script
+  Albert Hofkamp (Alberth)        - GUI expert (since 0.7)
+  Matthijs Kooijman (blathijs)    - Pathfinder-guru, Debian port (since 0.3)
+  Ulf Hermann (fonsinchen)        - Cargo Distribution (since 1.3)
+  Christoph Elsenhans (frosch)    - General coding (since 0.6)
+  Loïc Guilloux (glx)             - Windows Expert (since 0.4.5)
+  Michael Lutz (michi_cc)         - Path based signals (since 0.7)
+  Owen Rudge (orudge)             - Forum host, OS/2 port (since 0.1)
+  Peter Nelson (peter1138)        - Spiritual descendant from newGRF gods (since 0.4.5)
+  Ingo von Borstel (planetmaker)  - General coding, Support (since 1.1)
+  Remko Bijker (Rubidium)         - Lead coder and way more (since 0.4.5)
+  José Soler (Terkhen)            - General coding (since 1.0)
+  Leif Linse (Zuu)                - AI/Game Script (since 1.2)
 
 Inactive Developers:
-  Bjarni Corfitzen (Bjarni)       - MacOSX port, coder and vehicles
-  Victor Fischer (Celestar)       - Programming everywhere you need him to
-  Tamás Faragó (Darkvater)        - Ex-Lead coder
-  Jaroslav Mazanec (KUDr)         - YAPG (Yet Another Pathfinder God) ;)
-  Jonathan Coome (Maedhros)       - High priest of the NewGRF Temple
-  Attila Bán (MiHaMiX)            - WebTranslator 1 and 2
-  Christoph Mallon (Tron)         - Programmer, code correctness police
+  Jean-François Claeys (Belugas)  - GUI, newindustries and more (0.4.5 - 1.0)
+  Bjarni Corfitzen (Bjarni)       - MacOSX port, coder and vehicles (0.3 - 0.7)
+  Victor Fischer (Celestar)       - Programming everywhere you need him to (0.3 - 0.6)
+  Jaroslav Mazanec (KUDr)         - YAPG (Yet Another Pathfinder God) ;) (0.4.5 - 0.6)
+  Jonathan Coome (Maedhros)       - High priest of the NewGRF Temple (0.5 - 0.6)
+  Attila Bán (MiHaMiX)            - WebTranslator 1 and 2 (0.3 - 0.5)
+  Zdeněk Sojka (SmatZ)            - Bug finder and fixer (0.6 - 1.3)
+  Christoph Mallon (Tron)         - Programmer, code correctness police (0.3 - 0.5)
+  Patric Stout (TrueBrain)        - NoProgrammer (0.3 - 1.2), sys op (active)
+  Thijs Marinussen (Yexo)         - AI Framework, General (0.6 - 1.3)
 
 Retired Developers:
-  Ludvig Strigeus (ludde)         - OpenTTD author, main coder (0.1 - 0.3.3)
-  Serge Paquet (vurlix)           - Assistant project manager, coder (0.1 - 0.3.3)
-  Dominik Scherer (dominik81)     - Lead programmer, GUI expert (0.3.0 - 0.3.6)
-  Benedikt Brüggemeier (skidd13)  - Bug fixer and code reworker
-  Patric Stout (TrueBrain)        - NoProgrammer (0.3 - 1.2), sys op (active)
+  Tamás Faragó (Darkvater)        - Ex-Lead coder (0.3 - 0.5)
+  Dominik Scherer (dominik81)     - Lead programmer, GUI expert (0.3 - 0.3)
+  Emil Djupfeld (egladil)         - MacOSX port (0.4 - 0.6)
+  Simon Sasburg (HackyKid)        - Bug fixer (0.4 - 0.4.5)
+  Ludvig Strigeus (ludde)         - Original author of OpenTTD, main coder (0.1 - 0.3)
+  Cian Duffy (MYOB)               - BeOS port / manual writing (0.1 - 0.3)
+  Petr Baudiš (pasky)             - Many patches, newgrf support, etc. (0.3 - 0.3)
+  Benedikt Brüggemeier (skidd13)  - Bug fixer and code reworker (0.6 - 0.7)
+  Serge Paquet (vurlix)           - 2nd contributor after ludde (0.1 - 0.3)
 
 Thanks to:
   Josef Drexler                   - For his great work on TTDPatch.
   Marcin Grzegorczyk              - For his TTDPatch work and documentation of Transport Tycoon Deluxe internals and track foundations
-  Petr Baudiš (pasky)             - Many patches, newgrf support, etc.
-  Simon Sasburg (HackyKid)        - For the many bugfixes he has blessed us with
   Stefan Meißner (sign_de)        - For his work on the console
   Mike Ragsdale                   - OpenTTD installer
-  Cian Duffy (MYOB)               - BeOS port / manual writing
   Christian Rosentreter (tokai)   - MorphOS / AmigaOS port
   Richard Kempton (RichK67)       - Additional airports, initial TGP implementation
   Alberto Demichelis              - Squirrel scripting language

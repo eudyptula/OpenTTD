@@ -34,6 +34,8 @@
 
 #include "table/strings.h"
 
+#include "../safeguards.h"
+
 /* This file handles all the client-commands */
 
 
@@ -208,7 +210,7 @@ void ClientNetworkGameSocketHandler::ClientError(NetworkRecvStatus res)
  * when that's the case handle it appropriately.
  * @return true when everything went okay.
  */
-/*static */ bool ClientNetworkGameSocketHandler::Receive()
+/* static */ bool ClientNetworkGameSocketHandler::Receive()
 {
 	if (my_client->CanSendReceive()) {
 		NetworkRecvStatus res = my_client->ReceivePackets();
@@ -223,7 +225,7 @@ void ClientNetworkGameSocketHandler::ClientError(NetworkRecvStatus res)
 }
 
 /** Send the packets of this socket handler. */
-/*static */ void ClientNetworkGameSocketHandler::Send()
+/* static */ void ClientNetworkGameSocketHandler::Send()
 {
 	my_client->SendPackets();
 	my_client->CheckConnection();
@@ -518,7 +520,7 @@ bool ClientNetworkGameSocketHandler::IsConnected()
  *   DEF_CLIENT_RECEIVE_COMMAND has parameter: Packet *p
  ************/
 
-extern bool SafeLoad(const char *filename, int mode, GameMode newgm, Subdirectory subdir, struct LoadFilter *lf = NULL);
+extern bool SafeLoad(const char *filename, SaveLoadOperation fop, DetailedFileType dft, GameMode newgm, Subdirectory subdir, struct LoadFilter *lf = NULL);
 
 NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_FULL(Packet *p)
 {
@@ -834,7 +836,7 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_MAP_DONE(Packet
 
 	/* The map is done downloading, load it */
 	ClearErrorMessages();
-	bool load_success = SafeLoad(NULL, SL_LOAD, GM_NORMAL, NO_DIRECTORY, lf);
+	bool load_success = SafeLoad(NULL, SLO_LOAD, DFT_GAME_FILE, GM_NORMAL, NO_DIRECTORY, lf);
 
 	/* Long savegame loads shouldn't affect the lag calculation! */
 	this->last_packet = _realtime_tick;
@@ -956,7 +958,7 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_CHAT(Packet *p)
 		switch (action) {
 			case NETWORK_ACTION_CHAT_CLIENT:
 				/* For speaking to client we need the client-name */
-				snprintf(name, sizeof(name), "%s", ci_to->client_name);
+				seprintf(name, lastof(name), "%s", ci_to->client_name);
 				ci = NetworkClientInfo::GetByClientID(_network_own_client_id);
 				break;
 
@@ -977,7 +979,7 @@ NetworkRecvStatus ClientNetworkGameSocketHandler::Receive_SERVER_CHAT(Packet *p)
 		}
 	} else {
 		/* Display message from somebody else */
-		snprintf(name, sizeof(name), "%s", ci_to->client_name);
+		seprintf(name, lastof(name), "%s", ci_to->client_name);
 		ci = ci_to;
 	}
 
@@ -1229,7 +1231,7 @@ void NetworkUpdateClientName()
 		if (!_network_server) {
 			MyClient::SendSetName(_settings_client.network.client_name);
 		} else {
-			if (NetworkFindName(_settings_client.network.client_name)) {
+			if (NetworkFindName(_settings_client.network.client_name, lastof(_settings_client.network.client_name))) {
 				NetworkTextMessage(NETWORK_ACTION_NAME_CHANGE, CC_DEFAULT, false, ci->client_name, _settings_client.network.client_name);
 				strecpy(ci->client_name, _settings_client.network.client_name, lastof(ci->client_name));
 				NetworkUpdateClientInfo(CLIENT_ID_SERVER);

@@ -16,11 +16,14 @@
 #include "window_func.h"
 #include "gfx_func.h"
 #include "querystring_gui.h"
+#include "video/video_driver.hpp"
 
 #include "widgets/osk_widget.h"
 
 #include "table/sprites.h"
 #include "table/strings.h"
+
+#include "safeguards.h"
 
 char _keyboard_opt[2][OSK_KEYBOARD_ENTRIES * 4 + 1];
 static WChar _keyboard[2][OSK_KEYBOARD_ENTRIES];
@@ -40,7 +43,7 @@ struct OskWindow : public Window {
 	char *orig_str_buf;    ///< Original string.
 	bool shift;            ///< Is the shift effectively pressed?
 
-	OskWindow(const WindowDesc *desc, Window *parent, int button) : Window()
+	OskWindow(WindowDesc *desc, Window *parent, int button) : Window(desc)
 	{
 		this->parent = parent;
 		assert(parent != NULL);
@@ -56,9 +59,9 @@ struct OskWindow : public Window {
 		this->querystrings[WID_OSK_TEXT] = this->qs;
 
 		/* make a copy in case we need to reset later */
-		this->orig_str_buf = strdup(this->qs->text.buf);
+		this->orig_str_buf = stredup(this->qs->text.buf);
 
-		this->InitNested(desc, 0);
+		this->InitNested(0);
 		this->SetFocusedWidget(WID_OSK_TEXT);
 
 		/* Not needed by default. */
@@ -205,6 +208,7 @@ struct OskWindow : public Window {
 
 	virtual void OnFocusLost()
 	{
+		VideoDriver::GetInstance()->EditBoxLostFocus();
 		delete this;
 	}
 };
@@ -339,8 +343,8 @@ static const NWidgetPart _nested_osk_widgets[] = {
 	EndContainer(),
 };
 
-static const WindowDesc _osk_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _osk_desc(
+	WDP_CENTER, "query_osk", 0, 0,
 	WC_OSK, WC_NONE,
 	0,
 	_nested_osk_widgets, lengthof(_nested_osk_widgets)
@@ -426,7 +430,7 @@ void UpdateOSKOriginalText(const Window *parent, int button)
 	if (osk == NULL || osk->parent != parent || osk->text_btn != button) return;
 
 	free(osk->orig_str_buf);
-	osk->orig_str_buf = strdup(osk->qs->text.buf);
+	osk->orig_str_buf = stredup(osk->qs->text.buf);
 
 	osk->SetDirty();
 }

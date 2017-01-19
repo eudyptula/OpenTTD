@@ -15,6 +15,8 @@
 
 #include "saveload.h"
 
+#include "../safeguards.h"
+
 /** Description of a sign within the savegame. */
 static const SaveLoad _sign_desc[] = {
 	SLE_CONDVAR(Sign, name,  SLE_NAME,                   0, 83),
@@ -58,7 +60,7 @@ static void Load_SIGN()
 		}
 
 		/* Signs placed in scenario editor shall now be OWNER_DEITY */
-		if (IsSavegameVersionBefore(171) && si->owner == OWNER_NONE && _saveload_mode == SLD_LOAD_SCENARIO) {
+		if (IsSavegameVersionBefore(171) && si->owner == OWNER_NONE && _file_to_saveload.abstract_ftype == FT_SCENARIO) {
 			si->owner = OWNER_DEITY;
 		}
 	}

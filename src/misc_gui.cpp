@@ -25,10 +25,13 @@
 #include "querystring_gui.h"
 #include "core/geometry_func.hpp"
 #include "newgrf_debug.h"
+#include "zoom_func.h"
 
 #include "widgets/misc_widget.h"
 
 #include "table/strings.h"
+
+#include "safeguards.h"
 
 /** Method to open the OSK. */
 enum OskActivation {
@@ -48,8 +51,8 @@ static const NWidgetPart _nested_land_info_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_GREY, WID_LI_BACKGROUND), EndContainer(),
 };
 
-static const WindowDesc _land_info_desc(
-	WDP_AUTO, 0, 0,
+static WindowDesc _land_info_desc(
+	WDP_AUTO, "land_info", 0, 0,
 	WC_LAND_INFO, WC_NONE,
 	0,
 	_nested_land_info_widgets, lengthof(_nested_land_info_widgets)
@@ -57,7 +60,7 @@ static const WindowDesc _land_info_desc(
 
 class LandInfoWindow : public Window {
 	enum LandInfoLines {
-		LAND_INFO_CENTERED_LINES   = 12,                       ///< Up to 12 centered lines
+		LAND_INFO_CENTERED_LINES   = 32,                       ///< Up to 32 centered lines (arbitrary limit)
 		LAND_INFO_MULTICENTER_LINE = LAND_INFO_CENTERED_LINES, ///< One multicenter line
 		LAND_INFO_LINE_END,
 	};
@@ -110,9 +113,9 @@ public:
 		}
 	}
 
-	LandInfoWindow(TileIndex tile) : Window(), tile(tile)
+	LandInfoWindow(TileIndex tile) : Window(&_land_info_desc), tile(tile)
 	{
-		this->InitNested(&_land_info_desc);
+		this->InitNested();
 
 #if defined(_DEBUG)
 #	define LANDINFOD_LEVEL 0
@@ -120,14 +123,15 @@ public:
 #	define LANDINFOD_LEVEL 1
 #endif
 		DEBUG(misc, LANDINFOD_LEVEL, "TILE: %#x (%i,%i)", tile, TileX(tile), TileY(tile));
-		DEBUG(misc, LANDINFOD_LEVEL, "type_height  = %#x", _m[tile].type_height);
-		DEBUG(misc, LANDINFOD_LEVEL, "m1           = %#x", _m[tile].m1);
-		DEBUG(misc, LANDINFOD_LEVEL, "m2           = %#x", _m[tile].m2);
-		DEBUG(misc, LANDINFOD_LEVEL, "m3           = %#x", _m[tile].m3);
-		DEBUG(misc, LANDINFOD_LEVEL, "m4           = %#x", _m[tile].m4);
-		DEBUG(misc, LANDINFOD_LEVEL, "m5           = %#x", _m[tile].m5);
-		DEBUG(misc, LANDINFOD_LEVEL, "m6           = %#x", _m[tile].m6);
-		DEBUG(misc, LANDINFOD_LEVEL, "m7           = %#x", _me[tile].m7);
+		DEBUG(misc, LANDINFOD_LEVEL, "type   = %#x", _m[tile].type);
+		DEBUG(misc, LANDINFOD_LEVEL, "height = %#x", _m[tile].height);
+		DEBUG(misc, LANDINFOD_LEVEL, "m1     = %#x", _m[tile].m1);
+		DEBUG(misc, LANDINFOD_LEVEL, "m2     = %#x", _m[tile].m2);
+		DEBUG(misc, LANDINFOD_LEVEL, "m3     = %#x", _m[tile].m3);
+		DEBUG(misc, LANDINFOD_LEVEL, "m4     = %#x", _m[tile].m4);
+		DEBUG(misc, LANDINFOD_LEVEL, "m5     = %#x", _m[tile].m5);
+		DEBUG(misc, LANDINFOD_LEVEL, "m6     = %#x", _me[tile].m6);
+		DEBUG(misc, LANDINFOD_LEVEL, "m7     = %#x", _me[tile].m7);
 #undef LANDINFOD_LEVEL
 	}
 
@@ -158,7 +162,9 @@ public:
 		td.airport_class = STR_NULL;
 		td.airport_name = STR_NULL;
 		td.airport_tile_name = STR_NULL;
+		td.railtype = STR_NULL;
 		td.rail_speed = 0;
+		td.road_speed = 0;
 
 		td.grf = NULL;
 
@@ -208,7 +214,7 @@ public:
 
 		/* Location */
 		char tmp[16];
-		snprintf(tmp, lengthof(tmp), "0x%.4X", tile);
+		seprintf(tmp, lastof(tmp), "0x%.4X", tile);
 		SetDParam(0, TileX(tile));
 		SetDParam(1, TileY(tile));
 		SetDParam(2, GetTileZ(tile));
@@ -267,10 +273,24 @@ public:
 			line_nr++;
 		}
 
+		/* Rail type name */
+		if (td.railtype != STR_NULL) {
+			SetDParam(0, td.railtype);
+			GetString(this->landinfo_data[line_nr], STR_LANG_AREA_INFORMATION_RAIL_TYPE, lastof(this->landinfo_data[line_nr]));
+			line_nr++;
+		}
+
 		/* Rail speed limit */
 		if (td.rail_speed != 0) {
 			SetDParam(0, td.rail_speed);
 			GetString(this->landinfo_data[line_nr], STR_LANG_AREA_INFORMATION_RAIL_SPEED_LIMIT, lastof(this->landinfo_data[line_nr]));
+			line_nr++;
+		}
+
+		/* Road speed limit */
+		if (td.road_speed != 0) {
+			SetDParam(0, td.road_speed);
+			GetString(this->landinfo_data[line_nr], STR_LANG_AREA_INFORMATION_ROAD_SPEED_LIMIT, lastof(this->landinfo_data[line_nr]));
 			line_nr++;
 		}
 
@@ -365,8 +385,8 @@ static const NWidgetPart _nested_about_widgets[] = {
 	EndContainer(),
 };
 
-static const WindowDesc _about_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _about_desc(
+	WDP_CENTER, NULL, 0, 0,
 	WC_GAME_OPTIONS, WC_NONE,
 	0,
 	_nested_about_widgets, lengthof(_nested_about_widgets)
@@ -377,45 +397,47 @@ static const char * const _credits[] = {
 	"Original graphics by Simon Foster",
 	"",
 	"The OpenTTD team (in alphabetical order):",
-	"  Albert Hofkamp (Alberth) - GUI expert",
-	"  Jean-Fran\xC3\xA7ois Claeys (Belugas) - GUI, newindustries and more",
-	"  Matthijs Kooijman (blathijs) - Pathfinder-guru, pool rework",
-	"  Christoph Elsenhans (frosch) - General coding",
-	"  Lo\xC3\xAF""c Guilloux (glx) - Windows Expert",
-	"  Michael Lutz (michi_cc) - Path based signals",
-	"  Owen Rudge (orudge) - Forum host, OS/2 port",
-	"  Peter Nelson (peter1138) - Spiritual descendant from NewGRF gods",
-	"  Ingo von Borstel (planetmaker) - Support",
-	"  Remko Bijker (Rubidium) - Lead coder and way more",
-	"  Zden\xC4\x9Bk Sojka (SmatZ) - Bug finder and fixer",
-	"  Jos\xC3\xA9 Soler (Terkhen) - General coding",
-	"  Thijs Marinussen (Yexo) - AI Framework",
-	"  Leif Linse (Zuu) - AI/Game Script",
+	"  Albert Hofkamp (Alberth) - GUI expert (since 0.7)",
+	"  Matthijs Kooijman (blathijs) - Pathfinder-guru, Debian port (since 0.3)",
+	"  Ulf Hermann (fonsinchen) - Cargo Distribution (since 1.3)",
+	"  Christoph Elsenhans (frosch) - General coding (since 0.6)",
+	"  Lo\xC3\xAF""c Guilloux (glx) - General / Windows Expert (since 0.4.5)",
+	"  Michael Lutz (michi_cc) - Path based signals (since 0.7)",
+	"  Owen Rudge (orudge) - Forum host, OS/2 port (since 0.1)",
+	"  Peter Nelson (peter1138) - Spiritual descendant from NewGRF gods (since 0.4.5)",
+	"  Ingo von Borstel (planetmaker) - General, Support (since 1.1)",
+	"  Remko Bijker (Rubidium) - Lead coder and way more (since 0.4.5)",
+	"  Jos\xC3\xA9 Soler (Terkhen) - General coding (since 1.0)",
+	"  Leif Linse (Zuu) - AI/Game Script (since 1.2)",
 	"",
 	"Inactive Developers:",
-	"  Bjarni Corfitzen (Bjarni) - MacOSX port, coder and vehicles",
-	"  Victor Fischer (Celestar) - Programming everywhere you need him to",
-	"  Tam\xC3\xA1s Farag\xC3\xB3 (Darkvater) - Ex-Lead coder",
-	"  Jaroslav Mazanec (KUDr) - YAPG (Yet Another Pathfinder God) ;)",
-	"  Jonathan Coome (Maedhros) - High priest of the NewGRF Temple",
-	"  Attila B\xC3\xA1n (MiHaMiX) - Developer WebTranslator 1 and 2",
-	"  Christoph Mallon (Tron) - Programmer, code correctness police",
+	"  Jean-Fran\xC3\xA7ois Claeys (Belugas) - GUI, NewGRF and more (0.4.5 - 1.0)",
+	"  Bjarni Corfitzen (Bjarni) - MacOSX port, coder and vehicles (0.3 - 0.7)",
+	"  Victor Fischer (Celestar) - Programming everywhere you need him to (0.3 - 0.6)",
+	"  Jaroslav Mazanec (KUDr) - YAPG (Yet Another Pathfinder God) ;) (0.4.5 - 0.6)",
+	"  Jonathan Coome (Maedhros) - High priest of the NewGRF Temple (0.5 - 0.6)",
+	"  Attila B\xC3\xA1n (MiHaMiX) - Developer WebTranslator 1 and 2 (0.3 - 0.5)",
+	"  Zden\xC4\x9Bk Sojka (SmatZ) - Bug finder and fixer (0.6 - 1.3)",
+	"  Christoph Mallon (Tron) - Programmer, code correctness police (0.3 - 0.5)",
+	"  Patric Stout (TrueBrain) - NoAI, NoGo, Network (0.3 - 1.2), sys op (active)",
+	"  Thijs Marinussen (Yexo) - AI Framework, General (0.6 - 1.3)",
 	"",
 	"Retired Developers:",
-	"  Ludvig Strigeus (ludde) - OpenTTD author, main coder (0.1 - 0.3.3)",
-	"  Serge Paquet (vurlix) - Assistant project manager, coder (0.1 - 0.3.3)",
-	"  Dominik Scherer (dominik81) - Lead programmer, GUI expert (0.3.0 - 0.3.6)",
-	"  Benedikt Br\xC3\xBCggemeier (skidd13) - Bug fixer and code reworker",
-	"  Patric Stout (TrueBrain) - NoProgrammer (0.3 - 1.2), sys op (active)",
+	"  Tam\xC3\xA1s Farag\xC3\xB3 (Darkvater) - Ex-Lead coder (0.3 - 0.5)",
+	"  Dominik Scherer (dominik81) - Lead programmer, GUI expert (0.3 - 0.3)",
+	"  Emil Djupfeld (egladil) - MacOSX (0.4.5 - 0.6)",
+	"  Simon Sasburg (HackyKid) - Many bugfixes (0.4 - 0.4.5)",
+	"  Ludvig Strigeus (ludde) - Original author of OpenTTD, main coder (0.1 - 0.3)",
+	"  Cian Duffy (MYOB) - BeOS port / manual writing (0.1 - 0.3)",
+	"  Petr Baudi\xC5\xA1 (pasky) - Many patches, NewGRF support (0.3 - 0.3)",
+	"  Benedikt Br\xC3\xBCggemeier (skidd13) - Bug fixer and code reworker (0.6 - 0.7)",
+	"  Serge Paquet (vurlix) - 2nd contributor after ludde (0.1 - 0.3)",
 	"",
 	"Special thanks go out to:",
 	"  Josef Drexler - For his great work on TTDPatch",
 	"  Marcin Grzegorczyk - Track foundations and for describing TTD internals",
-	"  Petr Baudi\xC5\xA1 (pasky) - Many patches, newGRF support",
-	"  Simon Sasburg (HackyKid) - Many bugfixes he has blessed us with",
 	"  Stefan Mei\xC3\x9Fner (sign_de) - For his work on the console",
 	"  Mike Ragsdale - OpenTTD installer",
-	"  Cian Duffy (MYOB) - BeOS port / manual writing",
 	"  Christian Rosentreter (tokai) - MorphOS / AmigaOS port",
 	"  Richard Kempton (richK) - additional airports, initial TGP implementation",
 	"",
@@ -439,9 +461,9 @@ struct AboutWindow : public Window {
 	int line_height;                         ///< The height of a single line
 	static const int num_visible_lines = 19; ///< The number of lines visible simultaneously
 
-	AboutWindow() : Window()
+	AboutWindow() : Window(&_about_desc)
 	{
-		this->InitNested(&_about_desc, WN_GAME_OPTIONS_ABOUT);
+		this->InitNested(WN_GAME_OPTIONS_ABOUT);
 
 		this->counter = 5;
 		this->text_position = this->GetWidget<NWidgetBase>(WID_A_SCROLLING_TEXT)->pos_y + this->GetWidget<NWidgetBase>(WID_A_SCROLLING_TEXT)->current_y;
@@ -589,7 +611,7 @@ TextEffectID ShowFillingPercent(int x, int y, int z, uint8 percent, StringID str
 /**
  * Update vehicle loading indicators.
  * @param te_id   TextEffectID to be updated.
- * @param string  String wich is printed.
+ * @param string  String which is printed.
  */
 void UpdateFillingPercent(TextEffectID te_id, uint8 percent, StringID string)
 {
@@ -615,10 +637,10 @@ static const NWidgetPart _nested_tooltips_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_GREY, WID_TT_BACKGROUND), SetMinimalSize(200, 32), EndContainer(),
 };
 
-static const WindowDesc _tool_tips_desc(
-	WDP_MANUAL, 0, 0, // Coordinates and sizes are not used,
+static WindowDesc _tool_tips_desc(
+	WDP_MANUAL, NULL, 0, 0, // Coordinates and sizes are not used,
 	WC_TOOLTIPS, WC_NONE,
-	0,
+	WDF_NO_FOCUS,
 	_nested_tooltips_widgets, lengthof(_nested_tooltips_widgets)
 );
 
@@ -630,7 +652,7 @@ struct TooltipsWindow : public Window
 	uint64 params[5];                 ///< The string parameters.
 	TooltipCloseCondition close_cond; ///< Condition for closing the window.
 
-	TooltipsWindow(Window *parent, StringID str, uint paramcount, const uint64 params[], TooltipCloseCondition close_tooltip) : Window()
+	TooltipsWindow(Window *parent, StringID str, uint paramcount, const uint64 params[], TooltipCloseCondition close_tooltip) : Window(&_tool_tips_desc)
 	{
 		this->parent = parent;
 		this->string_id = str;
@@ -640,12 +662,12 @@ struct TooltipsWindow : public Window
 		this->paramcount = paramcount;
 		this->close_cond = close_tooltip;
 
-		this->InitNested(&_tool_tips_desc);
+		this->InitNested();
 
 		CLRBITS(this->flags, WF_WHITE_BORDER);
 	}
 
-	virtual Point OnInitialPosition(const WindowDesc *desc, int16 sm_width, int16 sm_height, int window_number)
+	virtual Point OnInitialPosition(int16 sm_width, int16 sm_height, int window_number)
 	{
 		/* Find the free screen space between the main toolbar at the top, and the statusbar at the bottom.
 		 * Add a fixed distance 2 so the tooltip floats free from both bars.
@@ -658,8 +680,8 @@ struct TooltipsWindow : public Window
 		/* Correctly position the tooltip position, watch out for window and cursor size
 		 * Clamp value to below main toolbar and above statusbar. If tooltip would
 		 * go below window, flip it so it is shown above the cursor */
-		pt.y = Clamp(_cursor.pos.y + _cursor.size.y + _cursor.offs.y + 5, scr_top, scr_bot);
-		if (pt.y + sm_height > scr_bot) pt.y = min(_cursor.pos.y + _cursor.offs.y - 5, scr_bot) - sm_height;
+		pt.y = Clamp(_cursor.pos.y + _cursor.total_size.y + _cursor.total_offs.y + 5, scr_top, scr_bot);
+		if (pt.y + sm_height > scr_bot) pt.y = min(_cursor.pos.y + _cursor.total_offs.y - 5, scr_bot) - sm_height;
 		pt.x = sm_width >= _screen.width ? 0 : Clamp(_cursor.pos.x - (sm_width >> 1), 0, _screen.width - sm_width);
 
 		return pt;
@@ -670,7 +692,7 @@ struct TooltipsWindow : public Window
 		/* There is only one widget. */
 		for (uint i = 0; i != this->paramcount; i++) SetDParam(i, this->params[i]);
 
-		size->width  = min(GetStringBoundingBox(this->string_id).width, 194);
+		size->width  = min(GetStringBoundingBox(this->string_id).width, ScaleGUITrad(194));
 		size->height = GetStringHeight(this->string_id, size->width);
 
 		/* Increase slightly to have some space around the box. */
@@ -774,6 +796,9 @@ void QueryString::DrawEditBox(const Window *w, int wid) const
 
 	if (tb->caretxoffs + delta < 0) delta = -tb->caretxoffs;
 
+	/* If we have a marked area, draw a background highlight. */
+	if (tb->marklength != 0) GfxFillRect(delta + tb->markxoffs, 0, delta + tb->markxoffs + tb->marklength - 1, bottom - top, PC_GREY);
+
 	DrawString(delta, tb->pixels, 0, tb->buf, TC_YELLOW);
 	bool focussed = w->IsWidgetGloballyFocused(wid) || IsOSKOpenedFor(w, wid);
 	if (focussed && tb->caret) {
@@ -782,6 +807,105 @@ void QueryString::DrawEditBox(const Window *w, int wid) const
 	}
 
 	_cur_dpi = old_dpi;
+}
+
+/**
+ * Get the current caret position.
+ * @param w Window the edit box is in.
+ * @param wid Widget index.
+ * @return Top-left location of the caret, relative to the window.
+ */
+Point QueryString::GetCaretPosition(const Window *w, int wid) const
+{
+	const NWidgetLeaf *wi = w->GetWidget<NWidgetLeaf>(wid);
+
+	assert((wi->type & WWT_MASK) == WWT_EDITBOX);
+
+	bool rtl = _current_text_dir == TD_RTL;
+	Dimension sprite_size = GetSpriteSize(rtl ? SPR_IMG_DELETE_RIGHT : SPR_IMG_DELETE_LEFT);
+	int clearbtn_width = sprite_size.width + WD_IMGBTN_LEFT + WD_IMGBTN_RIGHT;
+
+	int left   = wi->pos_x + (rtl ? clearbtn_width : 0);
+	int right  = wi->pos_x + (rtl ? wi->current_x : wi->current_x - clearbtn_width) - 1;
+
+	/* Clamp caret position to be inside out current width. */
+	const Textbuf *tb = &this->text;
+	int delta = min(0, (right - left) - tb->pixels - 10);
+	if (tb->caretxoffs + delta < 0) delta = -tb->caretxoffs;
+
+	Point pt = {left + WD_FRAMERECT_LEFT + tb->caretxoffs + delta, (int)wi->pos_y + WD_FRAMERECT_TOP};
+	return pt;
+}
+
+/**
+ * Get the bounding rectangle for a range of the query string.
+ * @param w Window the edit box is in.
+ * @param wid Widget index.
+ * @param from Start of the string range.
+ * @param to End of the string range.
+ * @return Rectangle encompassing the string range, relative to the window.
+ */
+Rect QueryString::GetBoundingRect(const Window *w, int wid, const char *from, const char *to) const
+{
+	const NWidgetLeaf *wi = w->GetWidget<NWidgetLeaf>(wid);
+
+	assert((wi->type & WWT_MASK) == WWT_EDITBOX);
+
+	bool rtl = _current_text_dir == TD_RTL;
+	Dimension sprite_size = GetSpriteSize(rtl ? SPR_IMG_DELETE_RIGHT : SPR_IMG_DELETE_LEFT);
+	int clearbtn_width = sprite_size.width + WD_IMGBTN_LEFT + WD_IMGBTN_RIGHT;
+
+	int left   = wi->pos_x + (rtl ? clearbtn_width : 0);
+	int right  = wi->pos_x + (rtl ? wi->current_x : wi->current_x - clearbtn_width) - 1;
+
+	int top    = wi->pos_y + WD_FRAMERECT_TOP;
+	int bottom = wi->pos_y + wi->current_y - 1 - WD_FRAMERECT_BOTTOM;
+
+	/* Clamp caret position to be inside our current width. */
+	const Textbuf *tb = &this->text;
+	int delta = min(0, (right - left) - tb->pixels - 10);
+	if (tb->caretxoffs + delta < 0) delta = -tb->caretxoffs;
+
+	/* Get location of first and last character. */
+	Point p1 = GetCharPosInString(tb->buf, from, FS_NORMAL);
+	Point p2 = from != to ? GetCharPosInString(tb->buf, to, FS_NORMAL) : p1;
+
+	Rect r = { Clamp(left + p1.x + delta + WD_FRAMERECT_LEFT, left, right), top, Clamp(left + p2.x + delta + WD_FRAMERECT_LEFT, left, right - WD_FRAMERECT_RIGHT), bottom };
+
+	return r;
+}
+
+/**
+ * Get the character that is rendered at a position.
+ * @param w Window the edit box is in.
+ * @param wid Widget index.
+ * @param pt Position to test.
+ * @return Pointer to the character at the position or NULL if no character is at the position.
+ */
+const char *QueryString::GetCharAtPosition(const Window *w, int wid, const Point &pt) const
+{
+	const NWidgetLeaf *wi = w->GetWidget<NWidgetLeaf>(wid);
+
+	assert((wi->type & WWT_MASK) == WWT_EDITBOX);
+
+	bool rtl = _current_text_dir == TD_RTL;
+	Dimension sprite_size = GetSpriteSize(rtl ? SPR_IMG_DELETE_RIGHT : SPR_IMG_DELETE_LEFT);
+	int clearbtn_width = sprite_size.width + WD_IMGBTN_LEFT + WD_IMGBTN_RIGHT;
+
+	int left   = wi->pos_x + (rtl ? clearbtn_width : 0);
+	int right  = wi->pos_x + (rtl ? wi->current_x : wi->current_x - clearbtn_width) - 1;
+
+	int top    = wi->pos_y + WD_FRAMERECT_TOP;
+	int bottom = wi->pos_y + wi->current_y - 1 - WD_FRAMERECT_BOTTOM;
+
+	if (!IsInsideMM(pt.y, top, bottom)) return NULL;
+
+	/* Clamp caret position to be inside our current width. */
+	const Textbuf *tb = &this->text;
+	int delta = min(0, (right - left) - tb->pixels - 10);
+	if (tb->caretxoffs + delta < 0) delta = -tb->caretxoffs;
+
+	return ::GetCharAtPosition(tb->buf, pt.x - delta - left);
 }
 
 void QueryString::ClickEditBox(Window *w, Point pt, int wid, int click_count, bool focus_changed)
@@ -818,8 +942,8 @@ struct QueryStringWindow : public Window
 	QueryString editbox;    ///< Editbox.
 	QueryStringFlags flags; ///< Flags controlling behaviour of the window.
 
-	QueryStringWindow(StringID str, StringID caption, uint max_bytes, uint max_chars, const WindowDesc *desc, Window *parent, CharSetFilter afilter, QueryStringFlags flags) :
-			editbox(max_bytes, max_chars)
+	QueryStringWindow(StringID str, StringID caption, uint max_bytes, uint max_chars, WindowDesc *desc, Window *parent, CharSetFilter afilter, QueryStringFlags flags) :
+			Window(desc), editbox(max_bytes, max_chars)
 	{
 		char *last_of = &this->editbox.text.buf[this->editbox.text.max_bytes - 1];
 		GetString(this->editbox.text.buf, str, last_of);
@@ -833,7 +957,7 @@ struct QueryStringWindow : public Window
 
 		this->editbox.text.UpdateSize();
 
-		if ((flags & QSF_ACCEPT_UNCHANGED) == 0) this->editbox.orig = strdup(this->editbox.text.buf);
+		if ((flags & QSF_ACCEPT_UNCHANGED) == 0) this->editbox.orig = stredup(this->editbox.text.buf);
 
 		this->querystrings[WID_QS_TEXT] = &this->editbox;
 		this->editbox.caption = caption;
@@ -842,7 +966,7 @@ struct QueryStringWindow : public Window
 		this->editbox.text.afilter = afilter;
 		this->flags = flags;
 
-		this->InitNested(desc, WN_QUERY_STRING);
+		this->InitNested(WN_QUERY_STRING);
 
 		this->parent = parent;
 
@@ -918,8 +1042,8 @@ static const NWidgetPart _nested_query_string_widgets[] = {
 	EndContainer(),
 };
 
-static const WindowDesc _query_string_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _query_string_desc(
+	WDP_CENTER, "query_string", 0, 0,
 	WC_QUERY_STRING, WC_NONE,
 	0,
 	_nested_query_string_widgets, lengthof(_nested_query_string_widgets)
@@ -950,7 +1074,7 @@ struct QueryWindow : public Window {
 	StringID message;        ///< message shown for query window
 	StringID caption;        ///< title of window
 
-	QueryWindow(const WindowDesc *desc, StringID caption, StringID message, Window *parent, QueryCallbackProc *callback) : Window()
+	QueryWindow(WindowDesc *desc, StringID caption, StringID message, Window *parent, QueryCallbackProc *callback) : Window(desc)
 	{
 		/* Create a backup of the variadic arguments to strings because it will be
 		 * overridden pretty often. We will copy these back for drawing */
@@ -959,7 +1083,7 @@ struct QueryWindow : public Window {
 		this->message = message;
 		this->proc    = callback;
 
-		this->InitNested(desc, WN_CONFIRM_POPUP_QUERY);
+		this->InitNested(WN_CONFIRM_POPUP_QUERY);
 
 		this->parent = parent;
 		this->left = parent->left + (parent->width / 2) - (this->width / 2);
@@ -1026,7 +1150,7 @@ struct QueryWindow : public Window {
 		}
 	}
 
-	virtual EventState OnKeyPress(uint16 key, uint16 keycode)
+	virtual EventState OnKeyPress(WChar key, uint16 keycode)
 	{
 		/* ESC closes the window, Enter confirms the action */
 		switch (keycode) {
@@ -1053,14 +1177,14 @@ static const NWidgetPart _nested_query_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_RED), SetPIP(8, 15, 8),
 		NWidget(WWT_TEXT, COLOUR_RED, WID_Q_TEXT), SetMinimalSize(200, 12),
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE), SetPIP(20, 29, 20),
-			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_NO), SetMinimalSize(71, 12), SetDataTip(STR_QUIT_NO, STR_NULL),
-			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_YES), SetMinimalSize(71, 12), SetDataTip(STR_QUIT_YES, STR_NULL),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_NO), SetMinimalSize(71, 12), SetFill(1, 1), SetDataTip(STR_QUIT_NO, STR_NULL),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_Q_YES), SetMinimalSize(71, 12), SetFill(1, 1), SetDataTip(STR_QUIT_YES, STR_NULL),
 		EndContainer(),
 	EndContainer(),
 };
 
-static const WindowDesc _query_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _query_desc(
+	WDP_CENTER, NULL, 0, 0,
 	WC_CONFIRM_POPUP_QUERY, WC_NONE,
 	WDF_MODAL,
 	_nested_query_widgets, lengthof(_nested_query_widgets)

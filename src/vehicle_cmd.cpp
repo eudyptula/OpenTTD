@@ -34,6 +34,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /* Tables used in vehicle.h to find the right command for a certain vehicle type */
 const uint32 _veh_build_proc_table[] = {
 	CMD_BUILD_VEHICLE | CMD_MSG(STR_ERROR_CAN_T_BUY_TRAIN),
@@ -85,14 +87,7 @@ CommandCost CmdBuildVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 	/* Elementary check for valid location. */
 	if (!IsDepotTile(tile) || !IsTileOwner(tile, _current_company)) return CMD_ERROR;
 
-	VehicleType type;
-	switch (GetTileType(tile)) {
-		case MP_RAILWAY: type = VEH_TRAIN;    break;
-		case MP_ROAD:    type = VEH_ROAD;     break;
-		case MP_WATER:   type = VEH_SHIP;     break;
-		case MP_STATION: type = VEH_AIRCRAFT; break;
-		default: NOT_REACHED(); // Safe due to IsDepotTile()
-	}
+	VehicleType type = GetDepotVehicleType(tile);
 
 	/* Validate the engine type. */
 	EngineID eid = GB(p1, 0, 16);
@@ -363,8 +358,10 @@ static CommandCost RefitVehicle(Vehicle *v, bool only_this, uint8 num_vehicles, 
 
 		bool auto_refit_allowed;
 		CommandCost refit_cost = GetRefitCost(v, v->engine_type, new_cid, actual_subtype, &auto_refit_allowed);
-		if (auto_refit && !auto_refit_allowed) {
-			/* Sorry, auto-refitting not allowed, subtract the cargo amount again from the total. */
+		if (auto_refit && (flags & DC_QUERY_COST) == 0 && !auto_refit_allowed) {
+			/* Sorry, auto-refitting not allowed, subtract the cargo amount again from the total.
+			 * When querrying cost/capacity (for example in order refit GUI), we always assume 'allowed'.
+			 * It is not predictable. */
 			total_capacity -= amount;
 			total_mail_capacity -= mail_capacity;
 
@@ -397,20 +394,16 @@ static CommandCost RefitVehicle(Vehicle *v, bool only_this, uint8 num_vehicles, 
 		/* Store the result */
 		for (RefitResult *result = refit_result.Begin(); result != refit_result.End(); result++) {
 			Vehicle *u = result->v;
-			if (u->cargo_type != new_cid) {
-				u->cargo.Truncate(u->cargo_cap);
-			} else if (u->cargo_cap > result->capacity) {
-				u->cargo.Truncate(u->cargo_cap - result->capacity);
-			}
+			u->refit_cap = (u->cargo_type == new_cid) ? min(result->capacity, u->refit_cap) : 0;
+			if (u->cargo.TotalCount() > u->refit_cap) u->cargo.Truncate(u->cargo.TotalCount() - u->refit_cap);
 			u->cargo_type = new_cid;
 			u->cargo_cap = result->capacity;
 			u->cargo_subtype = result->subtype;
 			if (u->type == VEH_AIRCRAFT) {
 				Vehicle *w = u->Next();
-				if (w->cargo_cap > result->mail_capacity) {
-					w->cargo.Truncate(w->cargo_cap - result->mail_capacity);
-				}
+				w->refit_cap = min(w->refit_cap, result->mail_capacity);
 				w->cargo_cap = result->mail_capacity;
+				if (w->cargo.TotalCount() > w->refit_cap) w->cargo.Truncate(w->cargo.TotalCount() - w->refit_cap);
 			}
 		}
 	}
@@ -451,11 +444,19 @@ CommandCost CmdRefitVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 	if (ret.Failed()) return ret;
 
 	bool auto_refit = HasBit(p2, 6);
+	bool free_wagon = v->type == VEH_TRAIN && Train::From(front)->IsFreeWagon(); // used by autoreplace/renew
 
 	/* Don't allow shadows and such to be refitted. */
 	if (v != front && (v->type == VEH_SHIP || v->type == VEH_AIRCRAFT)) return CMD_ERROR;
+
 	/* Allow auto-refitting only during loading and normal refitting only in a depot. */
-	if ((!auto_refit || !front->current_order.IsType(OT_LOADING)) && !front->IsStoppedInDepot()) return_cmd_error(STR_ERROR_TRAIN_MUST_BE_STOPPED_INSIDE_DEPOT + front->type);
+	if ((flags & DC_QUERY_COST) == 0 && // used by the refit GUI, including the order refit GUI.
+			!free_wagon && // used by autoreplace/renew
+			(!auto_refit || !front->current_order.IsType(OT_LOADING)) && // refit inside stations
+			!front->IsStoppedInDepot()) { // refit inside depots
+		return_cmd_error(STR_ERROR_TRAIN_MUST_BE_STOPPED_INSIDE_DEPOT + front->type);
+	}
+
 	if (front->vehstatus & VS_CRASHED) return_cmd_error(STR_ERROR_VEHICLE_IS_DESTROYED);
 
 	/* Check cargo */
@@ -473,7 +474,7 @@ CommandCost CmdRefitVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 		/* Update the cached variables */
 		switch (v->type) {
 			case VEH_TRAIN:
-				Train::From(front)->ConsistChanged(auto_refit);
+				Train::From(front)->ConsistChanged(auto_refit ? CCF_AUTOREFIT : CCF_REFIT);
 				break;
 			case VEH_ROAD:
 				RoadVehUpdateCache(RoadVehicle::From(front), auto_refit);
@@ -482,22 +483,23 @@ CommandCost CmdRefitVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 
 			case VEH_SHIP:
 				v->InvalidateNewGRFCacheOfChain();
-				v->colourmap = PAL_NONE; // invalidate vehicle colour map
 				Ship::From(v)->UpdateCache();
 				break;
 
 			case VEH_AIRCRAFT:
 				v->InvalidateNewGRFCacheOfChain();
-				v->colourmap = PAL_NONE; // invalidate vehicle colour map
 				UpdateAircraftCache(Aircraft::From(v), true);
 				break;
 
 			default: NOT_REACHED();
 		}
+		front->MarkDirty();
 
-		InvalidateWindowData(WC_VEHICLE_DETAILS, front->index);
+		if (!free_wagon) {
+			InvalidateWindowData(WC_VEHICLE_DETAILS, front->index);
+			InvalidateWindowClassesData(GetWindowClassForVehicleType(v->type), 0);
+		}
 		SetWindowDirty(WC_VEHICLE_DEPOT, front->tile);
-		InvalidateWindowClassesData(GetWindowClassForVehicleType(v->type), 0);
 	} else {
 		/* Always invalidate the cache; querycost might have filled it. */
 		v->InvalidateNewGRFCacheOfChain();
@@ -604,7 +606,7 @@ CommandCost CmdMassStartStopVehicle(TileIndex tile, DoCommandFlag flags, uint32 
 	bool vehicle_list_window = HasBit(p1, 1);
 
 	VehicleListIdentifier vli;
-	if (!vli.Unpack(p2)) return CMD_ERROR;
+	if (!vli.UnpackIfValid(p2)) return CMD_ERROR;
 	if (!IsCompanyBuildableVehicleType(vli.vtype)) return CMD_ERROR;
 
 	if (vehicle_list_window) {
@@ -758,7 +760,7 @@ static void CloneVehicleName(const Vehicle *src, Vehicle *dst)
 
 		/* Check the name is unique. */
 		if (IsUniqueVehicleName(buf)) {
-			dst->name = strdup(buf);
+			dst->name = stredup(buf);
 			break;
 		}
 	}
@@ -999,7 +1001,7 @@ CommandCost CmdSendVehicleToDepot(TileIndex tile, DoCommandFlag flags, uint32 p1
 	if (p1 & DEPOT_MASS_SEND) {
 		/* Mass goto depot requested */
 		VehicleListIdentifier vli;
-		if (!vli.Unpack(p2)) return CMD_ERROR;
+		if (!vli.UnpackIfValid(p2)) return CMD_ERROR;
 		return SendAllVehiclesToDepot(flags, (p1 & DEPOT_SERVICE) != 0, vli);
 	}
 
@@ -1036,7 +1038,7 @@ CommandCost CmdRenameVehicle(TileIndex tile, DoCommandFlag flags, uint32 p1, uin
 
 	if (flags & DC_EXEC) {
 		free(v->name);
-		v->name = reset ? NULL : strdup(text);
+		v->name = reset ? NULL : stredup(text);
 		InvalidateWindowClassesData(GetWindowClassForVehicleType(v->type), 1);
 		MarkWholeScreenDirty();
 	}

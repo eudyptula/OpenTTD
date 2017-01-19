@@ -40,8 +40,42 @@
 #include "game/game.hpp"
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /* scriptfile handling */
 static bool _script_running; ///< Script is running (used to abort execution when #ConReturn is encountered).
+
+/** File list storage for the console, for caching the last 'ls' command. */
+class ConsoleFileList : public FileList {
+public:
+	ConsoleFileList() : FileList()
+	{
+		this->file_list_valid = false;
+	}
+
+	/** Declare the file storage cache as being invalid, also clears all stored files. */
+	void InvalidateFileList()
+	{
+		this->Clear();
+		this->file_list_valid = false;
+	}
+
+	/**
+	 * (Re-)validate the file storage cache. Only makes a change if the storage was invalid, or if \a force_reload.
+	 * @param Always reload the file storage cache.
+	 */
+	void ValidateFileList(bool force_reload = false)
+	{
+		if (force_reload || !this->file_list_valid) {
+			this->BuildFileList(FT_SAVEGAME, SLO_LOAD);
+			this->file_list_valid = true;
+		}
+	}
+
+	bool file_list_valid; ///< If set, the file list is valid.
+};
+
+static ConsoleFileList _console_file_list; ///< File storage cache for the console.
 
 /* console command defines */
 #define DEF_CONSOLE_CMD(function) static bool function(byte argc, char *argv[])
@@ -284,7 +318,7 @@ DEF_CONSOLE_CMD(ConSave)
 		char *filename = str_fmt("%s.sav", argv[1]);
 		IConsolePrint(CC_DEFAULT, "Saving map...");
 
-		if (SaveOrLoad(filename, SL_SAVE, SAVE_DIR) != SL_OK) {
+		if (SaveOrLoad(filename, SLO_SAVE, DFT_GAME_FILE, SAVE_DIR) != SL_OK) {
 			IConsolePrint(CC_ERROR, "Saving map failed");
 		} else {
 			IConsolePrintF(CC_DEFAULT, "Map successfully saved to %s", filename);
@@ -313,42 +347,6 @@ DEF_CONSOLE_CMD(ConSaveConfig)
 	return true;
 }
 
-/**
- * Get savegame file informations.
- * @param file The savegame filename to return information about. Can be the actual name
- *             or a numbered entry into the filename list.
- * @return FiosItem The information on the file.
- */
-static const FiosItem *GetFiosItem(const char *file)
-{
-	_saveload_mode = SLD_LOAD_GAME;
-	BuildFileList();
-
-	for (const FiosItem *item = _fios_items.Begin(); item != _fios_items.End(); item++) {
-		if (strcmp(file, item->name) == 0) return item;
-		if (strcmp(file, item->title) == 0) return item;
-	}
-
-	/* If no name matches, try to parse it as number */
-	char *endptr;
-	int i = strtol(file, &endptr, 10);
-	if (file == endptr || *endptr != '\0') i = -1;
-
-	if (IsInsideMM(i, 0, _fios_items.Length())) return _fios_items.Get(i);
-
-	/* As a last effort assume it is an OpenTTD savegame and
-	 * that the ".sav" part was not given. */
-	char long_file[MAX_PATH];
-	seprintf(long_file, lastof(long_file), "%s.sav", file);
-	for (const FiosItem *item = _fios_items.Begin(); item != _fios_items.End(); item++) {
-		if (strcmp(long_file, item->name) == 0) return item;
-		if (strcmp(long_file, item->title) == 0) return item;
-	}
-
-	return NULL;
-}
-
-
 DEF_CONSOLE_CMD(ConLoad)
 {
 	if (argc == 0) {
@@ -359,24 +357,21 @@ DEF_CONSOLE_CMD(ConLoad)
 	if (argc != 2) return false;
 
 	const char *file = argv[1];
-	const FiosItem *item = GetFiosItem(file);
+	_console_file_list.ValidateFileList();
+	const FiosItem *item = _console_file_list.FindItem(file);
 	if (item != NULL) {
-		switch (item->type) {
-			case FIOS_TYPE_FILE: case FIOS_TYPE_OLDFILE: {
-				_switch_mode = SM_LOAD_GAME;
-				SetFiosType(item->type);
-
-				strecpy(_file_to_saveload.name, FiosBrowseTo(item), lastof(_file_to_saveload.name));
-				strecpy(_file_to_saveload.title, item->title, lastof(_file_to_saveload.title));
-				break;
-			}
-			default: IConsolePrintF(CC_ERROR, "%s: Not a savegame.", file);
+		if (GetAbstractFileType(item->type) == FT_SAVEGAME) {
+			_switch_mode = SM_LOAD_GAME;
+			_file_to_saveload.SetMode(item->type);
+			_file_to_saveload.SetName(FiosBrowseTo(item));
+			_file_to_saveload.SetTitle(item->title);
+		} else {
+			IConsolePrintF(CC_ERROR, "%s: Not a savegame.", file);
 		}
 	} else {
 		IConsolePrintF(CC_ERROR, "%s: No such file or directory.", file);
 	}
 
-	FiosFreeSavegameList();
 	return true;
 }
 
@@ -391,7 +386,8 @@ DEF_CONSOLE_CMD(ConRemove)
 	if (argc != 2) return false;
 
 	const char *file = argv[1];
-	const FiosItem *item = GetFiosItem(file);
+	_console_file_list.ValidateFileList();
+	const FiosItem *item = _console_file_list.FindItem(file);
 	if (item != NULL) {
 		if (!FiosDelete(item->name)) {
 			IConsolePrintF(CC_ERROR, "%s: Failed to delete file", file);
@@ -400,7 +396,7 @@ DEF_CONSOLE_CMD(ConRemove)
 		IConsolePrintF(CC_ERROR, "%s: No such file or directory.", file);
 	}
 
-	FiosFreeSavegameList();
+	_console_file_list.InvalidateFileList();
 	return true;
 }
 
@@ -413,13 +409,11 @@ DEF_CONSOLE_CMD(ConListFiles)
 		return true;
 	}
 
-	BuildFileList();
-
-	for (uint i = 0; i < _fios_items.Length(); i++) {
-		IConsolePrintF(CC_DEFAULT, "%d) %s", i, _fios_items[i].title);
+	_console_file_list.ValidateFileList(true);
+	for (uint i = 0; i < _console_file_list.Length(); i++) {
+		IConsolePrintF(CC_DEFAULT, "%d) %s", i, _console_file_list[i].title);
 	}
 
-	FiosFreeSavegameList();
 	return true;
 }
 
@@ -434,7 +428,8 @@ DEF_CONSOLE_CMD(ConChangeDirectory)
 	if (argc != 2) return false;
 
 	const char *file = argv[1];
-	const FiosItem *item = GetFiosItem(file);
+	_console_file_list.ValidateFileList(true);
+	const FiosItem *item = _console_file_list.FindItem(file);
 	if (item != NULL) {
 		switch (item->type) {
 			case FIOS_TYPE_DIR: case FIOS_TYPE_DRIVE: case FIOS_TYPE_PARENT:
@@ -446,7 +441,7 @@ DEF_CONSOLE_CMD(ConChangeDirectory)
 		IConsolePrintF(CC_ERROR, "%s: No such file or directory.", file);
 	}
 
-	FiosFreeSavegameList();
+	_console_file_list.InvalidateFileList();
 	return true;
 }
 
@@ -460,8 +455,8 @@ DEF_CONSOLE_CMD(ConPrintWorkingDirectory)
 	}
 
 	/* XXX - Workaround for broken file handling */
-	FiosGetSavegameList(SLD_LOAD_GAME);
-	FiosFreeSavegameList();
+	_console_file_list.ValidateFileList(true);
+	_console_file_list.InvalidateFileList();
 
 	FiosGetDescText(&path, NULL);
 	IConsolePrint(CC_DEFAULT, path);
@@ -965,7 +960,7 @@ DEF_CONSOLE_CMD(ConExec)
 	}
 
 	if (ferror(script_file)) {
-		IConsoleError("Encountered errror while trying to read from script file");
+		IConsoleError("Encountered error while trying to read from script file");
 	}
 
 	_script_running = false;
@@ -1342,7 +1337,7 @@ DEF_CONSOLE_CMD(ConAlias)
 		IConsoleAliasRegister(argv[1], argv[2]);
 	} else {
 		free(alias->cmdline);
-		alias->cmdline = strdup(argv[2]);
+		alias->cmdline = stredup(argv[2]);
 	}
 	return true;
 }
@@ -1716,6 +1711,22 @@ struct ConsoleContentCallback : public ContentCallback {
 	}
 };
 
+/**
+ * Outputs content state information to console
+ * @param ci the content info
+ */
+static void OutputContentState(const ContentInfo *const ci)
+{
+	static const char * const types[] = { "Base graphics", "NewGRF", "AI", "AI library", "Scenario", "Heightmap", "Base sound", "Base music", "Game script", "GS library" };
+	assert_compile(lengthof(types) == CONTENT_TYPE_END - CONTENT_TYPE_BEGIN);
+	static const char * const states[] = { "Not selected", "Selected", "Dep Selected", "Installed", "Unknown" };
+	static const TextColour state_to_colour[] = { CC_COMMAND, CC_INFO, CC_INFO, CC_WHITE, CC_ERROR };
+
+	char buf[sizeof(ci->md5sum) * 2 + 1];
+	md5sumToString(buf, lastof(buf), ci->md5sum);
+	IConsolePrintF(state_to_colour[ci->state], "%d, %s, %s, %s, %08X, %s", ci->id, types[ci->type - 1], states[ci->state], ci->name, ci->unique_id, buf);
+}
+
 DEF_CONSOLE_CMD(ConContent)
 {
 	static ContentCallback *cb = NULL;
@@ -1725,12 +1736,12 @@ DEF_CONSOLE_CMD(ConContent)
 	}
 
 	if (argc <= 1) {
-		IConsoleHelp("Query, select and download content. Usage: 'content update|upgrade|select [all|id]|unselect [all|id]|state|download'");
+		IConsoleHelp("Query, select and download content. Usage: 'content update|upgrade|select [all|id]|unselect [all|id]|state [filter]|download'");
 		IConsoleHelp("  update: get a new list of downloadable content; must be run first");
 		IConsoleHelp("  upgrade: select all items that are upgrades");
-		IConsoleHelp("  select: select a specific item given by its id or 'all' to select all");
+		IConsoleHelp("  select: select a specific item given by its id or 'all' to select all. If no parameter is given, all selected content will be listed");
 		IConsoleHelp("  unselect: unselect a specific item given by its id or 'all' to unselect all");
-		IConsoleHelp("  state: show the download/select state of all downloadable content");
+		IConsoleHelp("  state: show the download/select state of all downloadable content. Optionally give a filter string");
 		IConsoleHelp("  download: download all content you've selected");
 		return true;
 	}
@@ -1747,10 +1758,13 @@ DEF_CONSOLE_CMD(ConContent)
 
 	if (strcasecmp(argv[1], "select") == 0) {
 		if (argc <= 2) {
-			IConsoleError("You must enter the id.");
-			return false;
-		}
-		if (strcasecmp(argv[2], "all") == 0) {
+			/* List selected content */
+			IConsolePrintF(CC_WHITE, "id, type, state, name");
+			for (ConstContentIterator iter = _network_content_client.Begin(); iter != _network_content_client.End(); iter++) {
+				if ((*iter)->state != ContentInfo::SELECTED && (*iter)->state != ContentInfo::AUTOSELECTED) continue;
+				OutputContentState(*iter);
+			}
+		} else if (strcasecmp(argv[2], "all") == 0) {
 			_network_content_client.SelectAll();
 		} else {
 			_network_content_client.Select((ContentID)atoi(argv[2]));
@@ -1774,15 +1788,8 @@ DEF_CONSOLE_CMD(ConContent)
 	if (strcasecmp(argv[1], "state") == 0) {
 		IConsolePrintF(CC_WHITE, "id, type, state, name");
 		for (ConstContentIterator iter = _network_content_client.Begin(); iter != _network_content_client.End(); iter++) {
-			static const char * const types[] = { "Base graphics", "NewGRF", "AI", "AI library", "Scenario", "Heightmap", "Base sound", "Base music", "Game script", "GS library" };
-			assert_compile(lengthof(types) == CONTENT_TYPE_END - CONTENT_TYPE_BEGIN);
-			static const char * const states[] = { "Not selected", "Selected", "Dep Selected", "Installed", "Unknown" };
-			static const TextColour state_to_colour[] = { CC_COMMAND, CC_INFO, CC_INFO, CC_WHITE, CC_ERROR };
-
-			const ContentInfo *ci = *iter;
-			char buf[sizeof(ci->md5sum) * 2 + 1];
-			md5sumToString(buf, lastof(buf), ci->md5sum);
-			IConsolePrintF(state_to_colour[ci->state], "%d, %s, %s, %s, %08X, %s", ci->id, types[ci->type - 1], states[ci->state], ci->name, ci->unique_id, buf);
+			if (argc > 2 && strcasestr((*iter)->name, argv[2]) == NULL) continue;
+			OutputContentState(*iter);
 		}
 		return true;
 	}

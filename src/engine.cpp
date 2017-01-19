@@ -30,9 +30,12 @@
 #include "company_base.h"
 #include "vehicle_func.h"
 #include "articulated_vehicles.h"
+#include "error.h"
 
 #include "table/strings.h"
 #include "table/engines.h"
+
+#include "safeguards.h"
 
 EnginePool _engine_pool("Engine");
 INSTANTIATE_POOL_METHODS(Engine)
@@ -44,11 +47,6 @@ EngineOverrideManager _engine_mngr;
  * and no more engines will be introduced
  */
 static Year _year_engine_aging_stops;
-
-/**
- * The railtypes that have been or never will be introduced, or
- * an inverse bitmap of rail types that have to be introduced. */
-static uint16 _introduced_railtypes;
 
 /** Number of engines of each vehicle type in original engine data */
 const uint8 _engine_counts[4] = {
@@ -82,6 +80,7 @@ Engine::Engine(VehicleType type, EngineID base)
 	this->type = type;
 	this->grf_prop.local_id = base;
 	this->list_position = base;
+	this->preview_company = INVALID_COMPANY;
 
 	/* Check if this base engine is within the original engine data range */
 	if (base >= _engine_counts[type]) {
@@ -539,29 +538,6 @@ void SetupEngines()
 		const Engine *e = new Engine(eid->type, eid->internal_id);
 		assert(e->index == index);
 	}
-
-	_introduced_railtypes = 0;
-}
-
-/**
- * Check whether the railtypes should be introduced.
- */
-static void CheckRailIntroduction()
-{
-	/* All railtypes have been introduced. */
-	if (_introduced_railtypes == UINT16_MAX || Company::GetPoolSize() == 0) return;
-
-	/* We need to find the railtypes that are known to all companies. */
-	RailTypes rts = (RailTypes)UINT16_MAX;
-
-	/* We are at, or past the introduction date of the rail. */
-	Company *c;
-	FOR_ALL_COMPANIES(c) {
-		c->avail_railtypes = AddDateIntroducedRailTypes(c->avail_railtypes, _date);
-		rts &= c->avail_railtypes;
-	}
-
-	_introduced_railtypes |= rts;
 }
 
 void ShowEnginePreviewWindow(EngineID engine);
@@ -652,6 +628,7 @@ void StartupOneEngine(Engine *e, Date aging_date)
 	e->age = 0;
 	e->flags = 0;
 	e->company_avail = 0;
+	e->company_hidden = 0;
 
 	/* Don't randomise the start-date in the first two years after gamestart to ensure availability
 	 * of engines in early starting games.
@@ -705,19 +682,6 @@ void StartupEngines()
 		c->avail_railtypes = GetCompanyRailtypes(c->index);
 		c->avail_roadtypes = GetCompanyRoadtypes(c->index);
 	}
-
-	/* Rail types that are invalid or never introduced are marked as
-	 * being introduced upon start. That way we can easily check whether
-	 * there is any date related introduction that is still going to
-	 * happen somewhere in the future. */
-	for (RailType rt = RAILTYPE_BEGIN; rt != RAILTYPE_END; rt++) {
-		const RailtypeInfo *rti = GetRailTypeInfo(rt);
-		if (rti->label != 0 && IsInsideMM(rti->introduction_date, 0, MAX_DAY)) continue;
-
-		SetBit(_introduced_railtypes, rt);
-	}
-
-	CheckRailIntroduction();
 
 	/* Invalidate any open purchase lists */
 	InvalidateWindowClassesData(WC_BUILD_VEHICLE);
@@ -815,7 +779,10 @@ static bool IsVehicleTypeDisabled(VehicleType type, bool ai)
 /** Daily check to offer an exclusive engine preview to the companies. */
 void EnginesDailyLoop()
 {
-	CheckRailIntroduction();
+	Company *c;
+	FOR_ALL_COMPANIES(c) {
+		c->avail_railtypes = AddDateIntroducedRailTypes(c->avail_railtypes, _date);
+	}
 
 	if (_cur_year >= _year_engine_aging_stops) return;
 
@@ -851,6 +818,41 @@ void EnginesDailyLoop()
 }
 
 /**
+ * Clear the 'hidden' flag for all engines of a new company.
+ * @param cid Company being created.
+ */
+void ClearEnginesHiddenFlagOfCompany(CompanyID cid)
+{
+	Engine *e;
+	FOR_ALL_ENGINES(e) {
+		SB(e->company_hidden, cid, 1, 0);
+	}
+}
+
+/**
+ * Set the visibility of an engine.
+ * @param tile Unused.
+ * @param flags Operation to perform.
+ * @param p1 Unused.
+ * @param p2 Bit 31: 0=visible, 1=hidden, other bits for the #EngineID.
+ * @param text Unused.
+ * @return The cost of this operation or an error.
+ */
+CommandCost CmdSetVehicleVisibility(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 p2, const char *text)
+{
+	Engine *e = Engine::GetIfValid(GB(p2, 0, 31));
+	if (e == NULL || _current_company >= MAX_COMPANIES) return CMD_ERROR;
+	if (!IsEngineBuildable(e->index, e->type, _current_company)) return CMD_ERROR;
+
+	if ((flags & DC_EXEC) != 0) {
+		SB(e->company_hidden, _current_company, 1, GB(p2, 31, 1));
+		AddRemoveEngineFromAutoreplaceAndBuildWindows(e->type);
+	}
+
+	return CommandCost();
+}
+
+/**
  * Accept an engine prototype. XXX - it is possible that the top-company
  * changes while you are waiting to accept the offer? Then it becomes invalid
  * @param tile unused
@@ -863,7 +865,7 @@ void EnginesDailyLoop()
 CommandCost CmdWantEnginePreview(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 p2, const char *text)
 {
 	Engine *e = Engine::GetIfValid(p1);
-	if (e == NULL || e->preview_company != _current_company) return CMD_ERROR;
+	if (e == NULL || !(e->flags & ENGINE_EXCLUSIVE_PREVIEW) || e->preview_company != _current_company) return CMD_ERROR;
 
 	if (flags & DC_EXEC) AcceptEnginePreview(p1, _current_company);
 
@@ -1024,7 +1026,7 @@ CommandCost CmdRenameEngine(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 		if (reset) {
 			e->name = NULL;
 		} else {
-			e->name = strdup(text);
+			e->name = stredup(text);
 		}
 
 		MarkWholeScreenDirty();
@@ -1097,4 +1099,30 @@ bool IsEngineRefittable(EngineID engine)
 	/* Is there any cargo except the default cargo? */
 	CargoID default_cargo = e->GetDefaultCargoType();
 	return default_cargo != CT_INVALID && ei->refit_mask != 1U << default_cargo;
+}
+
+/**
+ * Check for engines that have an appropriate availability.
+ */
+void CheckEngines()
+{
+	const Engine *e;
+	Date min_date = INT32_MAX;
+
+	FOR_ALL_ENGINES(e) {
+		if (!e->IsEnabled()) continue;
+
+		/* We have an available engine... yay! */
+		if ((e->flags & ENGINE_AVAILABLE) != 0 && e->company_avail != 0) return;
+
+		/* Okay, try to find the earliest date. */
+		min_date = min(min_date, e->info.base_intro);
+	}
+
+	if (min_date < INT32_MAX) {
+		SetDParam(0, min_date);
+		ShowErrorMessage(STR_ERROR_NO_VEHICLES_AVAILABLE_YET, STR_ERROR_NO_VEHICLES_AVAILABLE_YET_EXPLANATION, WL_WARNING);
+	} else {
+		ShowErrorMessage(STR_ERROR_NO_VEHICLES_AVAILABLE_AT_ALL, STR_ERROR_NO_VEHICLES_AVAILABLE_AT_ALL_EXPLANATION, WL_WARNING);
+	}
 }

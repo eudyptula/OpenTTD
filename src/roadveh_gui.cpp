@@ -15,8 +15,11 @@
 #include "strings_func.h"
 #include "vehicle_func.h"
 #include "string_func.h"
+#include "zoom_func.h"
 
 #include "table/strings.h"
+
+#include "safeguards.h"
 
 /**
  * Draw the details for the given vehicle at the given position
@@ -28,14 +31,14 @@
  */
 void DrawRoadVehDetails(const Vehicle *v, int left, int right, int y)
 {
-	uint y_offset = v->HasArticulatedPart() ? 15 : 0; // Draw the first line below the sprite of an articulated RV instead of after it.
+	uint y_offset = v->HasArticulatedPart() ? ScaleGUITrad(15) : 0; // Draw the first line below the sprite of an articulated RV instead of after it.
 	StringID str;
 	Money feeder_share = 0;
 
 	SetDParam(0, v->engine_type);
 	SetDParam(1, v->build_year);
 	SetDParam(2, v->value);
-	DrawString(left, right, y + y_offset, STR_VEHICLE_INFO_BUILT_VALUE, TC_FROMSTRING, SA_LEFT | SA_STRIP);
+	DrawString(left, right, y + y_offset, STR_VEHICLE_INFO_BUILT_VALUE);
 
 	if (v->HasArticulatedPart()) {
 		CargoArray max_cargo;
@@ -134,7 +137,7 @@ void DrawRoadVehImage(const Vehicle *v, int left, int right, int y, VehicleID se
 	DrawPixelInfo tmp_dpi, *old_dpi;
 	int max_width = right - left + 1;
 
-	if (!FillDrawPixelInfo(&tmp_dpi, left, y, max_width, 14)) return;
+	if (!FillDrawPixelInfo(&tmp_dpi, left, y, max_width, ScaleGUITrad(14))) return;
 
 	old_dpi = _cur_dpi;
 	_cur_dpi = &tmp_dpi;
@@ -146,14 +149,16 @@ void DrawRoadVehImage(const Vehicle *v, int left, int right, int y, VehicleID se
 
 		if (rtl ? px + width > 0 : px - width < max_width) {
 			PaletteID pal = (u->vehstatus & VS_CRASHED) ? PALETTE_CRASH : GetVehiclePalette(u);
-			DrawSprite(u->GetImage(dir, image_type), pal, px + (rtl ? -offset.x : offset.x), 6 + offset.y);
+			VehicleSpriteSeq seq;
+			u->GetImage(dir, image_type, &seq);
+			seq.Draw(px + (rtl ? -offset.x : offset.x), ScaleGUITrad(6) + offset.y, pal, (u->vehstatus & VS_CRASHED) != 0);
 		}
 
 		px += rtl ? -width : width;
 	}
 
 	if (v->index == selection) {
-		DrawFrameRect((rtl ? px : 0), 0, (rtl ? max_width : px) - 1, 12, COLOUR_WHITE, FR_BORDERONLY);
+		DrawFrameRect((rtl ? px : 0), 0, (rtl ? max_width : px) - 1, ScaleGUITrad(13) - 1, COLOUR_WHITE, FR_BORDERONLY);
 	}
 
 	_cur_dpi = old_dpi;

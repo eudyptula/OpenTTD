@@ -33,12 +33,14 @@
 #include "table/strings.h"
 #include "table/sprites.h"
 
+#include "safeguards.h"
+
 struct SelectGameWindow : public Window {
 
-	SelectGameWindow(const WindowDesc *desc) : Window()
+	SelectGameWindow(WindowDesc *desc) : Window(desc)
 	{
-		this->CreateNestedTree(desc);
-		this->FinishInitNested(desc, 0);
+		this->CreateNestedTree();
+		this->FinishInitNested(0);
 		this->OnInvalidateData();
 	}
 
@@ -58,13 +60,21 @@ struct SelectGameWindow : public Window {
 
 	virtual void OnInit()
 	{
-		bool missing = _current_language->missing >= _settings_client.gui.missing_strings_threshold && !IsReleasedVersion();
-		this->GetWidget<NWidgetStacked>(WID_SGI_TRANSLATION_SELECTION)->SetDisplayedPlane(missing ? 0 : SZSP_NONE);
+		bool missing_sprites = _missing_extra_graphics > 0 && !IsReleasedVersion();
+		this->GetWidget<NWidgetStacked>(WID_SGI_BASESET_SELECTION)->SetDisplayedPlane(missing_sprites ? 0 : SZSP_NONE);
+
+		bool missing_lang = _current_language->missing >= _settings_client.gui.missing_strings_threshold && !IsReleasedVersion();
+		this->GetWidget<NWidgetStacked>(WID_SGI_TRANSLATION_SELECTION)->SetDisplayedPlane(missing_lang ? 0 : SZSP_NONE);
 	}
 
 	virtual void DrawWidget(const Rect &r, int widget) const
 	{
 		switch (widget) {
+			case WID_SGI_BASESET:
+				SetDParam(0, _missing_extra_graphics);
+				DrawStringMultiLine(r.left, r.right, r.top,  r.bottom, STR_INTRO_BASESET, TC_FROMSTRING, SA_CENTER);
+				break;
+
 			case WID_SGI_TRANSLATION:
 				SetDParam(0, _current_language->missing);
 				DrawStringMultiLine(r.left, r.right, r.top,  r.bottom, STR_INTRO_TRANSLATION, TC_FROMSTRING, SA_CENTER);
@@ -74,20 +84,29 @@ struct SelectGameWindow : public Window {
 
 	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
 	{
+		StringID str = 0;
 		switch (widget) {
-			case WID_SGI_TRANSLATION: {
-				SetDParam(0, _current_language->missing);
-				int height = GetStringHeight(STR_INTRO_TRANSLATION, size->width);
-				if (height > 3 * FONT_HEIGHT_NORMAL) {
-					/* Don't let the window become too high. */
-					Dimension textdim = GetStringBoundingBox(STR_INTRO_TRANSLATION);
-					textdim.height *= 3;
-					textdim.width -= textdim.width / 2;
-					*size = maxdim(*size, textdim);
-				} else {
-					size->height = height + padding.height;
-				}
+			case WID_SGI_BASESET:
+				SetDParam(0, _missing_extra_graphics);
+				str = STR_INTRO_BASESET;
 				break;
+
+			case WID_SGI_TRANSLATION:
+				SetDParam(0, _current_language->missing);
+				str = STR_INTRO_TRANSLATION;
+				break;
+		}
+
+		if (str != 0) {
+			int height = GetStringHeight(str, size->width);
+			if (height > 3 * FONT_HEIGHT_NORMAL) {
+				/* Don't let the window become too high. */
+				Dimension textdim = GetStringBoundingBox(str);
+				textdim.height *= 3;
+				textdim.width -= textdim.width / 2;
+				*size = maxdim(*size, textdim);
+			} else {
+				size->height = height + padding.height;
 			}
 		}
 	}
@@ -109,9 +128,9 @@ struct SelectGameWindow : public Window {
 				}
 				break;
 
-			case WID_SGI_LOAD_GAME:      ShowSaveLoadDialog(SLD_LOAD_GAME); break;
-			case WID_SGI_PLAY_SCENARIO:  ShowSaveLoadDialog(SLD_LOAD_SCENARIO); break;
-			case WID_SGI_PLAY_HEIGHTMAP: ShowSaveLoadDialog(SLD_LOAD_HEIGHTMAP); break;
+			case WID_SGI_LOAD_GAME:      ShowSaveLoadDialog(FT_SAVEGAME, SLO_LOAD); break;
+			case WID_SGI_PLAY_SCENARIO:  ShowSaveLoadDialog(FT_SCENARIO, SLO_LOAD); break;
+			case WID_SGI_PLAY_HEIGHTMAP: ShowSaveLoadDialog(FT_HEIGHTMAP,SLO_LOAD); break;
 			case WID_SGI_EDIT_SCENARIO:  StartScenarioEditor(); break;
 
 			case WID_SGI_PLAY_NETWORK:
@@ -197,6 +216,11 @@ static const NWidgetPart _nested_select_game_widgets[] = {
 	EndContainer(),
 
 	NWidget(NWID_SPACER), SetMinimalSize(0, 7),
+	NWidget(NWID_SELECTION, INVALID_COLOUR, WID_SGI_BASESET_SELECTION),
+		NWidget(NWID_VERTICAL),
+			NWidget(WWT_EMPTY, COLOUR_ORANGE, WID_SGI_BASESET), SetMinimalSize(316, 12), SetFill(1, 0), SetPadding(0, 10, 7, 10),
+		EndContainer(),
+	EndContainer(),
 	NWidget(NWID_SELECTION, INVALID_COLOUR, WID_SGI_TRANSLATION_SELECTION),
 		NWidget(NWID_VERTICAL),
 			NWidget(WWT_EMPTY, COLOUR_ORANGE, WID_SGI_TRANSLATION), SetMinimalSize(316, 12), SetFill(1, 0), SetPadding(0, 10, 7, 10),
@@ -208,7 +232,7 @@ static const NWidgetPart _nested_select_game_widgets[] = {
 		NWidget(WWT_PUSHTXTBTN, COLOUR_ORANGE, WID_SGI_OPTIONS), SetMinimalSize(158, 12),
 							SetDataTip(STR_INTRO_GAME_OPTIONS, STR_INTRO_TOOLTIP_GAME_OPTIONS), SetPadding(0, 0, 0, 10), SetFill(1, 0),
 		NWidget(WWT_PUSHTXTBTN, COLOUR_ORANGE, WID_SGI_SETTINGS_OPTIONS), SetMinimalSize(158, 12),
-							SetDataTip(STR_INTRO_ADVANCED_SETTINGS, STR_INTRO_TOOLTIP_ADVANCED_SETTINGS), SetPadding(0, 10, 0, 0), SetFill(1, 0),
+							SetDataTip(STR_INTRO_CONFIG_SETTINGS_TREE, STR_INTRO_TOOLTIP_CONFIG_SETTINGS_TREE), SetPadding(0, 10, 0, 0), SetFill(1, 0),
 	EndContainer(),
 
 	NWidget(NWID_SPACER), SetMinimalSize(0, 6),
@@ -246,8 +270,8 @@ static const NWidgetPart _nested_select_game_widgets[] = {
 	EndContainer(),
 };
 
-static const WindowDesc _select_game_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _select_game_desc(
+	WDP_CENTER, NULL, 0, 0,
 	WC_SELECT_GAME, WC_NONE,
 	0,
 	_nested_select_game_widgets, lengthof(_nested_select_game_widgets)

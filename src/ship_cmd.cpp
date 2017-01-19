@@ -36,6 +36,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /**
  * Determine the effective #WaterClass for a ship travelling on a tile.
  * @param tile Tile of interest
@@ -57,32 +59,45 @@ WaterClass GetEffectiveWaterClass(TileIndex tile)
 
 static const uint16 _ship_sprites[] = {0x0E5D, 0x0E55, 0x0E65, 0x0E6D};
 
+template <>
+bool IsValidImageIndex<VEH_SHIP>(uint8 image_index)
+{
+	return image_index < lengthof(_ship_sprites);
+}
+
 static inline TrackBits GetTileShipTrackStatus(TileIndex tile)
 {
 	return TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_WATER, 0));
 }
 
-static SpriteID GetShipIcon(EngineID engine, EngineImageType image_type)
+static void GetShipIcon(EngineID engine, EngineImageType image_type, VehicleSpriteSeq *result)
 {
 	const Engine *e = Engine::Get(engine);
 	uint8 spritenum = e->u.ship.image_index;
 
 	if (is_custom_sprite(spritenum)) {
-		SpriteID sprite = GetCustomVehicleIcon(engine, DIR_W, image_type);
-		if (sprite != 0) return sprite;
+		GetCustomVehicleIcon(engine, DIR_W, image_type, result);
+		if (result->IsValid()) return;
 
 		spritenum = e->original_image_index;
 	}
 
-	return DIR_W + _ship_sprites[spritenum];
+	assert(IsValidImageIndex<VEH_SHIP>(spritenum));
+	result->Set(DIR_W + _ship_sprites[spritenum]);
 }
 
 void DrawShipEngine(int left, int right, int preferred_x, int y, EngineID engine, PaletteID pal, EngineImageType image_type)
 {
-	SpriteID sprite = GetShipIcon(engine, image_type);
-	const Sprite *real_sprite = GetSprite(sprite, ST_NORMAL);
-	preferred_x = Clamp(preferred_x, left - UnScaleByZoom(real_sprite->x_offs, ZOOM_LVL_GUI), right - UnScaleByZoom(real_sprite->width, ZOOM_LVL_GUI) - UnScaleByZoom(real_sprite->x_offs, ZOOM_LVL_GUI));
-	DrawSprite(sprite, pal, preferred_x, y);
+	VehicleSpriteSeq seq;
+	GetShipIcon(engine, image_type, &seq);
+
+	Rect rect;
+	seq.GetBounds(&rect);
+	preferred_x = Clamp(preferred_x,
+			left - UnScaleGUI(rect.left),
+			right - UnScaleGUI(rect.right));
+
+	seq.Draw(preferred_x, y, pal, pal == PALETTE_CRASH);
 }
 
 /**
@@ -96,26 +111,31 @@ void DrawShipEngine(int left, int right, int preferred_x, int y, EngineID engine
  */
 void GetShipSpriteSize(EngineID engine, uint &width, uint &height, int &xoffs, int &yoffs, EngineImageType image_type)
 {
-	const Sprite *spr = GetSprite(GetShipIcon(engine, image_type), ST_NORMAL);
+	VehicleSpriteSeq seq;
+	GetShipIcon(engine, image_type, &seq);
 
-	width  = UnScaleByZoom(spr->width, ZOOM_LVL_GUI);
-	height = UnScaleByZoom(spr->height, ZOOM_LVL_GUI);
-	xoffs  = UnScaleByZoom(spr->x_offs, ZOOM_LVL_GUI);
-	yoffs  = UnScaleByZoom(spr->y_offs, ZOOM_LVL_GUI);
+	Rect rect;
+	seq.GetBounds(&rect);
+
+	width  = UnScaleGUI(rect.right - rect.left + 1);
+	height = UnScaleGUI(rect.bottom - rect.top + 1);
+	xoffs  = UnScaleGUI(rect.left);
+	yoffs  = UnScaleGUI(rect.top);
 }
 
-SpriteID Ship::GetImage(Direction direction, EngineImageType image_type) const
+void Ship::GetImage(Direction direction, EngineImageType image_type, VehicleSpriteSeq *result) const
 {
 	uint8 spritenum = this->spritenum;
 
 	if (is_custom_sprite(spritenum)) {
-		SpriteID sprite = GetCustomVehicleSprite(this, direction, image_type);
-		if (sprite != 0) return sprite;
+		GetCustomVehicleSprite(this, direction, image_type, result);
+		if (result->IsValid()) return;
 
 		spritenum = this->GetEngine()->original_image_index;
 	}
 
-	return _ship_sprites[spritenum] + direction;
+	assert(IsValidImageIndex<VEH_SHIP>(spritenum));
+	result->Set(_ship_sprites[spritenum] + direction);
 }
 
 static const Depot *FindClosestShipDepot(const Vehicle *v, uint max_distance)
@@ -245,7 +265,8 @@ Trackdir Ship::GetVehicleTrackdir() const
 
 void Ship::MarkDirty()
 {
-	this->UpdateViewport(false, false);
+	this->colourmap = PAL_NONE;
+	this->UpdateViewport(true, false);
 	this->UpdateCache();
 }
 
@@ -367,7 +388,7 @@ static bool ShipAccelerate(Vehicle *v)
 	byte t;
 
 	spd = min(v->cur_speed + 1, v->vcache.cached_max_speed);
-	spd = min(spd, v->current_order.max_speed * 2);
+	spd = min(spd, v->current_order.GetMaxSpeed() * 2);
 
 	/* updates statusbar only if speed have changed to save CPU time */
 	if (spd != v->cur_speed) {
@@ -614,8 +635,8 @@ static void ShipController(Ship *v)
 		if (!IsTileType(gp.new_tile, MP_TUNNELBRIDGE) || !HasBit(VehicleEnterTile(v, gp.new_tile, gp.x, gp.y), VETS_ENTERED_WORMHOLE)) {
 			v->x_pos = gp.x;
 			v->y_pos = gp.y;
-			VehicleUpdatePosition(v);
-			if ((v->vehstatus & VS_HIDDEN) == 0) VehicleUpdateViewport(v, true);
+			v->UpdatePosition();
+			if ((v->vehstatus & VS_HIDDEN) == 0) v->Vehicle::UpdateViewport(true);
 			return;
 		}
 	}
@@ -627,7 +648,7 @@ static void ShipController(Ship *v)
 	v->z_pos = GetSlopePixelZ(gp.x, gp.y);
 
 getout:
-	VehicleUpdatePosition(v);
+	v->UpdatePosition();
 	v->UpdateViewport(true, true);
 	return;
 
@@ -681,8 +702,10 @@ CommandCost CmdBuildShip(TileIndex tile, DoCommandFlag flags, const Engine *e, u
 		v->spritenum = svi->image_index;
 		v->cargo_type = e->GetDefaultCargoType();
 		v->cargo_cap = svi->capacity;
+		v->refit_cap = 0;
 
 		v->last_station_visited = INVALID_STATION;
+		v->last_loading_station = INVALID_STATION;
 		v->engine_type = e->index;
 
 		v->reliability = e->reliability;
@@ -695,7 +718,7 @@ CommandCost CmdBuildShip(TileIndex tile, DoCommandFlag flags, const Engine *e, u
 		v->SetServiceInterval(Company::Get(_current_company)->settings.vehicle.servint_ships);
 		v->date_of_last_service = _date;
 		v->build_year = _cur_year;
-		v->cur_image = SPR_IMG_QUERY;
+		v->sprite_seq.Set(SPR_IMG_QUERY);
 		v->random_bits = VehicleRandomBits();
 
 		v->UpdateCache();
@@ -709,7 +732,7 @@ CommandCost CmdBuildShip(TileIndex tile, DoCommandFlag flags, const Engine *e, u
 
 		v->InvalidateNewGRFCacheOfChain();
 
-		VehicleUpdatePosition(v);
+		v->UpdatePosition();
 	}
 
 	return CommandCost();

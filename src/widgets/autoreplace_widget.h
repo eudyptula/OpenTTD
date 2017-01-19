@@ -16,6 +16,11 @@
 enum ReplaceVehicleWidgets {
 	WID_RV_CAPTION,                  ///< Caption of the window.
 
+	/* Sort dropdown at the right. */
+	WID_RV_SORT_ASCENDING_DESCENDING, ///< Ascending/descending sort order button.
+	WID_RV_SHOW_HIDDEN_ENGINES,       ///< Toggle whether to display the hidden vehicles.
+	WID_RV_SORT_DROPDOWN,             ///< Dropdown for the sort criteria.
+
 	/* Left and right matrix + details. */
 	WID_RV_LEFT_MATRIX,              ///< The matrix on the left.
 	WID_RV_LEFT_SCROLLBAR,           ///< The scrollbar for the matrix on the left.
@@ -30,10 +35,8 @@ enum ReplaceVehicleWidgets {
 	WID_RV_STOP_REPLACE,             ///< Stop Replacing button.
 
 	/* Train only widgets. */
-	WID_RV_TRAIN_ENGINEWAGON_TOGGLE, ///< Button to toggle engines and/or wagons.
-	WID_RV_TRAIN_FLUFF_LEFT,         ///< The fluff on the left.
+	WID_RV_TRAIN_ENGINEWAGON_DROPDOWN, ///< Dropdown to select engines and/or wagons.
 	WID_RV_TRAIN_RAILTYPE_DROPDOWN,  ///< Dropdown menu about the railtype.
-	WID_RV_TRAIN_FLUFF_RIGHT,        ///< The fluff on the right.
 	WID_RV_TRAIN_WAGONREMOVE_TOGGLE, ///< Button to toggle removing wagons.
 };
 

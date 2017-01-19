@@ -21,6 +21,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /**
  * Draw the details for the given vehicle at the given position
  *
@@ -39,7 +41,7 @@ void DrawAircraftDetails(const Aircraft *v, int left, int right, int y)
 			SetDParam(0, u->engine_type);
 			SetDParam(1, u->build_year);
 			SetDParam(2, u->value);
-			DrawString(left, right, y, STR_VEHICLE_INFO_BUILT_VALUE, TC_FROMSTRING, SA_LEFT | SA_STRIP);
+			DrawString(left, right, y, STR_VEHICLE_INFO_BUILT_VALUE);
 
 			SetDParam(0, u->cargo_type);
 			SetDParam(1, u->cargo_cap);
@@ -81,25 +83,33 @@ void DrawAircraftImage(const Vehicle *v, int left, int right, int y, VehicleID s
 {
 	bool rtl = _current_text_dir == TD_RTL;
 
-	SpriteID sprite = v->GetImage(rtl ? DIR_E : DIR_W, image_type);
-	const Sprite *real_sprite = GetSprite(sprite, ST_NORMAL);
+	VehicleSpriteSeq seq;
+	v->GetImage(rtl ? DIR_E : DIR_W, image_type, &seq);
 
-	int width = UnScaleByZoom(real_sprite->width, ZOOM_LVL_GUI);
-	int x_offs = UnScaleByZoom(real_sprite->x_offs, ZOOM_LVL_GUI);
+	Rect rect;
+	seq.GetBounds(&rect);
+
+	int width = UnScaleGUI(rect.right - rect.left + 1);
+	int x_offs = UnScaleGUI(rect.left);
 	int x = rtl ? right - width - x_offs : left - x_offs;
 	bool helicopter = v->subtype == AIR_HELICOPTER;
 
+	int y_offs = ScaleGUITrad(10);
+	int heli_offs = 0;
+
 	PaletteID pal = (v->vehstatus & VS_CRASHED) ? PALETTE_CRASH : GetVehiclePalette(v);
-	DrawSprite(sprite, pal, x, y + 10);
+	seq.Draw(x, y + y_offs, pal, (v->vehstatus & VS_CRASHED) != 0);
 	if (helicopter) {
 		const Aircraft *a = Aircraft::From(v);
-		SpriteID rotor_sprite = GetCustomRotorSprite(a, true, image_type);
-		if (rotor_sprite == 0) rotor_sprite = SPR_ROTOR_STOPPED;
-		DrawSprite(rotor_sprite, PAL_NONE, x, y + 5);
+		VehicleSpriteSeq rotor_seq;
+		GetCustomRotorSprite(a, true, image_type, &rotor_seq);
+		if (!rotor_seq.IsValid()) rotor_seq.Set(SPR_ROTOR_STOPPED);
+		heli_offs = ScaleGUITrad(5);
+		rotor_seq.Draw(x, y + y_offs - heli_offs, PAL_NONE, false);
 	}
 	if (v->index == selection) {
 		x += x_offs;
-		y += UnScaleByZoom(real_sprite->y_offs, ZOOM_LVL_GUI) + 10 - (helicopter ? 5 : 0);
-		DrawFrameRect(x - 1, y - 1, x + width + 1, y + UnScaleByZoom(real_sprite->height, ZOOM_LVL_GUI) + (helicopter ? 5 : 0) + 1, COLOUR_WHITE, FR_BORDERONLY);
+		y += UnScaleGUI(rect.top) + y_offs - heli_offs;
+		DrawFrameRect(x - 1, y - 1, x + width + 1, y + UnScaleGUI(rect.bottom - rect.top + 1) + heli_offs + 1, COLOUR_WHITE, FR_BORDERONLY);
 	}
 }

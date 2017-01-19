@@ -35,6 +35,8 @@
 #include "../date_func.h"
 #include "../autoreplace_base.h"
 #include "../roadstop_base.h"
+#include "../linkgraph/linkgraph.h"
+#include "../linkgraph/linkgraphjob.h"
 #include "../statusbar_gui.h"
 #include "../fileio_func.h"
 #include "../gamelog.h"
@@ -46,6 +48,8 @@
 
 #include "saveload_internal.h"
 #include "saveload_filter.h"
+
+#include "../safeguards.h"
 
 /*
  * Previous savegame versions, the trunk revision where they were
@@ -245,10 +249,25 @@
  *  179   24810
  *  180   24998   1.3.x
  *  181   25012
+ *  182   25296
+ *  183   25363
+ *  184   25508
+ *  185   25620
+ *  186   25833
+ *  187   25899
+ *  188   26169   1.4.x
+ *  189   26450
+ *  190   26547
+ *  191   26646
+ *  192   26700
+ *  193   26802
+ *  194   26881   1.5.x, 1.6.0
+ *  195   27572   1.6.x
  */
-extern const uint16 SAVEGAME_VERSION = 181; ///< Current savegame version of OpenTTD.
+extern const uint16 SAVEGAME_VERSION = 195; ///< Current savegame version of OpenTTD.
 
 SavegameType _savegame_type; ///< type of savegame we are loading
+FileToSaveLoad _file_to_saveload; ///< File to save or load in the openttd loop.
 
 uint32 _ttdp_version;     ///< version of TTDP savegame (if applicable)
 uint16 _sl_version;       ///< the major savegame version identifier
@@ -417,6 +436,7 @@ extern const ChunkHandler _economy_chunk_handlers[];
 extern const ChunkHandler _subsidy_chunk_handlers[];
 extern const ChunkHandler _cargomonitor_chunk_handlers[];
 extern const ChunkHandler _goal_chunk_handlers[];
+extern const ChunkHandler _story_page_chunk_handlers[];
 extern const ChunkHandler _ai_chunk_handlers[];
 extern const ChunkHandler _game_chunk_handlers[];
 extern const ChunkHandler _animated_tile_chunk_handlers[];
@@ -425,6 +445,7 @@ extern const ChunkHandler _group_chunk_handlers[];
 extern const ChunkHandler _cargopacket_chunk_handlers[];
 extern const ChunkHandler _autoreplace_chunk_handlers[];
 extern const ChunkHandler _labelmaps_chunk_handlers[];
+extern const ChunkHandler _linkgraph_chunk_handlers[];
 extern const ChunkHandler _airport_chunk_handlers[];
 extern const ChunkHandler _object_chunk_handlers[];
 extern const ChunkHandler _persistent_storage_chunk_handlers[];
@@ -446,6 +467,7 @@ static const ChunkHandler * const _chunk_handlers[] = {
 	_subsidy_chunk_handlers,
 	_cargomonitor_chunk_handlers,
 	_goal_chunk_handlers,
+	_story_page_chunk_handlers,
 	_engine_chunk_handlers,
 	_town_chunk_handlers,
 	_sign_chunk_handlers,
@@ -459,6 +481,7 @@ static const ChunkHandler * const _chunk_handlers[] = {
 	_cargopacket_chunk_handlers,
 	_autoreplace_chunk_handlers,
 	_labelmaps_chunk_handlers,
+	_linkgraph_chunk_handlers,
 	_airport_chunk_handlers,
 	_object_chunk_handlers,
 	_persistent_storage_chunk_handlers,
@@ -511,11 +534,11 @@ void NORETURN SlError(StringID string, const char *extra_msg)
 	if (_sl.action == SLA_LOAD_CHECK) {
 		_load_check_data.error = string;
 		free(_load_check_data.error_data);
-		_load_check_data.error_data = (extra_msg == NULL) ? NULL : strdup(extra_msg);
+		_load_check_data.error_data = (extra_msg == NULL) ? NULL : stredup(extra_msg);
 	} else {
 		_sl.error_str = string;
 		free(_sl.extra_msg);
-		_sl.extra_msg = (extra_msg == NULL) ? NULL : strdup(extra_msg);
+		_sl.extra_msg = (extra_msg == NULL) ? NULL : stredup(extra_msg);
 	}
 
 	/* We have to NULL all pointers here; we might be in a state where
@@ -657,7 +680,11 @@ static uint SlReadSimpleGamma()
 			if (HasBit(i, 5)) {
 				i &= ~0x20;
 				if (HasBit(i, 4)) {
-					SlErrorCorrupt("Unsupported gamma");
+					i &= ~0x10;
+					if (HasBit(i, 3)) {
+						SlErrorCorrupt("Unsupported gamma");
+					}
+					i = SlReadByte(); // 32 bits only.
 				}
 				i = (i << 8) | SlReadByte();
 			}
@@ -677,6 +704,11 @@ static uint SlReadSimpleGamma()
  * 10xxxxxx xxxxxxxx
  * 110xxxxx xxxxxxxx xxxxxxxx
  * 1110xxxx xxxxxxxx xxxxxxxx xxxxxxxx
+ * 11110--- xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+ * We could extend the scheme ad infinum to support arbitrarily
+ * large chunks, but as sizeof(size_t) == 4 is still very common
+ * we don't support anything above 32 bits. That's why in the last
+ * case the 3 most significant bits are unused.
  * @param i Index being written
  */
 
@@ -685,8 +717,13 @@ static void SlWriteSimpleGamma(size_t i)
 	if (i >= (1 << 7)) {
 		if (i >= (1 << 14)) {
 			if (i >= (1 << 21)) {
-				assert(i < (1 << 28));
-				SlWriteByte((byte)(0xE0 | (i >> 24)));
+				if (i >= (1 << 28)) {
+					assert(i <= UINT32_MAX); // We can only support 32 bits for now.
+					SlWriteByte((byte)(0xF0));
+					SlWriteByte((byte)(i >> 24));
+				} else {
+					SlWriteByte((byte)(0xE0 | (i >> 24)));
+				}
 				SlWriteByte((byte)(i >> 16));
 			} else {
 				SlWriteByte((byte)(0xC0 | (i >> 16)));
@@ -702,7 +739,7 @@ static void SlWriteSimpleGamma(size_t i)
 /** Return how many bytes used to encode a gamma value */
 static inline uint SlGetGammaLength(size_t i)
 {
-	return 1 + (i >= (1 << 7)) + (i >= (1 << 14)) + (i >= (1 << 21));
+	return 1 + (i >= (1 << 7)) + (i >= (1 << 14)) + (i >= (1 << 21)) + (i >= (1 << 28));
 }
 
 static inline uint SlReadSparseIndex()
@@ -1212,10 +1249,12 @@ static size_t ReferenceToInt(const void *obj, SLRefType rt)
 		case REF_TOWN:      return ((const     Town*)obj)->index + 1;
 		case REF_ORDER:     return ((const    Order*)obj)->index + 1;
 		case REF_ROADSTOPS: return ((const RoadStop*)obj)->index + 1;
-		case REF_ENGINE_RENEWS: return ((const       EngineRenew*)obj)->index + 1;
-		case REF_CARGO_PACKET:  return ((const       CargoPacket*)obj)->index + 1;
-		case REF_ORDERLIST:     return ((const         OrderList*)obj)->index + 1;
-		case REF_STORAGE:       return ((const PersistentStorage*)obj)->index + 1;
+		case REF_ENGINE_RENEWS:  return ((const       EngineRenew*)obj)->index + 1;
+		case REF_CARGO_PACKET:   return ((const       CargoPacket*)obj)->index + 1;
+		case REF_ORDERLIST:      return ((const         OrderList*)obj)->index + 1;
+		case REF_STORAGE:        return ((const PersistentStorage*)obj)->index + 1;
+		case REF_LINK_GRAPH:     return ((const         LinkGraph*)obj)->index + 1;
+		case REF_LINK_GRAPH_JOB: return ((const      LinkGraphJob*)obj)->index + 1;
 		default: NOT_REACHED();
 	}
 }
@@ -1288,6 +1327,14 @@ static void *IntToReference(size_t index, SLRefType rt)
 		case REF_STORAGE:
 			if (PersistentStorage::IsValidID(index)) return PersistentStorage::Get(index);
 			SlErrorCorrupt("Referencing invalid PersistentStorage");
+
+		case REF_LINK_GRAPH:
+			if (LinkGraph::IsValidID(index)) return LinkGraph::Get(index);
+			SlErrorCorrupt("Referencing invalid LinkGraph");
+
+		case REF_LINK_GRAPH_JOB:
+			if (LinkGraphJob::IsValidID(index)) return LinkGraphJob::Get(index);
+			SlErrorCorrupt("Referencing invalid LinkGraphJob");
 
 		default: NOT_REACHED();
 	}
@@ -1437,9 +1484,56 @@ size_t SlCalcObjMemberLength(const void *object, const SaveLoad *sld)
 	return 0;
 }
 
+#ifdef OTTD_ASSERT
+
+/**
+ * Check whether the variable size of the variable in the saveload configuration
+ * matches with the actual variable size.
+ * @param sld The saveload configuration to test.
+ */
+static bool IsVariableSizeRight(const SaveLoad *sld)
+{
+	switch (sld->cmd) {
+		case SL_VAR:
+			switch (GetVarMemType(sld->conv)) {
+				case SLE_VAR_BL:
+					return sld->size == sizeof(bool);
+				case SLE_VAR_I8:
+				case SLE_VAR_U8:
+					return sld->size == sizeof(int8);
+				case SLE_VAR_I16:
+				case SLE_VAR_U16:
+					return sld->size == sizeof(int16);
+				case SLE_VAR_I32:
+				case SLE_VAR_U32:
+					return sld->size == sizeof(int32);
+				case SLE_VAR_I64:
+				case SLE_VAR_U64:
+					return sld->size == sizeof(int64);
+				default:
+					return sld->size == sizeof(void *);
+			}
+		case SL_REF:
+			/* These should all be pointer sized. */
+			return sld->size == sizeof(void *);
+
+		case SL_STR:
+			/* These should be pointer sized, or fixed array. */
+			return sld->size == sizeof(void *) || sld->size == sld->length;
+
+		default:
+			return true;
+	}
+}
+
+#endif /* OTTD_ASSERT */
 
 bool SlObjectMember(void *ptr, const SaveLoad *sld)
 {
+#ifdef OTTD_ASSERT
+	assert(IsVariableSizeRight(sld));
+#endif
+
 	VarType conv = GB(sld->conv, 0, 8);
 	switch (sld->cmd) {
 		case SL_VAR:
@@ -1581,9 +1675,11 @@ static void SlLoadChunk(const ChunkHandler *ch)
 		case CH_ARRAY:
 			_sl.array_index = 0;
 			ch->load_proc();
+			if (_next_offs != 0) SlErrorCorrupt("Invalid array length");
 			break;
 		case CH_SPARSE_ARRAY:
 			ch->load_proc();
+			if (_next_offs != 0) SlErrorCorrupt("Invalid array length");
 			break;
 		default:
 			if ((m & 0xF) == CH_RIFF) {
@@ -1826,7 +1922,9 @@ struct FileReader : LoadFilter {
 	/* virtual */ void Reset()
 	{
 		clearerr(this->file);
-		fseek(this->file, this->begin, SEEK_SET);
+		if (fseek(this->file, this->begin, SEEK_SET)) {
+			DEBUG(sl, 1, "Could not reset the file reading");
+		}
 	}
 };
 
@@ -2369,7 +2467,7 @@ static void SaveFileStart()
 {
 	_sl.ff_state = _fast_forward;
 	_fast_forward = 0;
-	if (_cursor.sprite == SPR_CURSOR_MOUSE) SetMouseCursor(SPR_CURSOR_ZZZ, PAL_NONE);
+	SetMouseCursorBusy(true);
 
 	InvalidateWindowData(WC_STATUS_BAR, 0, SBI_SAVELOAD_START);
 	_sl.saveinprogress = true;
@@ -2379,7 +2477,7 @@ static void SaveFileStart()
 static void SaveFileDone()
 {
 	if (_game_mode != GM_MENU) _fast_forward = _sl.ff_state;
-	if (_cursor.sprite == SPR_CURSOR_ZZZ) SetMouseCursor(SPR_CURSOR_MOUSE, PAL_NONE);
+	SetMouseCursorBusy(false);
 
 	InvalidateWindowData(WC_STATUS_BAR, 0, SBI_SAVELOAD_FINISH);
 	_sl.saveinprogress = false;
@@ -2493,7 +2591,7 @@ static SaveOrLoadResult DoSave(SaveFilter *writer, bool threaded)
 	SlSaveChunks();
 
 	SaveFileStart();
-	if (!threaded || !ThreadObject::New(&SaveFileToDiskThread, NULL, &_save_thread)) {
+	if (!threaded || !ThreadObject::New(&SaveFileToDiskThread, NULL, &_save_thread, "ottd:savegame")) {
 		if (threaded) DEBUG(sl, 1, "Cannot create savegame thread, reverting to single-threaded mode...");
 
 		SaveOrLoadResult result = SaveFileToDisk(false);
@@ -2586,7 +2684,7 @@ static SaveOrLoadResult DoLoad(LoadFilter *reader, bool load_check)
 	/* loader for this savegame type is not implemented? */
 	if (fmt->init_load == NULL) {
 		char err_str[64];
-		snprintf(err_str, lengthof(err_str), "Loader for '%s' is not available.", fmt->name);
+		seprintf(err_str, lastof(err_str), "Loader for '%s' is not available.", fmt->name);
 		SlError(STR_GAME_SAVELOAD_ERROR_BROKEN_INTERNAL_ERROR, err_str);
 	}
 
@@ -2686,58 +2784,68 @@ SaveOrLoadResult LoadWithFilter(LoadFilter *reader)
  * @param threaded True when threaded saving is allowed
  * @return Return the result of the action. #SL_OK, #SL_ERROR, or #SL_REINIT ("unload" the game)
  */
-SaveOrLoadResult SaveOrLoad(const char *filename, int mode, Subdirectory sb, bool threaded)
+SaveOrLoadResult SaveOrLoad(const char *filename, SaveLoadOperation fop, DetailedFileType dft, Subdirectory sb, bool threaded)
 {
 	/* An instance of saving is already active, so don't go saving again */
-	if (_sl.saveinprogress && mode == SL_SAVE && threaded) {
+	if (_sl.saveinprogress && fop == SLO_SAVE && dft == DFT_GAME_FILE && threaded) {
 		/* if not an autosave, but a user action, show error message */
 		if (!_do_autosave) ShowErrorMessage(STR_ERROR_SAVE_STILL_IN_PROGRESS, INVALID_STRING_ID, WL_ERROR);
 		return SL_OK;
 	}
 	WaitTillSaved();
 
-	/* Load a TTDLX or TTDPatch game */
-	if (mode == SL_OLD_LOAD) {
-		InitializeGame(256, 256, true, true); // set a mapsize of 256x256 for TTDPatch games or it might get confused
-
-		/* TTD/TTO savegames have no NewGRFs, TTDP savegame have them
-		 * and if so a new NewGRF list will be made in LoadOldSaveGame.
-		 * Note: this is done here because AfterLoadGame is also called
-		 * for OTTD savegames which have their own NewGRF logic. */
-		ClearGRFConfigList(&_grfconfig);
-		GamelogReset();
-		if (!LoadOldSaveGame(filename)) return SL_REINIT;
-		_sl_version = 0;
-		_sl_minor_version = 0;
-		GamelogStartAction(GLAT_LOAD);
-		if (!AfterLoadGame()) {
-			GamelogStopAction();
-			return SL_REINIT;
-		}
-		GamelogStopAction();
-		return SL_OK;
-	}
-
-	switch (mode) {
-		case SL_LOAD_CHECK: _sl.action = SLA_LOAD_CHECK; break;
-		case SL_LOAD: _sl.action = SLA_LOAD; break;
-		case SL_SAVE: _sl.action = SLA_SAVE; break;
-		default: NOT_REACHED();
-	}
-
 	try {
-		FILE *fh = (mode == SL_SAVE) ? FioFOpenFile(filename, "wb", sb) : FioFOpenFile(filename, "rb", sb);
+		/* Load a TTDLX or TTDPatch game */
+		if (fop == SLO_LOAD && dft == DFT_OLD_GAME_FILE) {
+			InitializeGame(256, 256, true, true); // set a mapsize of 256x256 for TTDPatch games or it might get confused
+
+			/* TTD/TTO savegames have no NewGRFs, TTDP savegame have them
+			 * and if so a new NewGRF list will be made in LoadOldSaveGame.
+			 * Note: this is done here because AfterLoadGame is also called
+			 * for OTTD savegames which have their own NewGRF logic. */
+			ClearGRFConfigList(&_grfconfig);
+			GamelogReset();
+			if (!LoadOldSaveGame(filename)) return SL_REINIT;
+			_sl_version = 0;
+			_sl_minor_version = 0;
+			GamelogStartAction(GLAT_LOAD);
+			if (!AfterLoadGame()) {
+				GamelogStopAction();
+				return SL_REINIT;
+			}
+			GamelogStopAction();
+			return SL_OK;
+		}
+
+		assert(dft == DFT_GAME_FILE);
+		switch (fop) {
+			case SLO_CHECK:
+				_sl.action = SLA_LOAD_CHECK;
+				break;
+
+			case SLO_LOAD:
+				_sl.action = SLA_LOAD;
+				break;
+
+			case SLO_SAVE:
+				_sl.action = SLA_SAVE;
+				break;
+
+			default: NOT_REACHED();
+		}
+
+		FILE *fh = (fop == SLO_SAVE) ? FioFOpenFile(filename, "wb", sb) : FioFOpenFile(filename, "rb", sb);
 
 		/* Make it a little easier to load savegames from the console */
-		if (fh == NULL && mode != SL_SAVE) fh = FioFOpenFile(filename, "rb", SAVE_DIR);
-		if (fh == NULL && mode != SL_SAVE) fh = FioFOpenFile(filename, "rb", BASE_DIR);
-		if (fh == NULL && mode != SL_SAVE) fh = FioFOpenFile(filename, "rb", SCENARIO_DIR);
+		if (fh == NULL && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", SAVE_DIR);
+		if (fh == NULL && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", BASE_DIR);
+		if (fh == NULL && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", SCENARIO_DIR);
 
 		if (fh == NULL) {
-			SlError(mode == SL_SAVE ? STR_GAME_SAVELOAD_ERROR_FILE_NOT_WRITEABLE : STR_GAME_SAVELOAD_ERROR_FILE_NOT_READABLE);
+			SlError(fop == SLO_SAVE ? STR_GAME_SAVELOAD_ERROR_FILE_NOT_WRITEABLE : STR_GAME_SAVELOAD_ERROR_FILE_NOT_READABLE);
 		}
 
-		if (mode == SL_SAVE) { // SAVE game
+		if (fop == SLO_SAVE) { // SAVE game
 			DEBUG(desync, 1, "save: %08x; %02x; %s", _date, _date_fract, filename);
 			if (_network_server || !_settings_client.gui.threaded_saves) threaded = false;
 
@@ -2745,24 +2853,25 @@ SaveOrLoadResult SaveOrLoad(const char *filename, int mode, Subdirectory sb, boo
 		}
 
 		/* LOAD game */
-		assert(mode == SL_LOAD || mode == SL_LOAD_CHECK);
+		assert(fop == SLO_LOAD || fop == SLO_CHECK);
 		DEBUG(desync, 1, "load: %s", filename);
-		return DoLoad(new FileReader(fh), mode == SL_LOAD_CHECK);
+		return DoLoad(new FileReader(fh), fop == SLO_CHECK);
 	} catch (...) {
+		/* This code may be executed both for old and new save games. */
 		ClearSaveLoadState();
 
 		/* Skip the "colour" character */
-		if (mode != SL_LOAD_CHECK) DEBUG(sl, 0, "%s", GetSaveLoadErrorString() + 3);
+		if (fop != SLO_CHECK) DEBUG(sl, 0, "%s", GetSaveLoadErrorString() + 3);
 
 		/* A saver/loader exception!! reinitialize all variables to prevent crash! */
-		return (mode == SL_LOAD) ? SL_REINIT : SL_ERROR;
+		return (fop == SLO_LOAD) ? SL_REINIT : SL_ERROR;
 	}
 }
 
 /** Do a save when exiting the game (_settings_client.gui.autosave_on_exit) */
 void DoExitSave()
 {
-	SaveOrLoad("exit.sav", SL_SAVE, AUTOSAVE_DIR);
+	SaveOrLoad("exit.sav", SLO_SAVE, DFT_GAME_FILE, AUTOSAVE_DIR);
 }
 
 /**
@@ -2798,6 +2907,53 @@ void GenerateDefaultSaveName(char *buf, const char *last)
 	/* Get the correct string (special string for when there's not company) */
 	GetString(buf, !Company::IsValidID(cid) ? STR_SAVEGAME_NAME_SPECTATOR : STR_SAVEGAME_NAME_DEFAULT, last);
 	SanitizeFilename(buf);
+}
+
+/**
+ * Set the mode and file type of the file to save or load based on the type of file entry at the file system.
+ * @param ft Type of file entry of the file system.
+ */
+void FileToSaveLoad::SetMode(FiosType ft)
+{
+	this->SetMode(SLO_LOAD, GetAbstractFileType(ft), GetDetailedFileType(ft));
+}
+
+/**
+ * Set the mode and file type of the file to save or load.
+ * @param fop File operation being performed.
+ * @param aft Abstract file type.
+ * @param dft Detailed file type.
+ */
+void FileToSaveLoad::SetMode(SaveLoadOperation fop, AbstractFileType aft, DetailedFileType dft)
+{
+	if (aft == FT_INVALID || aft == FT_NONE) {
+		this->file_op = SLO_INVALID;
+		this->detail_ftype = DFT_INVALID;
+		this->abstract_ftype = FT_INVALID;
+		return;
+	}
+
+	this->file_op = fop;
+	this->detail_ftype = dft;
+	this->abstract_ftype = aft;
+}
+
+/**
+ * Set the name of the file.
+ * @param name Name of the file.
+ */
+void FileToSaveLoad::SetName(const char *name)
+{
+	strecpy(this->name, name, lastof(this->name));
+}
+
+/**
+ * Set the title of the file.
+ * @param title Title of the file.
+ */
+void FileToSaveLoad::SetTitle(const char *title)
+{
+	strecpy(this->title, title, lastof(this->title));
 }
 
 #if 0

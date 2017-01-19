@@ -24,6 +24,8 @@
 #include "table/strings.h"
 #include "table/palette_convert.h"
 
+#include "safeguards.h"
+
 /* Default of 4MB spritecache */
 uint _sprite_cache_size = 4;
 
@@ -118,9 +120,10 @@ bool SkipSpriteData(byte type, uint16 num)
 /* Check if the given Sprite ID exists */
 bool SpriteExists(SpriteID id)
 {
+	if (id >= _spritecache_items) return false;
+
 	/* Special case for Sprite ID zero -- its position is also 0... */
 	if (id == 0) return true;
-	if (id >= _spritecache_items) return false;
 	return !(GetSpriteCache(id)->file_pos == 0 && GetSpriteCache(id)->file_slot == 0);
 }
 
@@ -147,6 +150,25 @@ uint GetOriginFileSlot(SpriteID sprite)
 }
 
 /**
+ * Count the sprites which originate from a specific file slot in a range of SpriteIDs.
+ * @param file_slot FIOS file slot.
+ * @param begin First sprite in range.
+ * @param end First sprite not in range.
+ * @return Number of sprites.
+ */
+uint GetSpriteCountForSlot(uint file_slot, SpriteID begin, SpriteID end)
+{
+	uint count = 0;
+	for (SpriteID i = begin; i != end; i++) {
+		if (SpriteExists(i)) {
+			SpriteCache *sc = GetSpriteCache(i);
+			if (sc->file_slot == file_slot) count++;
+		}
+	}
+	return count;
+}
+
+/**
  * Get a reasonable (upper bound) estimate of the maximum
  * SpriteID used in OpenTTD; there will be no sprites with
  * a higher SpriteID, although there might be up to roughly
@@ -161,7 +183,7 @@ uint GetMaxSpriteID()
 
 static bool ResizeSpriteIn(SpriteLoader::Sprite *sprite, ZoomLevel src, ZoomLevel tgt)
 {
-	uint8 scaled_1 = UnScaleByZoom(1, (ZoomLevel)(tgt - src));
+	uint8 scaled_1 = ScaleByZoom(1, (ZoomLevel)(src - tgt));
 
 	/* Check for possible memory overflow. */
 	if (sprite[src].width * scaled_1 > UINT16_MAX || sprite[src].height * scaled_1 > UINT16_MAX) return false;
@@ -393,7 +415,7 @@ static void *ReadSprite(const SpriteCache *sc, SpriteID id, SpriteType sprite_ty
 	sprite[ZOOM_LVL_NORMAL].type = sprite_type;
 
 	SpriteLoaderGrf sprite_loader(sc->container_ver);
-	if (sprite_type != ST_MAPGEN && BlitterFactoryBase::GetCurrentBlitter()->GetScreenDepth() == 32) {
+	if (sprite_type != ST_MAPGEN && BlitterFactory::GetCurrentBlitter()->GetScreenDepth() == 32) {
 		/* Try for 32bpp sprites first. */
 		sprite_avail = sprite_loader.LoadSprite(sprite, file_slot, file_pos, sprite_type, true);
 	}
@@ -435,17 +457,25 @@ static void *ReadSprite(const SpriteCache *sc, SpriteID id, SpriteType sprite_ty
 		return s;
 	}
 
-	if (sprite_type == ST_NORMAL) {
-		if (!ResizeSprites(sprite, sprite_avail, file_slot, sc->id)) {
-			if (id == SPR_IMG_QUERY) usererror("Okay... something went horribly wrong. I couldn't resize the fallback sprite. What should I do?");
-			return (void*)GetRawSprite(SPR_IMG_QUERY, ST_NORMAL, allocator);
-		}
+	if (!ResizeSprites(sprite, sprite_avail, file_slot, sc->id)) {
+		if (id == SPR_IMG_QUERY) usererror("Okay... something went horribly wrong. I couldn't resize the fallback sprite. What should I do?");
+		return (void*)GetRawSprite(SPR_IMG_QUERY, ST_NORMAL, allocator);
 	}
-	return BlitterFactoryBase::GetCurrentBlitter()->Encode(sprite, allocator);
+
+	if (sprite->type == ST_FONT && ZOOM_LVL_GUI != ZOOM_LVL_NORMAL) {
+		/* Make ZOOM_LVL_GUI be ZOOM_LVL_NORMAL */
+		sprite[ZOOM_LVL_NORMAL].width  = sprite[ZOOM_LVL_GUI].width;
+		sprite[ZOOM_LVL_NORMAL].height = sprite[ZOOM_LVL_GUI].height;
+		sprite[ZOOM_LVL_NORMAL].x_offs = sprite[ZOOM_LVL_GUI].x_offs;
+		sprite[ZOOM_LVL_NORMAL].y_offs = sprite[ZOOM_LVL_GUI].y_offs;
+		sprite[ZOOM_LVL_NORMAL].data   = sprite[ZOOM_LVL_GUI].data;
+	}
+
+	return BlitterFactory::GetCurrentBlitter()->Encode(sprite, allocator);
 }
 
 
-/** */
+/** Map from sprite numbers to position in the GRF file. */
 static std::map<uint32, size_t> _grf_sprite_offsets;
 
 /**
@@ -846,7 +876,7 @@ void *GetRawSprite(SpriteID sprite, SpriteType type, AllocatorProc *allocator)
 static void GfxInitSpriteCache()
 {
 	/* initialize sprite cache heap */
-	int bpp = BlitterFactoryBase::GetCurrentBlitter()->GetScreenDepth();
+	int bpp = BlitterFactory::GetCurrentBlitter()->GetScreenDepth();
 	uint target_size = (bpp > 0 ? _sprite_cache_size * bpp / 8 : 1) * 1024 * 1024;
 
 	/* Remember 'target_size' from the previous allocation attempt, so we do not try to reach the target_size multiple times in case of failure. */

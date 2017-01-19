@@ -26,6 +26,7 @@
 #include "gfx_func.h"
 #include "network/network.h"
 #include "language.h"
+#include "fontcache.h"
 
 #include "ai/ai_info.hpp"
 #include "game/game.hpp"
@@ -34,6 +35,40 @@
 #include "company_func.h"
 
 #include <time.h>
+
+#ifdef WITH_ALLEGRO
+#	include <allegro.h>
+#endif /* WITH_ALLEGRO */
+#ifdef WITH_FONTCONFIG
+#	include <fontconfig/fontconfig.h>
+#endif /* WITH_FONTCONFIG */
+#ifdef WITH_PNG
+	/* pngconf.h, included by png.h doesn't like something in the
+	 * freetype headers. As such it's not alphabetically sorted. */
+#	include <png.h>
+#endif /* WITH_PNG */
+#ifdef WITH_FREETYPE
+#	include <ft2build.h>
+#	include FT_FREETYPE_H
+#endif /* WITH_FREETYPE */
+#if defined(WITH_ICU_LAYOUT) || defined(WITH_ICU_SORT)
+#	include <unicode/uversion.h>
+#endif /* WITH_ICU_SORT || WITH_ICU_LAYOUT */
+#ifdef WITH_LZMA
+#	include <lzma.h>
+#endif
+#ifdef WITH_LZO
+#include <lzo/lzo1x.h>
+#endif
+#ifdef WITH_SDL
+#	include "sdl.h"
+#	include <SDL.h>
+#endif /* WITH_SDL */
+#ifdef WITH_ZLIB
+# include <zlib.h>
+#endif
+
+#include "safeguards.h"
 
 /* static */ const char *CrashLog::message = NULL;
 /* static */ char *CrashLog::gamelog_buffer = NULL;
@@ -133,18 +168,30 @@ char *CrashLog::LogConfiguration(char *buffer, const char *last) const
 			" Sound driver: %s\n"
 			" Sound set:    %s (%u)\n"
 			" Video driver: %s\n\n",
-			BlitterFactoryBase::GetCurrentBlitter() == NULL ? "none" : BlitterFactoryBase::GetCurrentBlitter()->GetName(),
+			BlitterFactory::GetCurrentBlitter() == NULL ? "none" : BlitterFactory::GetCurrentBlitter()->GetName(),
 			BaseGraphics::GetUsedSet() == NULL ? "none" : BaseGraphics::GetUsedSet()->name,
 			BaseGraphics::GetUsedSet() == NULL ? UINT32_MAX : BaseGraphics::GetUsedSet()->version,
 			_current_language == NULL ? "none" : _current_language->file,
-			_music_driver == NULL ? "none" : _music_driver->GetName(),
+			MusicDriver::GetInstance() == NULL ? "none" : MusicDriver::GetInstance()->GetName(),
 			BaseMusic::GetUsedSet() == NULL ? "none" : BaseMusic::GetUsedSet()->name,
 			BaseMusic::GetUsedSet() == NULL ? UINT32_MAX : BaseMusic::GetUsedSet()->version,
 			_networking ? (_network_server ? "server" : "client") : "no",
-			_sound_driver == NULL ? "none" : _sound_driver->GetName(),
+			SoundDriver::GetInstance() == NULL ? "none" : SoundDriver::GetInstance()->GetName(),
 			BaseSounds::GetUsedSet() == NULL ? "none" : BaseSounds::GetUsedSet()->name,
 			BaseSounds::GetUsedSet() == NULL ? UINT32_MAX : BaseSounds::GetUsedSet()->version,
-			_video_driver == NULL ? "none" : _video_driver->GetName()
+			VideoDriver::GetInstance() == NULL ? "none" : VideoDriver::GetInstance()->GetName()
+	);
+
+	buffer += seprintf(buffer, last,
+			"Fonts:\n"
+			" Small:  %s\n"
+			" Medium: %s\n"
+			" Large:  %s\n"
+			" Mono:   %s\n\n",
+			FontCache::Get(FS_SMALL)->GetFontName(),
+			FontCache::Get(FS_NORMAL)->GetFontName(),
+			FontCache::Get(FS_LARGE)->GetFontName(),
+			FontCache::Get(FS_MONO)->GetFontName()
 	);
 
 	buffer += seprintf(buffer, last, "AI Configuration (local: %i):\n", (int)_local_company);
@@ -164,39 +211,6 @@ char *CrashLog::LogConfiguration(char *buffer, const char *last) const
 
 	return buffer;
 }
-
-/* Include these here so it's close to where it's actually used. */
-#ifdef WITH_ALLEGRO
-#	include <allegro.h>
-#endif /* WITH_ALLEGRO */
-#ifdef WITH_FONTCONFIG
-#	include <fontconfig/fontconfig.h>
-#endif /* WITH_FONTCONFIG */
-#ifdef WITH_PNG
-	/* pngconf.h, included by png.h doesn't like something in the
-	 * freetype headers. As such it's not alphabetically sorted. */
-#	include <png.h>
-#endif /* WITH_PNG */
-#ifdef WITH_FREETYPE
-#	include <ft2build.h>
-#	include FT_FREETYPE_H
-#endif /* WITH_FREETYPE */
-#ifdef WITH_ICU
-#	include <unicode/uversion.h>
-#endif /* WITH_ICU */
-#ifdef WITH_LZMA
-#	include <lzma.h>
-#endif
-#ifdef WITH_LZO
-#include <lzo/lzo1x.h>
-#endif
-#ifdef WITH_SDL
-#	include "sdl.h"
-#	include <SDL.h>
-#endif /* WITH_SDL */
-#ifdef WITH_ZLIB
-# include <zlib.h>
-#endif
 
 /**
  * Writes information (versions) of the used libraries.
@@ -226,14 +240,19 @@ char *CrashLog::LogLibraries(char *buffer, const char *last) const
 	buffer += seprintf(buffer, last, " FreeType:   %d.%d.%d\n", major, minor, patch);
 #endif /* WITH_FREETYPE */
 
-#ifdef WITH_ICU
+#if defined(WITH_ICU_LAYOUT) || defined(WITH_ICU_SORT)
 	/* 4 times 0-255, separated by dots (.) and a trailing '\0' */
 	char buf[4 * 3 + 3 + 1];
 	UVersionInfo ver;
 	u_getVersion(ver);
 	u_versionToString(ver, buf);
-	buffer += seprintf(buffer, last, " ICU:        %s\n", buf);
-#endif /* WITH_ICU */
+#ifdef WITH_ICU_SORT
+	buffer += seprintf(buffer, last, " ICU i18n:   %s\n", buf);
+#endif
+#ifdef WITH_ICU_LAYOUT
+	buffer += seprintf(buffer, last, " ICU lx:     %s\n", buf);
+#endif
+#endif /* WITH_ICU_SORT || WITH_ICU_LAYOUT */
 
 #ifdef WITH_LZMA
 	buffer += seprintf(buffer, last, " LZMA:       %s\n", lzma_version_string());
@@ -369,7 +388,7 @@ bool CrashLog::WriteSavegame(char *filename, const char *filename_last) const
 		seprintf(filename, filename_last, "%scrash.sav", _personal_dir);
 
 		/* Don't do a threaded saveload. */
-		return SaveOrLoad(filename, SL_SAVE, NO_DIRECTORY, false) == SL_OK;
+		return SaveOrLoad(filename, SLO_SAVE, DFT_GAME_FILE, NO_DIRECTORY, false) == SL_OK;
 	} catch (...) {
 		return false;
 	}
@@ -469,7 +488,7 @@ bool CrashLog::MakeCrashLog() const
  */
 /* static */ void CrashLog::AfterCrashLogCleanup()
 {
-	if (_music_driver != NULL) _music_driver->Stop();
-	if (_sound_driver != NULL) _sound_driver->Stop();
-	if (_video_driver != NULL) _video_driver->Stop();
+	if (MusicDriver::GetInstance() != NULL) MusicDriver::GetInstance()->Stop();
+	if (SoundDriver::GetInstance() != NULL) SoundDriver::GetInstance()->Stop();
+	if (VideoDriver::GetInstance() != NULL) VideoDriver::GetInstance()->Stop();
 }

@@ -49,8 +49,8 @@
  * that are impossible (because the pylon would be situated on the track) and
  * some that are preferred (because the pylon would be rectangular to the track).
  *
- * <img src="../../elrail_tile.png">
- * <img src="../../elrail_track.png">
+ * @image html elrail_tile.png
+ * @image html elrail_track.png
  *
  */
 
@@ -66,6 +66,8 @@
 #include "newgrf_railtype.h"
 
 #include "table/elrail_data.h"
+
+#include "safeguards.h"
 
 /**
  * Get the tile location group of a tile.
@@ -87,7 +89,7 @@ static TrackBits GetRailTrackBitsUniversal(TileIndex t, byte *override)
 {
 	switch (GetTileType(t)) {
 		case MP_RAILWAY:
-			if (!HasCatenary(GetRailType(t))) return TRACK_BIT_NONE;
+			if (!HasRailCatenary(GetRailType(t))) return TRACK_BIT_NONE;
 			switch (GetRailTileType(t)) {
 				case RAIL_TILE_NORMAL: case RAIL_TILE_SIGNALS:
 					return GetTrackBits(t);
@@ -97,7 +99,7 @@ static TrackBits GetRailTrackBitsUniversal(TileIndex t, byte *override)
 			break;
 
 		case MP_TUNNELBRIDGE:
-			if (!HasCatenary(GetRailType(t))) return TRACK_BIT_NONE;
+			if (!HasRailCatenary(GetRailType(t))) return TRACK_BIT_NONE;
 			if (override != NULL && (IsTunnel(t) || GetTunnelBridgeLength(t, GetOtherBridgeEnd(t)) > 0)) {
 				*override = 1 << GetTunnelBridgeDirection(t);
 			}
@@ -105,12 +107,12 @@ static TrackBits GetRailTrackBitsUniversal(TileIndex t, byte *override)
 
 		case MP_ROAD:
 			if (!IsLevelCrossing(t)) return TRACK_BIT_NONE;
-			if (!HasCatenary(GetRailType(t))) return TRACK_BIT_NONE;
+			if (!HasRailCatenary(GetRailType(t))) return TRACK_BIT_NONE;
 			return GetCrossingRailBits(t);
 
 		case MP_STATION:
 			if (!HasStationRail(t)) return TRACK_BIT_NONE;
-			if (!HasCatenary(GetRailType(t))) return TRACK_BIT_NONE;
+			if (!HasRailCatenary(GetRailType(t))) return TRACK_BIT_NONE;
 			return TrackToTrackBits(GetRailStationTrack(t));
 
 		default:
@@ -133,7 +135,7 @@ static TrackBits MaskWireBits(TileIndex t, TrackBits tracks)
 		 * axis that still display wires to preserve visual continuity. */
 		TileIndex next_tile = TileAddByDiagDir(t, d);
 		RailType rt = GetTileRailType(next_tile);
-		if (rt == INVALID_RAILTYPE || !HasCatenary(rt) ||
+		if (rt == INVALID_RAILTYPE || !HasRailCatenary(rt) ||
 				((TrackStatusToTrackBits(GetTileTrackStatus(next_tile, TRANSPORT_RAIL, 0)) & DiagdirReachesTracks(d)) == TRACK_BIT_NONE &&
 				(!HasStationTileRail(next_tile) || GetRailStationAxis(next_tile) != DiagDirToAxis(d) || !CanStationTileHaveWires(next_tile)))) {
 			neighbour_tdb |= DiagdirReachesTrackdirs(ReverseDiagDir(d));
@@ -239,7 +241,7 @@ static int GetPCPElevation(TileIndex tile, DiagDirection PCPpos)
  *
  * @param ti The Tileinfo to draw the tile for
  */
-void DrawCatenaryOnTunnel(const TileInfo *ti)
+void DrawRailCatenaryOnTunnel(const TileInfo *ti)
 {
 	/* xmin, ymin, xmax + 1, ymax + 1 of BB */
 	static const int _tunnel_wire_BB[4][4] = {
@@ -253,7 +255,7 @@ void DrawCatenaryOnTunnel(const TileInfo *ti)
 
 	SpriteID wire_base = GetWireBase(ti->tile);
 
-	const SortableSpriteStruct *sss = &CatenarySpriteData_Tunnel[dir];
+	const SortableSpriteStruct *sss = &RailCatenarySpriteData_Tunnel[dir];
 	const int *BB_data = _tunnel_wire_BB[dir];
 	AddSortableSpriteToDraw(
 		wire_base + sss->image_offset, PAL_NONE, ti->x + sss->x_offset, ti->y + sss->y_offset,
@@ -268,7 +270,7 @@ void DrawCatenaryOnTunnel(const TileInfo *ti)
  * Draws wires and, if required, pylons on a given tile
  * @param ti The Tileinfo to draw the tile for
  */
-static void DrawCatenaryRailway(const TileInfo *ti)
+static void DrawRailCatenaryRailway(const TileInfo *ti)
 {
 	/* Pylons are placed on a tile edge, so we need to take into account
 	 * the track configuration of 2 adjacent tiles. trackconfig[0] stores the
@@ -377,7 +379,7 @@ static void DrawCatenaryRailway(const TileInfo *ti)
 		if (IsTileType(neighbour, MP_STATION) || IsTileType(neighbour, MP_ROAD)) tileh[TS_NEIGHBOUR] = SLOPE_FLAT;
 
 		/* Read the foundations if they are present, and adjust the tileh */
-		if (trackconfig[TS_NEIGHBOUR] != TRACK_BIT_NONE && IsTileType(neighbour, MP_RAILWAY) && HasCatenary(GetRailType(neighbour))) foundation = GetRailFoundation(tileh[TS_NEIGHBOUR], trackconfig[TS_NEIGHBOUR]);
+		if (trackconfig[TS_NEIGHBOUR] != TRACK_BIT_NONE && IsTileType(neighbour, MP_RAILWAY) && HasRailCatenary(GetRailType(neighbour))) foundation = GetRailFoundation(tileh[TS_NEIGHBOUR], trackconfig[TS_NEIGHBOUR]);
 		if (IsBridgeTile(neighbour)) {
 			foundation = GetBridgeFoundation(tileh[TS_NEIGHBOUR], DiagDirToAxis(GetTunnelBridgeDirection(neighbour)));
 		}
@@ -405,7 +407,7 @@ static void DrawCatenaryRailway(const TileInfo *ti)
 		 * Remove those (simply by ANDing with allowed, since these markers are never allowed) */
 		if ((PPPallowed[i] & PPPpreferred[i]) != 0) PPPallowed[i] &= PPPpreferred[i];
 
-		if (MayHaveBridgeAbove(ti->tile) && IsBridgeAbove(ti->tile)) {
+		if (IsBridgeAbove(ti->tile)) {
 			Track bridgetrack = GetBridgeAxis(ti->tile) == AXIS_X ? TRACK_X : TRACK_Y;
 			int height = GetBridgeHeight(GetNorthernBridgeEnd(ti->tile));
 
@@ -440,11 +442,11 @@ static void DrawCatenaryRailway(const TileInfo *ti)
 		}
 	}
 
-	/* The wire above the tunnel is drawn together with the tunnel-roof (see DrawCatenaryOnTunnel()) */
+	/* The wire above the tunnel is drawn together with the tunnel-roof (see DrawRailCatenaryOnTunnel()) */
 	if (IsTunnelTile(ti->tile)) return;
 
 	/* Don't draw a wire under a low bridge */
-	if (MayHaveBridgeAbove(ti->tile) && IsBridgeAbove(ti->tile) && !IsTransparencySet(TO_BRIDGES)) {
+	if (IsBridgeAbove(ti->tile) && !IsTransparencySet(TO_BRIDGES)) {
 		int height = GetBridgeHeight(GetNorthernBridgeEnd(ti->tile));
 
 		if (height <= GetTileMaxZ(ti->tile) + 1) return;
@@ -476,7 +478,7 @@ static void DrawCatenaryRailway(const TileInfo *ti)
 
 		assert(PCPconfig != 0); // We have a pylon on neither end of the wire, that doesn't work (since we have no sprites for that)
 		assert(!IsSteepSlope(tileh[TS_HOME]));
-		sss = &CatenarySpriteData[Wires[tileh_selector][t][PCPconfig]];
+		sss = &RailCatenarySpriteData[Wires[tileh_selector][t][PCPconfig]];
 
 		/*
 		 * The "wire"-sprite position is inside the tile, i.e. 0 <= sss->?_offset < TILE_SIZE.
@@ -496,7 +498,7 @@ static void DrawCatenaryRailway(const TileInfo *ti)
  *
  * @param ti The Tileinfo to draw the tile for
  */
-void DrawCatenaryOnBridge(const TileInfo *ti)
+void DrawRailCatenaryOnBridge(const TileInfo *ti)
 {
 	TileIndex end = GetSouthernBridgeEnd(ti->tile);
 	TileIndex start = GetOtherBridgeEnd(end);
@@ -509,15 +511,15 @@ void DrawCatenaryOnBridge(const TileInfo *ti)
 	Axis axis = GetBridgeAxis(ti->tile);
 	TLG tlg = GetTLG(ti->tile);
 
-	CatenarySprite offset = (CatenarySprite)(axis == AXIS_X ? 0 : WIRE_Y_FLAT_BOTH - WIRE_X_FLAT_BOTH);
+	RailCatenarySprite offset = (RailCatenarySprite)(axis == AXIS_X ? 0 : WIRE_Y_FLAT_BOTH - WIRE_X_FLAT_BOTH);
 
 	if ((length % 2) && num == length) {
 		/* Draw the "short" wire on the southern end of the bridge
 		 * only needed if the length of the bridge is odd */
-		sss = &CatenarySpriteData[WIRE_X_FLAT_BOTH + offset];
+		sss = &RailCatenarySpriteData[WIRE_X_FLAT_BOTH + offset];
 	} else {
 		/* Draw "long" wires on all other tiles of the bridge (one pylon every two tiles) */
-		sss = &CatenarySpriteData[WIRE_X_FLAT_SW + (num % 2) + offset];
+		sss = &RailCatenarySpriteData[WIRE_X_FLAT_SW + (num % 2) + offset];
 	}
 
 	height = GetBridgePixelHeight(end);
@@ -556,14 +558,14 @@ void DrawCatenaryOnBridge(const TileInfo *ti)
 /**
  * Draws overhead wires and pylons for electric railways.
  * @param ti The TileInfo struct of the tile being drawn
- * @see DrawCatenaryRailway
+ * @see DrawRailCatenaryRailway
  */
-void DrawCatenary(const TileInfo *ti)
+void DrawRailCatenary(const TileInfo *ti)
 {
 	switch (GetTileType(ti->tile)) {
 		case MP_RAILWAY:
 			if (IsRailDepot(ti->tile)) {
-				const SortableSpriteStruct *sss = &CatenarySpriteData_Depot[GetRailDepotDirection(ti->tile)];
+				const SortableSpriteStruct *sss = &RailCatenarySpriteData_Depot[GetRailDepotDirection(ti->tile)];
 
 				SpriteID wire_base = GetWireBase(ti->tile);
 
@@ -585,7 +587,7 @@ void DrawCatenary(const TileInfo *ti)
 
 		default: return;
 	}
-	DrawCatenaryRailway(ti);
+	DrawRailCatenaryRailway(ti);
 }
 
 bool SettingsDisableElrail(int32 p1)
@@ -627,7 +629,7 @@ bool SettingsDisableElrail(int32 p1)
 	FOR_ALL_TRAINS(t) {
 		/* power and acceleration is cached only for front engines */
 		if (t->IsFrontEngine()) {
-			t->ConsistChanged(true);
+			t->ConsistChanged(CCF_TRACK);
 		}
 	}
 

@@ -15,14 +15,18 @@
 #include "3rdparty/md5/md5.h"
 #include "fontcache.h"
 #include "gfx_func.h"
+#include "transparency.h"
 #include "blitter/factory.hpp"
 #include "video/video_driver.hpp"
+#include "window_func.h"
 
 /* The type of set we're replacing */
 #define SET_TYPE "graphics"
 #include "base_media_func.h"
 
 #include "table/sprites.h"
+
+#include "safeguards.h"
 
 /** Whether the given NewGRFs must get a palette remap from windows to DOS or not. */
 bool _palette_remap_grf[MAX_FILE_SLOTS];
@@ -193,31 +197,49 @@ static void LoadSpriteTables()
 	InitializeUnicodeGlyphMap();
 
 	/*
-	 * Load the base NewGRF with OTTD required graphics as first NewGRF.
+	 * Load the base and extra NewGRF with OTTD required graphics as first NewGRF.
 	 * However, we do not want it to show up in the list of used NewGRFs,
 	 * so we have to manually add it, and then remove it later.
 	 */
 	GRFConfig *top = _grfconfig;
-	GRFConfig *master = new GRFConfig(used_set->files[GFT_EXTRA].filename);
+
+	/* Default extra graphics */
+	GRFConfig *master = new GRFConfig("OPENTTD.GRF");
+	master->palette |= GRFP_GRF_DOS;
+	FillGRFDetails(master, false, BASESET_DIR);
+	ClrBit(master->flags, GCF_INIT_ONLY);
+
+	/* Baseset extra graphics */
+	GRFConfig *extra = new GRFConfig(used_set->files[GFT_EXTRA].filename);
 
 	/* We know the palette of the base set, so if the base NewGRF is not
 	 * setting one, use the palette of the base set and not the global
 	 * one which might be the wrong palette for this base NewGRF.
 	 * The value set here might be overridden via action14 later. */
 	switch (used_set->palette) {
-		case PAL_DOS:     master->palette |= GRFP_GRF_DOS;     break;
-		case PAL_WINDOWS: master->palette |= GRFP_GRF_WINDOWS; break;
+		case PAL_DOS:     extra->palette |= GRFP_GRF_DOS;     break;
+		case PAL_WINDOWS: extra->palette |= GRFP_GRF_WINDOWS; break;
 		default: break;
 	}
-	FillGRFDetails(master, false, BASESET_DIR);
+	FillGRFDetails(extra, false, BASESET_DIR);
+	ClrBit(extra->flags, GCF_INIT_ONLY);
 
-	ClrBit(master->flags, GCF_INIT_ONLY);
-	master->next = top;
+	extra->next = top;
+	master->next = extra;
 	_grfconfig = master;
 
-	LoadNewGRF(SPR_NEWGRFS_BASE, i);
+	LoadNewGRF(SPR_NEWGRFS_BASE, i, 2);
+
+	uint total_extra_graphics = SPR_NEWGRFS_BASE - SPR_OPENTTD_BASE;
+	_missing_extra_graphics = GetSpriteCountForSlot(i, SPR_OPENTTD_BASE, SPR_NEWGRFS_BASE);
+	DEBUG(sprite, 1, "%u extra sprites, %u from baseset, %u from fallback", total_extra_graphics, total_extra_graphics - _missing_extra_graphics, _missing_extra_graphics);
+
+	/* The original baseset extra graphics intentionally make use of the fallback graphics.
+	 * Let's say everything which provides less than 500 sprites misses the rest intentionally. */
+	if (500 + _missing_extra_graphics > total_extra_graphics) _missing_extra_graphics = 0;
 
 	/* Free and remove the top element. */
+	delete extra;
 	delete master;
 	_grfconfig = top;
 }
@@ -225,29 +247,83 @@ static void LoadSpriteTables()
 
 /**
  * Check blitter needed by NewGRF config and switch if needed.
+ * @return False when nothing changed, true otherwise.
  */
-static void SwitchNewGRFBlitter()
+static bool SwitchNewGRFBlitter()
 {
-	/* Get blitter of base set. */
-	bool is_32bpp = BaseGraphics::GetUsedSet()->blitter == BLT_32BPP;
+	/* Never switch if the blitter was specified by the user. */
+	if (!_blitter_autodetected) return false;
 
-	/* Get combined blitter mode of all NewGRFs. */
+	/* Null driver => dedicated server => do nothing. */
+	if (BlitterFactory::GetCurrentBlitter()->GetScreenDepth() == 0) return false;
+
+	/* Get preferred depth.
+	 *  - depth_wanted_by_base: Depth required by the baseset, i.e. the majority of the sprites.
+	 *  - depth_wanted_by_grf:  Depth required by some NewGRF.
+	 * Both can force using a 32bpp blitter. depth_wanted_by_base is used to select
+	 * between multiple 32bpp blitters, which perform differently with 8bpp sprites.
+	 */
+	uint depth_wanted_by_base = BaseGraphics::GetUsedSet()->blitter == BLT_32BPP ? 32 : 8;
+	uint depth_wanted_by_grf = _support8bpp == S8BPP_NONE ? 32 : 8;
 	for (GRFConfig *c = _grfconfig; c != NULL; c = c->next) {
 		if (c->status == GCS_DISABLED || c->status == GCS_NOT_FOUND || HasBit(c->flags, GCF_INIT_ONLY)) continue;
-
-		if (c->palette & GRFP_BLT_32BPP) is_32bpp = true;
+		if (c->palette & GRFP_BLT_32BPP) depth_wanted_by_grf = 32;
 	}
 
-	/* A GRF would like a 32 bpp blitter, switch blitter if needed. Never switch if the blitter was specified by the user. */
-	if (_blitter_autodetected && is_32bpp && BlitterFactoryBase::GetCurrentBlitter()->GetScreenDepth() != 0 && BlitterFactoryBase::GetCurrentBlitter()->GetScreenDepth() < 16) {
-		const char *cur_blitter = BlitterFactoryBase::GetCurrentBlitter()->GetName();
-		if (BlitterFactoryBase::SelectBlitter("32bpp-anim") != NULL) {
-			if (!_video_driver->AfterBlitterChange()) {
-				/* Failed to switch blitter, let's hope we can return to the old one. */
-				if (BlitterFactoryBase::SelectBlitter(cur_blitter) == NULL || !_video_driver->AfterBlitterChange()) usererror("Failed to reinitialize video driver for 32 bpp blitter. Specify a fixed blitter in the config");
-			}
-		}
+	/* Search the best blitter. */
+	static const struct {
+		const char *name;
+		uint animation; ///< 0: no support, 1: do support, 2: both
+		uint min_base_depth, max_base_depth, min_grf_depth, max_grf_depth;
+	} replacement_blitters[] = {
+#ifdef WITH_SSE
+		{ "32bpp-sse4",      0, 32, 32,  8, 32 },
+		{ "32bpp-ssse3",     0, 32, 32,  8, 32 },
+		{ "32bpp-sse2",      0, 32, 32,  8, 32 },
+		{ "32bpp-sse4-anim", 1, 32, 32,  8, 32 },
+#endif
+		{ "8bpp-optimized",  2,  8,  8,  8,  8 },
+		{ "32bpp-optimized", 0,  8, 32,  8, 32 },
+		{ "32bpp-anim",      1,  8, 32,  8, 32 },
+	};
+
+	const bool animation_wanted = HasBit(_display_opt, DO_FULL_ANIMATION);
+	const char *cur_blitter = BlitterFactory::GetCurrentBlitter()->GetName();
+
+	for (uint i = 0; i < lengthof(replacement_blitters); i++) {
+		if (animation_wanted && (replacement_blitters[i].animation == 0)) continue;
+		if (!animation_wanted && (replacement_blitters[i].animation == 1)) continue;
+
+		if (!IsInsideMM(depth_wanted_by_base, replacement_blitters[i].min_base_depth, replacement_blitters[i].max_base_depth + 1)) continue;
+		if (!IsInsideMM(depth_wanted_by_grf, replacement_blitters[i].min_grf_depth, replacement_blitters[i].max_grf_depth + 1)) continue;
+		const char *repl_blitter = replacement_blitters[i].name;
+
+		if (strcmp(repl_blitter, cur_blitter) == 0) return false;
+		if (BlitterFactory::GetBlitterFactory(repl_blitter) == NULL) continue;
+
+		DEBUG(misc, 1, "Switching blitter from '%s' to '%s'... ", cur_blitter, repl_blitter);
+		Blitter *new_blitter = BlitterFactory::SelectBlitter(repl_blitter);
+		if (new_blitter == NULL) NOT_REACHED();
+		DEBUG(misc, 1, "Successfully switched to %s.", repl_blitter);
+		break;
 	}
+
+	if (!VideoDriver::GetInstance()->AfterBlitterChange()) {
+		/* Failed to switch blitter, let's hope we can return to the old one. */
+		if (BlitterFactory::SelectBlitter(cur_blitter) == NULL || !VideoDriver::GetInstance()->AfterBlitterChange()) usererror("Failed to reinitialize video driver. Specify a fixed blitter in the config");
+	}
+
+	return true;
+}
+
+/** Check whether we still use the right blitter, or use another (better) one. */
+void CheckBlitter()
+{
+	if (!SwitchNewGRFBlitter()) return;
+
+	ClearFontCache();
+	GfxClearSpriteCache();
+	ReInitAllWindows();
 }
 
 /** Initialise and load all the sprites. */

@@ -24,6 +24,8 @@ enum ToolbarNormalWidgets {
 	WID_TN_STATIONS,      ///< Station menu.
 	WID_TN_FINANCES,      ///< Finance menu.
 	WID_TN_COMPANIES,     ///< Company menu.
+	WID_TN_STORY,         ///< Story menu.
+	WID_TN_GOAL,          ///< Goal menu.
 	WID_TN_GRAPHS,        ///< Graph menu.
 	WID_TN_LEAGUE,        ///< Company league menu.
 	WID_TN_INDUSTRIES,    ///< Industry menu.
@@ -34,7 +36,8 @@ enum ToolbarNormalWidgets {
 	WID_TN_AIRCRAFTS,     ///< Aircraft menu.
 	WID_TN_ZOOM_IN,       ///< Zoom in the main viewport.
 	WID_TN_ZOOM_OUT,      ///< Zoom out the main viewport.
-	WID_TN_RAILS,         ///< Rail building menu.
+	WID_TN_BUILDING_TOOLS_START, ///< Helper for the offset of the building tools
+	WID_TN_RAILS         = WID_TN_BUILDING_TOOLS_START, ///< Rail building menu.
 	WID_TN_ROADS,         ///< Road building menu.
 	WID_TN_WATER,         ///< Water building toolbar.
 	WID_TN_AIR,           ///< Airport building toolbar.

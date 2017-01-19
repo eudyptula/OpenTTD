@@ -27,6 +27,8 @@
 #include <zlib.h>
 #endif
 
+#include "../safeguards.h"
+
 extern bool HasScenario(const ContentInfo *ci, bool md5sum);
 
 /** The client we use to connect to the server. */
@@ -55,7 +57,7 @@ bool ClientNetworkContentSocketHandler::Receive_SERVER_INFO(Packet *p)
 	ci->filesize = p->Recv_uint32();
 
 	p->Recv_string(ci->name, lengthof(ci->name));
-	p->Recv_string(ci->version, lengthof(ci->name));
+	p->Recv_string(ci->version, lengthof(ci->version));
 	p->Recv_string(ci->url, lengthof(ci->url));
 	p->Recv_string(ci->description, lengthof(ci->description), SVS_REPLACE_WITH_QUESTION_MARK | SVS_ALLOW_NEWLINE);
 
@@ -218,10 +220,9 @@ void ClientNetworkContentSocketHandler::RequestContentList(uint count, const Con
 	while (count > 0) {
 		/* We can "only" send a limited number of IDs in a single packet.
 		 * A packet begins with the packet size and a byte for the type.
-		 * Then this packet adds a byte for the content type and a uint16
-		 * for the count in this packet. The rest of the packet can be
-		 * used for the IDs. */
-		uint p_count = min(count, (SEND_MTU - sizeof(PacketSize) - sizeof(byte) - sizeof(byte) - sizeof(uint16)) / sizeof(uint32));
+		 * Then this packet adds a uint16 for the count in this packet.
+		 * The rest of the packet can be used for the IDs. */
+		uint p_count = min(count, (SEND_MTU - sizeof(PacketSize) - sizeof(byte) - sizeof(uint16)) / sizeof(uint32));
 
 		Packet *p = new Packet(PACKET_CONTENT_CLIENT_INFO_ID);
 		p->Send_uint16(p_count);
@@ -247,9 +248,9 @@ void ClientNetworkContentSocketHandler::RequestContentList(ContentVector *cv, bo
 
 	this->Connect();
 
-	/* 20 is sizeof(uint32) + sizeof(md5sum (byte[16])) */
 	assert(cv->Length() < 255);
-	assert(cv->Length() < (SEND_MTU - sizeof(PacketSize) - sizeof(byte) - sizeof(uint8)) / (send_md5sum ? 20 : sizeof(uint32)));
+	assert(cv->Length() < (SEND_MTU - sizeof(PacketSize) - sizeof(byte) - sizeof(uint8)) /
+			(sizeof(uint8) + sizeof(uint32) + (send_md5sum ? /*sizeof(ContentInfo::md5sum)*/16 : 0)));
 
 	Packet *p = new Packet(send_md5sum ? PACKET_CONTENT_CLIENT_INFO_EXTID_MD5 : PACKET_CONTENT_CLIENT_INFO_EXTID);
 	p->Send_uint8(cv->Length());
@@ -388,7 +389,7 @@ static char *GetFullFilename(const ContentInfo *ci, bool compressed)
 	if (dir == NO_DIRECTORY) return NULL;
 
 	static char buf[MAX_PATH];
-	FioGetFullPath(buf, lengthof(buf), SP_AUTODOWNLOAD_DIR, dir, ci->filename);
+	FioGetFullPath(buf, lastof(buf), SP_AUTODOWNLOAD_DIR, dir, ci->filename);
 	strecat(buf, compressed ? ".tar.gz" : ".tar", lastof(buf));
 
 	return buf;
@@ -404,6 +405,8 @@ static bool GunzipFile(const ContentInfo *ci)
 #if defined(WITH_ZLIB)
 	bool ret = true;
 	FILE *ftmp = fopen(GetFullFilename(ci, true), "rb");
+	if (ftmp == NULL) return false;
+
 	gzFile fin = gzdopen(fileno(ftmp), "rb");
 	FILE *fout = fopen(GetFullFilename(ci, false), "wb");
 
@@ -703,7 +706,8 @@ ClientNetworkContentSocketHandler::ClientNetworkContentSocketHandler() :
 	http_response_index(-2),
 	curFile(NULL),
 	curInfo(NULL),
-	isConnecting(false)
+	isConnecting(false),
+	lastActivity(_realtime_tick)
 {
 }
 
@@ -778,8 +782,10 @@ void ClientNetworkContentSocketHandler::SendReceive()
 	}
 
 	if (this->CanSendReceive()) {
-		this->ReceivePackets();
-		this->lastActivity = _realtime_tick;
+		if (this->ReceivePackets()) {
+			/* Only update activity once a packet is received, instead of everytime we try it. */
+			this->lastActivity = _realtime_tick;
+		}
 	}
 
 	this->SendPackets();

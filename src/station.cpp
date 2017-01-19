@@ -24,12 +24,19 @@
 #include "roadstop_base.h"
 #include "industry.h"
 #include "core/random_func.hpp"
+#include "linkgraph/linkgraph.h"
+#include "linkgraph/linkgraphschedule.h"
 
 #include "table/strings.h"
+
+#include "safeguards.h"
 
 /** The pool of stations. */
 StationPool _station_pool("Station");
 INSTANTIATE_POOL_METHODS(Station)
+
+typedef StationIDStack::SmallStackPool StationIDStackPool;
+template<> StationIDStackPool StationIDStack::_pool = StationIDStackPool();
 
 BaseStation::~BaseStation()
 {
@@ -38,13 +45,10 @@ BaseStation::~BaseStation()
 
 	if (CleaningPool()) return;
 
-	Owner owner = this->owner;
-	if (!Company::IsValidID(owner)) owner = _local_company;
-	if (!Company::IsValidID(owner)) return; // Spectators
-	DeleteWindowById(WC_TRAINS_LIST,   VehicleListIdentifier(VL_STATION_LIST, VEH_TRAIN,    owner, this->index).Pack());
-	DeleteWindowById(WC_ROADVEH_LIST,  VehicleListIdentifier(VL_STATION_LIST, VEH_ROAD,     owner, this->index).Pack());
-	DeleteWindowById(WC_SHIPS_LIST,    VehicleListIdentifier(VL_STATION_LIST, VEH_SHIP,     owner, this->index).Pack());
-	DeleteWindowById(WC_AIRCRAFT_LIST, VehicleListIdentifier(VL_STATION_LIST, VEH_AIRCRAFT, owner, this->index).Pack());
+	DeleteWindowById(WC_TRAINS_LIST,   VehicleListIdentifier(VL_STATION_LIST, VEH_TRAIN,    this->owner, this->index).Pack());
+	DeleteWindowById(WC_ROADVEH_LIST,  VehicleListIdentifier(VL_STATION_LIST, VEH_ROAD,     this->owner, this->index).Pack());
+	DeleteWindowById(WC_SHIPS_LIST,    VehicleListIdentifier(VL_STATION_LIST, VEH_SHIP,     this->owner, this->index).Pack());
+	DeleteWindowById(WC_AIRCRAFT_LIST, VehicleListIdentifier(VL_STATION_LIST, VEH_AIRCRAFT, this->owner, this->index).Pack());
 
 	this->sign.MarkDirty();
 }
@@ -63,7 +67,8 @@ Station::Station(TileIndex tile) :
 }
 
 /**
- * Clean up a station by clearing vehicle orders and invalidating windows.
+ * Clean up a station by clearing vehicle orders, invalidating windows and
+ * removing link stats.
  * Aircraft-Hangar orders need special treatment here, as the hangars are
  * actually part of a station (tiletype is STATION), but the order type
  * is OT_GOTO_DEPOT.
@@ -87,11 +92,33 @@ Station::~Station()
 		if (a->targetairport == this->index) a->targetairport = INVALID_STATION;
 	}
 
+	for (CargoID c = 0; c < NUM_CARGO; ++c) {
+		LinkGraph *lg = LinkGraph::GetIfValid(this->goods[c].link_graph);
+		if (lg == NULL) continue;
+
+		for (NodeID node = 0; node < lg->Size(); ++node) {
+			Station *st = Station::Get((*lg)[node].Station());
+			st->goods[c].flows.erase(this->index);
+			if ((*lg)[node][this->goods[c].node].LastUpdate() != INVALID_DATE) {
+				st->goods[c].flows.DeleteFlows(this->index);
+				RerouteCargo(st, c, this->index, st->index);
+			}
+		}
+		lg->RemoveNode(this->goods[c].node);
+		if (lg->Size() == 0) {
+			LinkGraphSchedule::instance.Unqueue(lg);
+			delete lg;
+		}
+	}
+
 	Vehicle *v;
 	FOR_ALL_VEHICLES(v) {
 		/* Forget about this station if this station is removed */
 		if (v->last_station_visited == this->index) {
 			v->last_station_visited = INVALID_STATION;
+		}
+		if (v->last_loading_station == this->index) {
+			v->last_loading_station = INVALID_STATION;
 		}
 	}
 

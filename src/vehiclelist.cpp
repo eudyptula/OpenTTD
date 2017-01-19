@@ -12,18 +12,22 @@
 #include "stdafx.h"
 #include "train.h"
 #include "vehiclelist.h"
+#include "group.h"
+
+#include "safeguards.h"
 
 /**
  * Pack a VehicleListIdentifier in a single uint32.
  * @return The packed identifier.
  */
-uint32 VehicleListIdentifier::Pack()
+uint32 VehicleListIdentifier::Pack() const
 {
 	byte c = this->company == OWNER_NONE ? 0xF : (byte)this->company;
 	assert(c             < (1 <<  4));
-	assert(this->type    < (1 <<  3));
 	assert(this->vtype   < (1 <<  2));
 	assert(this->index   < (1 << 20));
+	assert(this->type    < VLT_END);
+	assert_compile(VLT_END <= (1 <<  3));
 
 	return c << 28 | this->type << 23 | this->vtype << 26 | this->index;
 }
@@ -33,7 +37,7 @@ uint32 VehicleListIdentifier::Pack()
  * @param data The data to unpack.
  * @return true iff the data was valid (enough).
  */
-bool VehicleListIdentifier::Unpack(uint32 data)
+bool VehicleListIdentifier::UnpackIfValid(uint32 data)
 {
 	byte c        = GB(data, 28, 4);
 	this->company = c == 0xF ? OWNER_NONE : (CompanyID)c;
@@ -48,10 +52,12 @@ bool VehicleListIdentifier::Unpack(uint32 data)
  * Decode a packed vehicle list identifier into a new one.
  * @param data The data to unpack.
  */
-VehicleListIdentifier::VehicleListIdentifier(uint32 data)
+/* static */ VehicleListIdentifier VehicleListIdentifier::UnPack(uint32 data)
 {
-	bool ret = this->Unpack(data);
+	VehicleListIdentifier result;
+	bool ret = result.UnpackIfValid(data);
 	assert(ret);
+	return result;
 }
 
 /**
@@ -144,7 +150,7 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 			if (vli.index != ALL_GROUP) {
 				FOR_ALL_VEHICLES(v) {
 					if (v->type == vli.vtype && v->IsPrimaryVehicle() &&
-							v->owner == vli.company && v->group_id == vli.index) {
+							v->owner == vli.company && GroupIsInGroup(v->group_id, vli.index)) {
 						*list->Append() = v;
 					}
 				}

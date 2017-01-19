@@ -29,6 +29,10 @@
 #include "table/strings.h"
 #include "../table/sprites.h"
 
+#include <bitset>
+
+#include "../safeguards.h"
+
 
 /** Whether the user accepted to enter external websites during this session. */
 static bool _accepted_external_search = false;
@@ -91,20 +95,20 @@ static const NWidgetPart _nested_network_content_download_status_window_widgets[
 };
 
 /** Window description for the download window */
-static const WindowDesc _network_content_download_status_window_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _network_content_download_status_window_desc(
+	WDP_CENTER, NULL, 0, 0,
 	WC_NETWORK_STATUS_WINDOW, WC_NONE,
 	WDF_MODAL,
 	_nested_network_content_download_status_window_widgets, lengthof(_nested_network_content_download_status_window_widgets)
 );
 
-BaseNetworkContentDownloadStatusWindow::BaseNetworkContentDownloadStatusWindow(const WindowDesc *desc) :
-		cur_id(UINT32_MAX)
+BaseNetworkContentDownloadStatusWindow::BaseNetworkContentDownloadStatusWindow(WindowDesc *desc) :
+		Window(desc), cur_id(UINT32_MAX)
 {
 	_network_content_client.AddCallback(this);
 	_network_content_client.DownloadSelectedContent(this->total_files, this->total_bytes);
 
-	this->InitNested(desc, WN_NETWORK_STATUS_WINDOW_CONTENT_DOWNLOAD);
+	this->InitNested(WN_NETWORK_STATUS_WINDOW_CONTENT_DOWNLOAD);
 }
 
 BaseNetworkContentDownloadStatusWindow::~BaseNetworkContentDownloadStatusWindow()
@@ -280,10 +284,22 @@ public:
 	}
 };
 
+/** Filter data for NetworkContentListWindow. */
+struct ContentListFilterData {
+	StringFilter string_filter; ///< Text filter of content list
+	std::bitset<CONTENT_TYPE_END> types; ///< Content types displayed
+};
+
+/** Filter criterias for NetworkContentListWindow. */
+enum ContentListFilterCriteria {
+	CONTENT_FILTER_TEXT = 0,        ///< Filter by query sting
+	CONTENT_FILTER_TYPE_OR_SELECTED,///< Filter by being of displayed type or selected for download
+};
+
 /** Window that lists the content that's at the content server */
 class NetworkContentListWindow : public Window, ContentCallback {
 	/** List with content infos. */
-	typedef GUIList<const ContentInfo *, StringFilter &> GUIContentList;
+	typedef GUIList<const ContentInfo *, ContentListFilterData &> GUIContentList;
 
 	static const uint EDITBOX_MAX_SIZE   =  50; ///< Maximum size of the editbox in characters.
 
@@ -293,13 +309,16 @@ class NetworkContentListWindow : public Window, ContentCallback {
 	static GUIContentList::FilterFunction * const filter_funcs[]; ///< Filter functions.
 	GUIContentList content;      ///< List with content
 	bool auto_select;            ///< Automatically select all content when the meta-data becomes available
-	StringFilter string_filter;  ///< Filter for content list
+	ContentListFilterData filter_data; ///< Filter for content list
 	QueryString filter_editbox;  ///< Filter editbox;
+	Dimension checkbox_size;     ///< Size of checkbox/"blot" sprite
 
 	const ContentInfo *selected; ///< The selected content info
 	int list_pos;                ///< Our position in the list
 	uint filesize_sum;           ///< The sum of all selected file sizes
 	Scrollbar *vscroll;          ///< Cache of the vertical scrollbar
+
+	static char content_type_strs[CONTENT_TYPE_END][64]; ///< Cached strings for all content types.
 
 	/** Search external websites for content */
 	void OpenExternalSearch()
@@ -398,11 +417,7 @@ class NetworkContentListWindow : public Window, ContentCallback {
 	{
 		int r = 0;
 		if ((*a)->type != (*b)->type) {
-			char a_str[64];
-			char b_str[64];
-			GetString(a_str, STR_CONTENT_TYPE_BASE_GRAPHICS + (*a)->type - CONTENT_TYPE_BASE_GRAPHICS, lastof(a_str));
-			GetString(b_str, STR_CONTENT_TYPE_BASE_GRAPHICS + (*b)->type - CONTENT_TYPE_BASE_GRAPHICS, lastof(b_str));
-			r = strnatcmp(a_str, b_str);
+			r = strnatcmp(content_type_strs[(*a)->type], content_type_strs[(*b)->type]);
 		}
 		if (r == 0) r = NameSorter(a, b);
 		return r;
@@ -430,20 +445,38 @@ class NetworkContentListWindow : public Window, ContentCallback {
 	}
 
 	/** Filter content by tags/name */
-	static bool CDECL TagNameFilter(const ContentInfo * const *a, StringFilter &filter)
+	static bool CDECL TagNameFilter(const ContentInfo * const *a, ContentListFilterData &filter)
 	{
-		filter.ResetState();
+		filter.string_filter.ResetState();
 		for (int i = 0; i < (*a)->tag_count; i++) {
-			filter.AddLine((*a)->tags[i]);
+			filter.string_filter.AddLine((*a)->tags[i]);
 		}
-		filter.AddLine((*a)->name);
-		return filter.GetState();
+		filter.string_filter.AddLine((*a)->name);
+		return filter.string_filter.GetState();
+	}
+
+	/** Filter content by type, but still show content selected for download. */
+	static bool CDECL TypeOrSelectedFilter(const ContentInfo * const *a, ContentListFilterData &filter)
+	{
+		if (filter.types.none()) return true;
+		if (filter.types[(*a)->type]) return true;
+		return ((*a)->state == ContentInfo::SELECTED || (*a)->state == ContentInfo::AUTOSELECTED);
 	}
 
 	/** Filter the content list */
 	void FilterContentList()
 	{
-		if (!this->content.Filter(this->string_filter)) return;
+		/* Apply filters. */
+		bool changed = false;
+		if (!this->filter_data.string_filter.IsEmpty()) {
+			this->content.SetFilterType(CONTENT_FILTER_TEXT);
+			changed |= this->content.Filter(this->filter_data);
+		}
+		if (this->filter_data.types.any()) {
+			this->content.SetFilterType(CONTENT_FILTER_TYPE_OR_SELECTED);
+			changed |= this->content.Filter(this->filter_data);
+		}
+		if (!changed) return;
 
 		/* update list position */
 		for (ConstContentIterator iter = this->content.Begin(); iter != this->content.End(); iter++) {
@@ -458,6 +491,20 @@ class NetworkContentListWindow : public Window, ContentCallback {
 		this->list_pos = 0;
 	}
 
+	/**
+	 * Update filter state based on current window state.
+	 * @return true if filter state was changed, otherwise false.
+	 */
+	bool UpdateFilterState()
+	{
+		Filtering old_params = this->content.GetFiltering();
+		bool new_state = !this->filter_data.string_filter.IsEmpty() || this->filter_data.types.any();
+		if (new_state != old_params.state) {
+			this->content.SetFilterState(new_state);
+		}
+		return new_state != old_params.state;
+	}
+
 	/** Make sure that the currently selected content info is within the visible part of the matrix */
 	void ScrollToSelected()
 	{
@@ -466,21 +513,29 @@ class NetworkContentListWindow : public Window, ContentCallback {
 		this->vscroll->ScrollTowards(this->list_pos);
 	}
 
+	friend void BuildContentTypeStringList();
 public:
 	/**
 	 * Create the content list window.
 	 * @param desc the window description to pass to Window's constructor.
 	 * @param select_all Whether the select all button is allowed or not.
+	 * @param type the main type of content to display or #CONTENT_TYPE_END.
+	 *   When a type other than #CONTENT_TYPE_END is given, dependencies of
+	 *   other types are only shown when content that depend on them are
+	 *   selected.
 	 */
-	NetworkContentListWindow(const WindowDesc *desc, bool select_all) :
+	NetworkContentListWindow(WindowDesc *desc, bool select_all, const std::bitset<CONTENT_TYPE_END> &types) :
+			Window(desc),
 			auto_select(select_all),
 			filter_editbox(EDITBOX_MAX_SIZE),
 			selected(NULL),
 			list_pos(0)
 	{
-		this->CreateNestedTree(desc);
+		this->checkbox_size = maxdim(maxdim(GetSpriteSize(SPR_BOX_EMPTY), GetSpriteSize(SPR_BOX_CHECKED)), GetSpriteSize(SPR_BLOT));
+
+		this->CreateNestedTree();
 		this->vscroll = this->GetScrollbar(WID_NCL_SCROLLBAR);
-		this->FinishInitNested(desc, WN_NETWORK_WINDOW_CONTENT_LIST);
+		this->FinishInitNested(WN_NETWORK_WINDOW_CONTENT_LIST);
 
 		this->GetWidget<NWidgetStacked>(WID_NCL_SEL_ALL_UPDATE)->SetDisplayedPlane(select_all);
 
@@ -488,12 +543,14 @@ public:
 		this->filter_editbox.cancel_button = QueryString::ACTION_CLEAR;
 		this->SetFocusedWidget(WID_NCL_FILTER);
 		this->SetWidgetDisabledState(WID_NCL_SEARCH_EXTERNAL, this->auto_select);
+		this->filter_data.types = types;
 
 		_network_content_client.AddCallback(this);
 		this->content.SetListing(this->last_sorting);
 		this->content.SetFiltering(this->last_filtering);
 		this->content.SetSortFuncs(this->sorter_funcs);
 		this->content.SetFilterFuncs(this->filter_funcs);
+		this->UpdateFilterState();
 		this->content.ForceRebuild();
 		this->FilterContentList();
 		this->SortContentList();
@@ -513,6 +570,10 @@ public:
 				*size = maxdim(*size, GetStringBoundingBox(STR_CONTENT_FILTER_TITLE));
 				break;
 
+			case WID_NCL_CHECKBOX:
+				size->width = this->checkbox_size.width + WD_MATRIX_RIGHT + WD_MATRIX_LEFT;
+				break;
+
 			case WID_NCL_TYPE: {
 				Dimension d = *size;
 				for (int i = CONTENT_TYPE_BEGIN; i < CONTENT_TYPE_END; i++) {
@@ -523,7 +584,7 @@ public:
 			}
 
 			case WID_NCL_MATRIX:
-				resize->height = FONT_HEIGHT_NORMAL + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
+				resize->height = max(this->checkbox_size.height, (uint)FONT_HEIGHT_NORMAL) + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
 				size->height = 10 * resize->height;
 				break;
 		}
@@ -574,9 +635,11 @@ public:
 		const NWidgetBase *nwi_name = this->GetWidget<NWidgetBase>(WID_NCL_NAME);
 		const NWidgetBase *nwi_type = this->GetWidget<NWidgetBase>(WID_NCL_TYPE);
 
+		int line_height = max(this->checkbox_size.height, (uint)FONT_HEIGHT_NORMAL);
 
 		/* Fill the matrix with the information */
-		int sprite_y_offset = WD_MATRIX_TOP + (FONT_HEIGHT_NORMAL - 10) / 2;
+		int sprite_y_offset = WD_MATRIX_TOP + (line_height - this->checkbox_size.height) / 2 - 1;
+		int text_y_offset = WD_MATRIX_TOP + (line_height - FONT_HEIGHT_NORMAL) / 2;
 		uint y = r.top;
 		int cnt = 0;
 		for (ConstContentIterator iter = this->content.Get(this->vscroll->GetPosition()); iter != this->content.End() && cnt < this->vscroll->GetCapacity(); iter++, cnt++) {
@@ -597,9 +660,9 @@ public:
 			DrawSprite(sprite, pal, nwi_checkbox->pos_x + (pal == PAL_NONE ? 2 : 3), y + sprite_y_offset + (pal == PAL_NONE ? 1 : 0));
 
 			StringID str = STR_CONTENT_TYPE_BASE_GRAPHICS + ci->type - CONTENT_TYPE_BASE_GRAPHICS;
-			DrawString(nwi_type->pos_x, nwi_type->pos_x + nwi_type->current_x - 1, y + WD_MATRIX_TOP, str, TC_BLACK, SA_HOR_CENTER);
+			DrawString(nwi_type->pos_x, nwi_type->pos_x + nwi_type->current_x - 1, y + text_y_offset, str, TC_BLACK, SA_HOR_CENTER);
 
-			DrawString(nwi_name->pos_x + WD_FRAMERECT_LEFT, nwi_name->pos_x + nwi_name->current_x - WD_FRAMERECT_RIGHT, y + WD_MATRIX_TOP, ci->name, TC_BLACK);
+			DrawString(nwi_name->pos_x + WD_FRAMERECT_LEFT, nwi_name->pos_x + nwi_name->current_x - WD_FRAMERECT_RIGHT, y + text_y_offset, ci->name, TC_BLACK);
 			y += this->resize.step_height;
 		}
 	}
@@ -740,6 +803,10 @@ public:
 					this->content.ForceResort();
 				}
 
+				if (this->filter_data.types.any()) {
+					this->content.ForceRebuild();
+				}
+
 				this->InvalidateData();
 				break;
 			}
@@ -749,7 +816,7 @@ public:
 			case WID_NCL_NAME:
 				if (this->content.SortType() == widget - WID_NCL_CHECKBOX) {
 					this->content.ToggleSortOrder();
-					this->list_pos = this->content.Length() - this->list_pos - 1;
+					if (this->content.Length() > 0) this->list_pos = this->content.Length() - this->list_pos - 1;
 				} else {
 					this->content.SetSortType(widget - WID_NCL_CHECKBOX);
 					this->content.ForceResort();
@@ -799,7 +866,7 @@ public:
 		}
 	}
 
-	virtual EventState OnKeyPress(uint16 key, uint16 keycode)
+	virtual EventState OnKeyPress(WChar key, uint16 keycode)
 	{
 		switch (keycode) {
 			case WKC_UP:
@@ -835,20 +902,35 @@ public:
 						this->content.ForceResort();
 						this->InvalidateData();
 					}
+					if (this->filter_data.types.any()) {
+						this->content.ForceRebuild();
+						this->InvalidateData();
+					}
 					return ES_HANDLED;
 				}
-				/* FALL THROUGH, space is pressed and filter isn't focused. */
+				/* FALL THROUGH, space is pressed and filter is focused. */
 
 			default:
 				return ES_NOT_HANDLED;
 		}
 
-		if (_network_content_client.Length() == 0) return ES_HANDLED;
+		if (this->content.Length() == 0) {
+			this->list_pos = 0; // above stuff may result in "-1".
+			if (this->UpdateFilterState()) {
+				this->content.ForceRebuild();
+				this->InvalidateData();
+			}
+			return ES_HANDLED;
+		}
 
 		this->selected = *this->content.Get(this->list_pos);
 
-		/* scroll to the new server if it is outside the current range */
-		this->ScrollToSelected();
+		if (this->UpdateFilterState()) {
+			this->content.ForceRebuild();
+		} else {
+			/* Scroll to the new content if it is outside the current range. */
+			this->ScrollToSelected();
+		}
 
 		/* redraw window */
 		this->InvalidateData();
@@ -858,8 +940,8 @@ public:
 	virtual void OnEditboxChanged(int wid)
 	{
 		if (wid == WID_NCL_FILTER) {
-			this->string_filter.SetFilterTerm(this->filter_editbox.text.buf);
-			this->content.SetFilterState(!this->string_filter.IsEmpty());
+			this->filter_data.string_filter.SetFilterTerm(this->filter_editbox.text.buf);
+			this->UpdateFilterState();
 			this->content.ForceRebuild();
 			this->InvalidateData();
 		}
@@ -868,7 +950,6 @@ public:
 	virtual void OnResize()
 	{
 		this->vscroll->SetCapacityFromWidget(this, WID_NCL_MATRIX);
-		this->GetWidget<NWidgetCore>(WID_NCL_MATRIX)->widget_data = (this->vscroll->GetCapacity() << MAT_ROW_START) + (1 << MAT_COL_START);
 	}
 
 	virtual void OnReceiveContentInfo(const ContentInfo *rci)
@@ -952,13 +1033,27 @@ NetworkContentListWindow::GUIContentList::SortFunction * const NetworkContentLis
 
 NetworkContentListWindow::GUIContentList::FilterFunction * const NetworkContentListWindow::filter_funcs[] = {
 	&TagNameFilter,
+	&TypeOrSelectedFilter,
 };
+
+char NetworkContentListWindow::content_type_strs[CONTENT_TYPE_END][64];
+
+/**
+ * Build array of all strings corresponding to the content types.
+ */
+void BuildContentTypeStringList()
+{
+	for (int i = CONTENT_TYPE_BEGIN; i < CONTENT_TYPE_END; i++) {
+		GetString(NetworkContentListWindow::content_type_strs[i], STR_CONTENT_TYPE_BASE_GRAPHICS + i - CONTENT_TYPE_BASE_GRAPHICS, lastof(NetworkContentListWindow::content_type_strs[i]));
+	}
+}
 
 /** The widgets for the content list. */
 static const NWidgetPart _nested_network_content_list_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_LIGHT_BLUE),
 		NWidget(WWT_CAPTION, COLOUR_LIGHT_BLUE), SetDataTip(STR_CONTENT_TITLE, STR_NULL),
+		NWidget(WWT_DEFSIZEBOX, COLOUR_LIGHT_BLUE),
 	EndContainer(),
 	NWidget(WWT_PANEL, COLOUR_LIGHT_BLUE, WID_NCL_BACKGROUND),
 		NWidget(NWID_SPACER), SetMinimalSize(0, 7), SetResize(1, 0),
@@ -981,7 +1076,7 @@ static const NWidgetPart _nested_network_content_list_widgets[] = {
 							NWidget(WWT_PUSHTXTBTN, COLOUR_WHITE, WID_NCL_NAME), SetResize(1, 0), SetFill(1, 0),
 											SetDataTip(STR_CONTENT_NAME_CAPTION, STR_CONTENT_NAME_CAPTION_TOOLTIP),
 						EndContainer(),
-						NWidget(WWT_MATRIX, COLOUR_LIGHT_BLUE, WID_NCL_MATRIX), SetResize(1, 14), SetFill(1, 1), SetScrollbar(WID_NCL_SCROLLBAR), SetDataTip(STR_NULL, STR_CONTENT_MATRIX_TOOLTIP),
+						NWidget(WWT_MATRIX, COLOUR_LIGHT_BLUE, WID_NCL_MATRIX), SetResize(1, 14), SetFill(1, 1), SetScrollbar(WID_NCL_SCROLLBAR), SetMatrixDataTip(1, 0, STR_CONTENT_MATRIX_TOOLTIP),
 					EndContainer(),
 					NWidget(NWID_VSCROLLBAR, COLOUR_LIGHT_BLUE, WID_NCL_SCROLLBAR),
 				EndContainer(),
@@ -1031,8 +1126,8 @@ static const NWidgetPart _nested_network_content_list_widgets[] = {
 };
 
 /** Window description of the content list */
-static const WindowDesc _network_content_list_desc(
-	WDP_CENTER, 630, 460,
+static WindowDesc _network_content_list_desc(
+	WDP_CENTER, "list_content", 630, 460,
 	WC_NETWORK_WINDOW, WC_NONE,
 	0,
 	_nested_network_content_list_widgets, lengthof(_nested_network_content_list_widgets)
@@ -1041,20 +1136,29 @@ static const WindowDesc _network_content_list_desc(
 /**
  * Show the content list window with a given set of content
  * @param cv the content to show, or NULL when it has to search for itself
- * @param type the type to (only) show
+ * @param type1 the first type to (only) show or #CONTENT_TYPE_END to show all.
+ * @param type2 the second type to (only) show in addition to type1. If type2 is != #CONTENT_TYPE_END, then also type1 should be != #CONTENT_TYPE_END.
+ *   If type2 != #CONTENT_TYPE_END, then type1 != type2 must be true.
  */
-void ShowNetworkContentListWindow(ContentVector *cv, ContentType type)
+void ShowNetworkContentListWindow(ContentVector *cv, ContentType type1, ContentType type2)
 {
 #if defined(WITH_ZLIB)
+	std::bitset<CONTENT_TYPE_END> types;
 	_network_content_client.Clear();
 	if (cv == NULL) {
-		_network_content_client.RequestContentList(type);
+		assert(type1 != CONTENT_TYPE_END || type2 == CONTENT_TYPE_END);
+		assert(type1 == CONTENT_TYPE_END || type1 != type2);
+		_network_content_client.RequestContentList(type1);
+		if (type2 != CONTENT_TYPE_END) _network_content_client.RequestContentList(type2);
+
+		if (type1 != CONTENT_TYPE_END) types[type1] = true;
+		if (type2 != CONTENT_TYPE_END) types[type2] = true;
 	} else {
 		_network_content_client.RequestContentList(cv, true);
 	}
 
 	DeleteWindowById(WC_NETWORK_WINDOW, WN_NETWORK_WINDOW_CONTENT_LIST);
-	new NetworkContentListWindow(&_network_content_list_desc, cv != NULL);
+	new NetworkContentListWindow(&_network_content_list_desc, cv != NULL, types);
 #else
 	ShowErrorMessage(STR_CONTENT_NO_ZLIB, STR_CONTENT_NO_ZLIB_SUB, WL_ERROR);
 	/* Connection failed... clean up the mess */

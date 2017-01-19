@@ -38,7 +38,9 @@
 
 #include "table/strings.h"
 
-static const uint16 _roadveh_images[63] = {
+#include "safeguards.h"
+
+static const uint16 _roadveh_images[] = {
 	0xCD4, 0xCDC, 0xCE4, 0xCEC, 0xCF4, 0xCFC, 0xD0C, 0xD14,
 	0xD24, 0xD1C, 0xD2C, 0xD04, 0xD1C, 0xD24, 0xD6C, 0xD74,
 	0xD7C, 0xC14, 0xC1C, 0xC24, 0xC2C, 0xC34, 0xC3C, 0xC4C,
@@ -49,7 +51,7 @@ static const uint16 _roadveh_images[63] = {
 	0xC5C, 0xC64, 0xC6C, 0xC74, 0xC84, 0xC94, 0xCA4
 };
 
-static const uint16 _roadveh_full_adder[63] = {
+static const uint16 _roadveh_full_adder[] = {
 	 0,  88,   0,   0,   0,   0,  48,  48,
 	48,  48,   0,   0,  64,  64,   0,  16,
 	16,   0,  88,   0,   0,   0,   0,  48,
@@ -59,6 +61,13 @@ static const uint16 _roadveh_full_adder[63] = {
 	 0,  16,  16,   0,   8,   8,   8,   8,
 	 0,   0,   0,   8,   8,   8,   8
 };
+assert_compile(lengthof(_roadveh_images) == lengthof(_roadveh_full_adder));
+
+template <>
+bool IsValidImageIndex<VEH_ROAD>(uint8 image_index)
+{
+	return image_index < lengthof(_roadveh_images);
+}
 
 /** 'Convert' the DiagDirection where a road vehicle enters to the trackdirs it can drive onto */
 static const TrackdirBits _road_enter_dir_to_reachable_trackdirs[DIAGDIR_END] = {
@@ -98,44 +107,45 @@ int RoadVehicle::GetDisplayImageWidth(Point *offset) const
 	int reference_width = ROADVEHINFO_DEFAULT_VEHICLE_WIDTH;
 
 	if (offset != NULL) {
-		offset->x = reference_width / 2;
+		offset->x = ScaleGUITrad(reference_width) / 2;
 		offset->y = 0;
 	}
-	return this->gcache.cached_veh_length * reference_width / VEHICLE_LENGTH;
+	return ScaleGUITrad(this->gcache.cached_veh_length * reference_width / VEHICLE_LENGTH);
 }
 
-static SpriteID GetRoadVehIcon(EngineID engine, EngineImageType image_type)
+static void GetRoadVehIcon(EngineID engine, EngineImageType image_type, VehicleSpriteSeq *result)
 {
 	const Engine *e = Engine::Get(engine);
 	uint8 spritenum = e->u.road.image_index;
 
 	if (is_custom_sprite(spritenum)) {
-		SpriteID sprite = GetCustomVehicleIcon(engine, DIR_W, image_type);
-		if (sprite != 0) return sprite;
+		GetCustomVehicleIcon(engine, DIR_W, image_type, result);
+		if (result->IsValid()) return;
 
 		spritenum = e->original_image_index;
 	}
 
-	return DIR_W + _roadveh_images[spritenum];
+	assert(IsValidImageIndex<VEH_ROAD>(spritenum));
+	result->Set(DIR_W + _roadveh_images[spritenum]);
 }
 
-SpriteID RoadVehicle::GetImage(Direction direction, EngineImageType image_type) const
+void RoadVehicle::GetImage(Direction direction, EngineImageType image_type, VehicleSpriteSeq *result) const
 {
 	uint8 spritenum = this->spritenum;
-	SpriteID sprite;
 
 	if (is_custom_sprite(spritenum)) {
-		sprite = GetCustomVehicleSprite(this, (Direction)(direction + 4 * IS_CUSTOM_SECONDHEAD_SPRITE(spritenum)), image_type);
-		if (sprite != 0) return sprite;
+		GetCustomVehicleSprite(this, (Direction)(direction + 4 * IS_CUSTOM_SECONDHEAD_SPRITE(spritenum)), image_type, result);
+		if (result->IsValid()) return;
 
 		spritenum = this->GetEngine()->original_image_index;
 	}
 
-	sprite = direction + _roadveh_images[spritenum];
+	assert(IsValidImageIndex<VEH_ROAD>(spritenum));
+	SpriteID sprite = direction + _roadveh_images[spritenum];
 
 	if (this->cargo.StoredCount() >= this->cargo_cap / 2U) sprite += _roadveh_full_adder[spritenum];
 
-	return sprite;
+	result->Set(sprite);
 }
 
 /**
@@ -149,10 +159,16 @@ SpriteID RoadVehicle::GetImage(Direction direction, EngineImageType image_type) 
  */
 void DrawRoadVehEngine(int left, int right, int preferred_x, int y, EngineID engine, PaletteID pal, EngineImageType image_type)
 {
-	SpriteID sprite = GetRoadVehIcon(engine, image_type);
-	const Sprite *real_sprite = GetSprite(sprite, ST_NORMAL);
-	preferred_x = Clamp(preferred_x, left - UnScaleByZoom(real_sprite->x_offs, ZOOM_LVL_GUI), right - UnScaleByZoom(real_sprite->width, ZOOM_LVL_GUI) - UnScaleByZoom(real_sprite->x_offs, ZOOM_LVL_GUI));
-	DrawSprite(sprite, pal, preferred_x, y);
+	VehicleSpriteSeq seq;
+	GetRoadVehIcon(engine, image_type, &seq);
+
+	Rect rect;
+	seq.GetBounds(&rect);
+	preferred_x = Clamp(preferred_x,
+			left - UnScaleGUI(rect.left),
+			right - UnScaleGUI(rect.right));
+
+	seq.Draw(preferred_x, y, pal, pal == PALETTE_CRASH);
 }
 
 /**
@@ -166,12 +182,16 @@ void DrawRoadVehEngine(int left, int right, int preferred_x, int y, EngineID eng
  */
 void GetRoadVehSpriteSize(EngineID engine, uint &width, uint &height, int &xoffs, int &yoffs, EngineImageType image_type)
 {
-	const Sprite *spr = GetSprite(GetRoadVehIcon(engine, image_type), ST_NORMAL);
+	VehicleSpriteSeq seq;
+	GetRoadVehIcon(engine, image_type, &seq);
 
-	width  = UnScaleByZoom(spr->width, ZOOM_LVL_GUI);
-	height = UnScaleByZoom(spr->height, ZOOM_LVL_GUI);
-	xoffs  = UnScaleByZoom(spr->x_offs, ZOOM_LVL_GUI);
-	yoffs  = UnScaleByZoom(spr->y_offs, ZOOM_LVL_GUI);
+	Rect rect;
+	seq.GetBounds(&rect);
+
+	width  = UnScaleGUI(rect.right - rect.left + 1);
+	height = UnScaleGUI(rect.bottom - rect.top + 1);
+	xoffs  = UnScaleGUI(rect.left);
+	yoffs  = UnScaleGUI(rect.top);
 }
 
 /**
@@ -232,10 +252,7 @@ void RoadVehUpdateCache(RoadVehicle *v, bool same_length)
 		v->gcache.cached_total_length += u->gcache.cached_veh_length;
 
 		/* Update visual effect */
-		v->UpdateVisualEffect();
-
-		/* Invalidate the vehicle colour map */
-		u->colourmap = PAL_NONE;
+		u->UpdateVisualEffect();
 
 		/* Update cargo aging period. */
 		u->vcache.cached_cargo_age_period = GetVehicleProperty(u, PROP_ROADVEH_CARGO_AGE_PERIOD, EngInfo(u->engine_type)->cargo_age_period);
@@ -279,8 +296,10 @@ CommandCost CmdBuildRoadVehicle(TileIndex tile, DoCommandFlag flags, const Engin
 		v->spritenum = rvi->image_index;
 		v->cargo_type = e->GetDefaultCargoType();
 		v->cargo_cap = rvi->capacity;
+		v->refit_cap = 0;
 
 		v->last_station_visited = INVALID_STATION;
+		v->last_loading_station = INVALID_STATION;
 		v->engine_type = e->index;
 		v->gcache.first_engine = INVALID_ENGINE; // needs to be set before first callback
 
@@ -294,7 +313,7 @@ CommandCost CmdBuildRoadVehicle(TileIndex tile, DoCommandFlag flags, const Engin
 		v->date_of_last_service = _date;
 		v->build_year = _cur_year;
 
-		v->cur_image = SPR_IMG_QUERY;
+		v->sprite_seq.Set(SPR_IMG_QUERY);
 		v->random_bits = VehicleRandomBits();
 		v->SetFrontEngine();
 
@@ -311,6 +330,7 @@ CommandCost CmdBuildRoadVehicle(TileIndex tile, DoCommandFlag flags, const Engin
 		/* Call various callbacks after the whole consist has been constructed */
 		for (RoadVehicle *u = v; u != NULL; u = u->Next()) {
 			u->cargo_cap = u->GetEngine()->DetermineCapacity(u);
+			u->refit_cap = 0;
 			v->InvalidateNewGRFCache();
 			u->InvalidateNewGRFCache();
 		}
@@ -318,7 +338,7 @@ CommandCost CmdBuildRoadVehicle(TileIndex tile, DoCommandFlag flags, const Engin
 		/* Initialize cached values for realistic acceleration. */
 		if (_settings_game.vehicle.roadveh_acceleration_model != AM_ORIGINAL) v->CargoChanged();
 
-		VehicleUpdatePosition(v);
+		v->UpdatePosition();
 
 		CheckConsistencyOfArticulatedVehicle(v);
 	}
@@ -391,7 +411,8 @@ CommandCost CmdTurnRoadVeh(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 void RoadVehicle::MarkDirty()
 {
 	for (RoadVehicle *v = this; v != NULL; v = v->Next()) {
-		v->UpdateViewport(false, false);
+		v->colourmap = PAL_NONE;
+		v->UpdateViewport(true, false);
 	}
 	this->CargoChanged();
 }
@@ -448,7 +469,7 @@ inline int RoadVehicle::GetCurrentMaxSpeed() const
 		}
 	}
 
-	return min(max_speed, this->current_order.max_speed * 2);
+	return min(max_speed, this->current_order.GetMaxSpeed() * 2);
 }
 
 /**
@@ -457,9 +478,11 @@ inline int RoadVehicle::GetCurrentMaxSpeed() const
  */
 static void DeleteLastRoadVeh(RoadVehicle *v)
 {
+	RoadVehicle *first = v->First();
 	Vehicle *u = v;
 	for (; v->Next() != NULL; v = v->Next()) u = v;
 	u->SetNext(NULL);
+	v->last_station_visited = first->last_station_visited; // for PreDestructor
 
 	/* Only leave the road stop when we're really gone. */
 	if (IsInsideMM(v->state, RVSB_IN_ROAD_STOP, RVSB_IN_ROAD_STOP_END)) RoadStop::GetByTile(v->tile, GetRoadStopType(v->tile))->Leave(v);
@@ -792,12 +815,6 @@ static void RoadVehCheckOvertake(RoadVehicle *v, RoadVehicle *u)
 	od.v = v;
 	od.u = u;
 
-	if (u->vcache.cached_max_speed >= v->vcache.cached_max_speed &&
-			!(u->vehstatus & VS_STOPPED) &&
-			u->cur_speed != 0) {
-		return;
-	}
-
 	/* Trams can't overtake other trams */
 	if (v->roadtype == ROADTYPE_TRAM) return;
 
@@ -812,6 +829,16 @@ static void RoadVehCheckOvertake(RoadVehicle *v, RoadVehicle *u)
 
 	/* Check if vehicle is in a road stop, depot, tunnel or bridge or not on a straight road */
 	if (v->state >= RVSB_IN_ROAD_STOP || !IsStraightRoadTrackdir((Trackdir)(v->state & RVSB_TRACKDIR_MASK))) return;
+
+	/* Can't overtake a vehicle that is moving faster than us. If the vehicle in front is
+	 * accelerating, take the maximum speed for the comparison, else the current speed.
+	 * Original acceleration always accelerates, so always use the maximum speed. */
+	int u_speed = (_settings_game.vehicle.roadveh_acceleration_model == AM_ORIGINAL || u->GetAcceleration() > 0) ? u->GetCurrentMaxSpeed() : u->cur_speed;
+	if (u_speed >= v->GetCurrentMaxSpeed() &&
+			!(u->vehstatus & VS_STOPPED) &&
+			u->cur_speed != 0) {
+		return;
+	}
 
 	od.trackdir = DiagDirToDiagTrackdir(DirToDiagDir(v->direction));
 
@@ -833,7 +860,7 @@ static void RoadVehCheckOvertake(RoadVehicle *v, RoadVehicle *u)
 	v->overtaking = RVSB_DRIVE_SIDE;
 }
 
-static void RoadZPosAffectSpeed(RoadVehicle *v, byte old_z)
+static void RoadZPosAffectSpeed(RoadVehicle *v, int old_z)
 {
 	if (old_z == v->z_pos || _settings_game.vehicle.roadveh_acceleration_model != AM_ORIGINAL) return;
 
@@ -1003,7 +1030,7 @@ static bool RoadVehLeaveDepot(RoadVehicle *v, bool first)
 
 	v->x_pos = x;
 	v->y_pos = y;
-	VehicleUpdatePosition(v);
+	v->UpdatePosition();
 	v->UpdateInclination(true, true);
 
 	InvalidateWindowData(WC_VEHICLE_DEPOT, v->tile);
@@ -1095,7 +1122,7 @@ static bool CanBuildTramTrackOnTile(CompanyID c, TileIndex t, RoadBits r)
 	return ret.Succeeded();
 }
 
-static bool IndividualRoadVehicleController(RoadVehicle *v, const RoadVehicle *prev)
+bool IndividualRoadVehicleController(RoadVehicle *v, const RoadVehicle *prev)
 {
 	if (v->overtaking != 0)  {
 		if (IsTileType(v->tile, MP_STATION)) {
@@ -1132,15 +1159,15 @@ static bool IndividualRoadVehicleController(RoadVehicle *v, const RoadVehicle *p
 			/* Vehicle has just entered a bridge or tunnel */
 			v->x_pos = gp.x;
 			v->y_pos = gp.y;
-			VehicleUpdatePosition(v);
+			v->UpdatePosition();
 			v->UpdateInclination(true, true);
 			return true;
 		}
 
 		v->x_pos = gp.x;
 		v->y_pos = gp.y;
-		VehicleUpdatePosition(v);
-		if ((v->vehstatus & VS_HIDDEN) == 0) VehicleUpdateViewport(v, true);
+		v->UpdatePosition();
+		if ((v->vehstatus & VS_HIDDEN) == 0) v->Vehicle::UpdateViewport(true);
 		return true;
 	}
 
@@ -1289,7 +1316,7 @@ again:
 		}
 		v->x_pos = x;
 		v->y_pos = y;
-		VehicleUpdatePosition(v);
+		v->UpdatePosition();
 		RoadZPosAffectSpeed(v, v->UpdateInclination(true, true));
 		return true;
 	}
@@ -1355,7 +1382,7 @@ again:
 
 		v->x_pos = x;
 		v->y_pos = y;
-		VehicleUpdatePosition(v);
+		v->UpdatePosition();
 		RoadZPosAffectSpeed(v, v->UpdateInclination(true, true));
 		return true;
 	}
@@ -1404,14 +1431,13 @@ again:
 	if (new_dir != old_dir) {
 		v->direction = new_dir;
 		if (_settings_game.vehicle.roadveh_acceleration_model == AM_ORIGINAL) v->cur_speed -= v->cur_speed >> 2;
-		if (old_dir != v->state) {
-			/* The vehicle is in a road stop */
-			v->UpdateInclination(false, true);
-			/* Note, return here means that the frame counter is not incremented
-			 * for vehicles changing direction in a road stop. This causes frames to
-			 * be repeated. (XXX) Is this intended? */
-			return true;
-		}
+
+		/* Delay the vehicle in curves by making it require one additional frame per turning direction (two in total).
+		 * A vehicle has to spend at least 9 frames on a tile, so the following articulated part can follow.
+		 * (The following part may only be one tile behind, and the front part is moved before the following ones.)
+		 * The short (inner) curve has 8 frames, this elongates it to 10. */
+		v->UpdateInclination(false, true);
+		return true;
 	}
 
 	/* If the vehicle is in a normal road stop and the frame equals the stop frame OR
@@ -1444,7 +1470,7 @@ again:
 					v->frame++;
 					v->x_pos = x;
 					v->y_pos = y;
-					VehicleUpdatePosition(v);
+					v->UpdatePosition();
 					RoadZPosAffectSpeed(v, v->UpdateInclination(true, false));
 					return true;
 				}
@@ -1493,7 +1519,7 @@ again:
 	if (!HasBit(r, VETS_ENTERED_WORMHOLE)) v->frame++;
 	v->x_pos = x;
 	v->y_pos = y;
-	VehicleUpdatePosition(v);
+	v->UpdatePosition();
 	RoadZPosAffectSpeed(v, v->UpdateInclination(false, true));
 	return true;
 }

@@ -30,6 +30,8 @@
 	#include <dos.h>
 #endif
 
+#include "../../safeguards.h"
+
 #define INCL_WIN
 #define INCL_WINCLIPBOARD
 
@@ -43,7 +45,7 @@ bool FiosIsRoot(const char *file)
 	return file[3] == '\0';
 }
 
-void FiosGetDrives()
+void FiosGetDrives(FileList &file_list)
 {
 	uint disk, disk2, save, total;
 
@@ -73,7 +75,7 @@ void FiosGetDrives()
 #endif
 
 		if (disk == disk2) {
-			FiosItem *fios = _fios_items.Append();
+			FiosItem *fios = file_list.Append();
 			fios->type = FIOS_TYPE_DRIVE;
 			fios->mtime = 0;
 #ifndef __INNOTEK_LIBC__
@@ -172,10 +174,13 @@ int CDECL main(int argc, char *argv[])
 {
 	SetRandomSeed(time(NULL));
 
-	return ttd_main(argc, argv);
+	/* Make sure our arguments contain only valid UTF-8 characters. */
+	for (int i = 0; i < argc; i++) ValidateString(argv[i]);
+
+	return openttd_main(argc, argv);
 }
 
-bool GetClipboardContents(char *buffer, size_t buff_len)
+bool GetClipboardContents(char *buffer, const char *last)
 {
 /* XXX -- Currently no clipboard support implemented with GCC */
 #ifndef __INNOTEK_LIBC__
@@ -187,7 +192,7 @@ bool GetClipboardContents(char *buffer, size_t buff_len)
 
 		if (text != NULL)
 		{
-			ttd_strlcpy(buffer, text, buff_len);
+			strecpy(buffer, text, last);
 			WinCloseClipbrd(hab);
 			return true;
 		}
@@ -214,4 +219,10 @@ const char *OTTD2FS(const char *name) {return name;}
 uint GetCPUCoreCount()
 {
 	return 1;
+}
+
+void OSOpenBrowser(const char *url)
+{
+	// stub only
+	DEBUG(misc, 0, "Failed to open url: %s", url);
 }

@@ -35,6 +35,9 @@ DEFINE_POOL_METHOD(inline)::Pool(const char *name) :
 		first_free(0),
 		first_unused(0),
 		items(0),
+#ifdef OTTD_ASSERT
+		checked(0),
+#endif /* OTTD_ASSERT */
 		cleaning(false),
 		data(NULL),
 		alloc_cache(NULL)
@@ -118,7 +121,7 @@ DEFINE_POOL_METHOD(inline void *)::AllocateItem(size_t size, size_t index)
 		item = (Titem *)MallocT<byte>(size);
 	}
 	this->data[index] = item;
-	item->index = (uint)index;
+	item->index = (Tindex)(uint)index;
 	return item;
 }
 

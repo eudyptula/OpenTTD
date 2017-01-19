@@ -210,7 +210,7 @@ endif
 	{                                   \
 		print $$0                         \
 	}                                   \
-	' < Makefile.dep.tmp | sed 's@  *@ @g;s@ $$@@' | $(SORT) > Makefile.dep
+	' < Makefile.dep.tmp | sed 's@  *@ @g;s@ $$@@' | LC_ALL=C $(SORT) > Makefile.dep
 
 	$(Q)rm -f Makefile.dep.tmp Makefile.dep.tmp.bak
 
@@ -229,9 +229,21 @@ $(OBJS_C): %.o: $(SRC_DIR)/%.c $(DEP_MASK) $(FILE_DEP)
 	$(E) '$(STAGE) Compiling $(<:$(SRC_DIR)/%.c=%.c)'
 	$(Q)$(CC_HOST) $(CFLAGS) -c -o $@ $<
 
-$(OBJS_CPP): %.o: $(SRC_DIR)/%.cpp $(DEP_MASK) $(FILE_DEP)
+$(filter-out %sse2.o, $(filter-out %ssse3.o, $(filter-out %sse4.o, $(OBJS_CPP)))): %.o: $(SRC_DIR)/%.cpp $(DEP_MASK) $(FILE_DEP)
 	$(E) '$(STAGE) Compiling $(<:$(SRC_DIR)/%.cpp=%.cpp)'
 	$(Q)$(CXX_HOST) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(filter %sse2.o, $(OBJS_CPP)): %.o: $(SRC_DIR)/%.cpp $(DEP_MASK) $(FILE_DEP)
+	$(E) '$(STAGE) Compiling $(<:$(SRC_DIR)/%.cpp=%.cpp)'
+	$(Q)$(CXX_HOST) $(CFLAGS) $(CXXFLAGS) -c -msse2 -o $@ $<
+
+$(filter %ssse3.o, $(OBJS_CPP)): %.o: $(SRC_DIR)/%.cpp $(DEP_MASK) $(FILE_DEP)
+	$(E) '$(STAGE) Compiling $(<:$(SRC_DIR)/%.cpp=%.cpp)'
+	$(Q)$(CXX_HOST) $(CFLAGS) $(CXXFLAGS) -c -mssse3 -o $@ $<
+
+$(filter %sse4.o, $(OBJS_CPP)): %.o: $(SRC_DIR)/%.cpp $(DEP_MASK) $(FILE_DEP)
+	$(E) '$(STAGE) Compiling $(<:$(SRC_DIR)/%.cpp=%.cpp)'
+	$(Q)$(CXX_HOST) $(CFLAGS) $(CXXFLAGS) -c -msse4.1 -o $@ $<
 
 $(OBJS_MM): %.o: $(SRC_DIR)/%.mm $(DEP_MASK) $(FILE_DEP)
 	$(E) '$(STAGE) Compiling $(<:$(SRC_DIR)/%.mm=%.mm)'

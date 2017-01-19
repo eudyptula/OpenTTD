@@ -19,10 +19,13 @@
 #include "../effectvehicle_base.h"
 #include "../company_base.h"
 #include "../company_func.h"
+#include "../disaster_vehicle.h"
 
 #include "saveload.h"
 
 #include <map>
+
+#include "../safeguards.h"
 
 /**
  * Link front and rear multiheaded engines to each other
@@ -197,7 +200,8 @@ void UpdateOldAircraft()
 			if (a->subtype == AIR_HELICOPTER) a->Next()->Next()->cur_speed = 32;
 
 			/* set new position x,y,z */
-			SetAircraftPosition(a, gp.x, gp.y, GetAircraftFlyingAltitude(a));
+			GetAircraftFlightLevelBounds(a, &a->z_pos, NULL);
+			SetAircraftPosition(a, gp.x, gp.y, GetAircraftFlightLevel(a));
 		}
 	}
 }
@@ -376,7 +380,7 @@ void AfterLoadVehicles(bool part_of_load)
 				Train *t = Train::From(v);
 				if (t->IsFrontEngine() || t->IsFreeWagon()) {
 					t->gcache.last_speed = t->cur_speed; // update displayed train speed
-					t->ConsistChanged(false);
+					t->ConsistChanged(CCF_SAVELOAD);
 				}
 				break;
 			}
@@ -432,21 +436,21 @@ void AfterLoadVehicles(bool part_of_load)
 
 			case VEH_TRAIN:
 			case VEH_SHIP:
-				v->cur_image = v->GetImage(v->direction, EIT_ON_MAP);
+				v->GetImage(v->direction, EIT_ON_MAP, &v->sprite_seq);
 				break;
 
 			case VEH_AIRCRAFT:
 				if (Aircraft::From(v)->IsNormalAircraft()) {
-					v->cur_image = v->GetImage(v->direction, EIT_ON_MAP);
+					v->GetImage(v->direction, EIT_ON_MAP, &v->sprite_seq);
 
-					/* The plane's shadow will have the same image as the plane */
+					/* The plane's shadow will have the same image as the plane, but no colour */
 					Vehicle *shadow = v->Next();
-					shadow->cur_image = v->cur_image;
+					shadow->sprite_seq.CopyWithoutPalette(v->sprite_seq);
 
 					/* In the case of a helicopter we will update the rotor sprites */
 					if (v->subtype == AIR_HELICOPTER) {
 						Vehicle *rotor = shadow->Next();
-						rotor->cur_image = GetRotorImage(Aircraft::From(v), EIT_ON_MAP);
+						GetRotorImage(Aircraft::From(v), EIT_ON_MAP, &rotor->sprite_seq);
 					}
 
 					UpdateAircraftCache(Aircraft::From(v), true);
@@ -457,8 +461,8 @@ void AfterLoadVehicles(bool part_of_load)
 
 		v->UpdateDeltaXY(v->direction);
 		v->coord.left = INVALID_COORD;
-		VehicleUpdatePosition(v);
-		VehicleUpdateViewport(v, false);
+		v->UpdatePosition();
+		v->UpdateViewport(false);
 	}
 }
 
@@ -547,7 +551,7 @@ void FixupTrainLengths()
 			}
 
 			/* Update all cached properties after moving the vehicle chain around. */
-			Train::From(v)->ConsistChanged(true);
+			Train::From(v)->ConsistChanged(CCF_TRACK);
 		}
 	}
 }
@@ -604,6 +608,7 @@ const SaveLoad *GetVehicleDescription(VehicleType vt)
 		     SLE_VAR(Vehicle, vehstatus,             SLE_UINT8),
 		 SLE_CONDVAR(Vehicle, last_station_visited,  SLE_FILE_U8  | SLE_VAR_U16,   0,   4),
 		 SLE_CONDVAR(Vehicle, last_station_visited,  SLE_UINT16,                   5, SL_MAX_VERSION),
+		 SLE_CONDVAR(Vehicle, last_loading_station,  SLE_UINT16,                 182, SL_MAX_VERSION),
 
 		     SLE_VAR(Vehicle, cargo_type,            SLE_UINT8),
 		 SLE_CONDVAR(Vehicle, cargo_subtype,         SLE_UINT8,                   35, SL_MAX_VERSION),
@@ -612,6 +617,7 @@ const SaveLoad *GetVehicleDescription(VehicleType vt)
 		SLEG_CONDVAR(         _cargo_source,         SLE_UINT16,                   7,  67),
 		SLEG_CONDVAR(         _cargo_source_xy,      SLE_UINT32,                  44,  67),
 		     SLE_VAR(Vehicle, cargo_cap,             SLE_UINT16),
+		 SLE_CONDVAR(Vehicle, refit_cap,             SLE_UINT16,                 182, SL_MAX_VERSION),
 		SLEG_CONDVAR(         _cargo_count,          SLE_UINT16,                   0,  67),
 		 SLE_CONDLST(Vehicle, cargo.packets,         REF_CARGO_PACKET,            68, SL_MAX_VERSION),
 		 SLE_CONDARR(Vehicle, cargo.action_counts,   SLE_UINT, VehicleCargoList::NUM_MOVE_TO_ACTION, 181, SL_MAX_VERSION),
@@ -790,7 +796,7 @@ const SaveLoad *GetVehicleDescription(VehicleType vt)
 		 SLE_CONDVAR(Vehicle, z_pos,                 SLE_FILE_U8  | SLE_VAR_I32,   0, 163),
 		 SLE_CONDVAR(Vehicle, z_pos,                 SLE_INT32,                  164, SL_MAX_VERSION),
 
-		     SLE_VAR(Vehicle, cur_image,             SLE_FILE_U16 | SLE_VAR_U32),
+		     SLE_VAR(Vehicle, sprite_seq.seq[0].sprite, SLE_FILE_U16 | SLE_VAR_U32),
 		SLE_CONDNULL(5,                                                            0,  57),
 		     SLE_VAR(Vehicle, progress,              SLE_UINT8),
 		     SLE_VAR(Vehicle, vehstatus,             SLE_UINT8),
@@ -830,13 +836,16 @@ const SaveLoad *GetVehicleDescription(VehicleType vt)
 		 SLE_CONDVAR(Vehicle, current_order.dest,    SLE_FILE_U8 | SLE_VAR_U16,    0,   4),
 		 SLE_CONDVAR(Vehicle, current_order.dest,    SLE_UINT16,                   5, SL_MAX_VERSION),
 
-		     SLE_VAR(Vehicle, cur_image,             SLE_FILE_U16 | SLE_VAR_U32),
+		     SLE_VAR(Vehicle, sprite_seq.seq[0].sprite, SLE_FILE_U16 | SLE_VAR_U32),
 		 SLE_CONDVAR(Vehicle, age,                   SLE_FILE_U16 | SLE_VAR_I32,   0,  30),
 		 SLE_CONDVAR(Vehicle, age,                   SLE_INT32,                   31, SL_MAX_VERSION),
 		     SLE_VAR(Vehicle, tick_counter,          SLE_UINT8),
 
-		     SLE_VAR(DisasterVehicle, image_override,            SLE_UINT16),
-		     SLE_VAR(DisasterVehicle, big_ufo_destroyer_target,  SLE_UINT16),
+		 SLE_CONDVAR(DisasterVehicle, image_override,            SLE_FILE_U16 | SLE_VAR_U32,   0, 190),
+		 SLE_CONDVAR(DisasterVehicle, image_override,            SLE_UINT32,                 191, SL_MAX_VERSION),
+		 SLE_CONDVAR(DisasterVehicle, big_ufo_destroyer_target,  SLE_FILE_U16 | SLE_VAR_U32,   0, 190),
+		 SLE_CONDVAR(DisasterVehicle, big_ufo_destroyer_target,  SLE_UINT32,                 191, SL_MAX_VERSION),
+		 SLE_CONDVAR(DisasterVehicle, flags,                     SLE_UINT8,                  194, SL_MAX_VERSION),
 
 		SLE_CONDNULL(16,                                                           2, 143), // old reserved space
 
@@ -902,6 +911,8 @@ void Load_VEHS()
 		if (IsSavegameVersionBefore(5) && v->last_station_visited == 0xFF) {
 			v->last_station_visited = INVALID_STATION;
 		}
+
+		if (IsSavegameVersionBefore(182)) v->last_loading_station = INVALID_STATION;
 
 		if (IsSavegameVersionBefore(5)) {
 			/* Convert the current_order.type (which is a mix of type and flags, because

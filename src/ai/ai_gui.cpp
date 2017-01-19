@@ -28,8 +28,10 @@
 #include "../widgets/dropdown_type.h"
 #include "../widgets/dropdown_func.h"
 #include "../hotkeys.h"
+#include "../core/geometry_func.hpp"
 
 #include "ai.hpp"
+#include "ai_gui.hpp"
 #include "../script/api/script_log.hpp"
 #include "ai_config.hpp"
 #include "ai_info.hpp"
@@ -39,10 +41,11 @@
 #include "../game/game_info.hpp"
 #include "../game/game_instance.hpp"
 
-
 #include "table/strings.h"
 
 #include <vector>
+
+#include "../safeguards.h"
 
 static ScriptConfig *GetConfig(CompanyID slot)
 {
@@ -65,7 +68,7 @@ struct AIListWindow : public Window {
 	 * @param desc The description of the window.
 	 * @param slot The company we're changing the AI for.
 	 */
-	AIListWindow(const WindowDesc *desc, CompanyID slot) : Window(),
+	AIListWindow(WindowDesc *desc, CompanyID slot) : Window(desc),
 		slot(slot)
 	{
 		if (slot == OWNER_DEITY) {
@@ -74,9 +77,9 @@ struct AIListWindow : public Window {
 			this->info_list = AI::GetUniqueInfoList();
 		}
 
-		this->CreateNestedTree(desc);
+		this->CreateNestedTree();
 		this->vscroll = this->GetScrollbar(WID_AIL_SCROLLBAR);
-		this->FinishInitNested(desc); // Initializes 'this->line_height' as side effect.
+		this->FinishInitNested(); // Initializes 'this->line_height' as side effect.
 
 		this->vscroll->SetCount((int)this->info_list->size() + 1);
 
@@ -110,7 +113,7 @@ struct AIListWindow : public Window {
 
 			resize->width = 1;
 			resize->height = this->line_height;
-			size->height = GB(this->GetWidget<NWidgetCore>(widget)->widget_data, MAT_ROW_START, MAT_ROW_BITS) * this->line_height;
+			size->height = 5 * this->line_height;
 		}
 	}
 
@@ -209,9 +212,7 @@ struct AIListWindow : public Window {
 
 	virtual void OnResize()
 	{
-		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_AIL_LIST);
-		this->vscroll->SetCapacity(nwi->current_y / this->line_height);
-		nwi->widget_data = (this->vscroll->GetCapacity() << MAT_ROW_START) + (1 << MAT_COL_START);
+		this->vscroll->SetCapacityFromWidget(this, WID_AIL_LIST);
 	}
 
 	/**
@@ -240,9 +241,10 @@ static const NWidgetPart _nested_ai_list_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_MAUVE),
 		NWidget(WWT_CAPTION, COLOUR_MAUVE, WID_AIL_CAPTION), SetDataTip(STR_AI_LIST_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
+		NWidget(WWT_DEFSIZEBOX, COLOUR_MAUVE),
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIL_LIST), SetMinimalSize(188, 112), SetFill(1, 1), SetResize(1, 1), SetDataTip(0x501, STR_AI_LIST_TOOLTIP), SetScrollbar(WID_AIL_SCROLLBAR),
+		NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIL_LIST), SetMinimalSize(188, 112), SetFill(1, 1), SetResize(1, 1), SetMatrixDataTip(1, 0, STR_AI_LIST_TOOLTIP), SetScrollbar(WID_AIL_SCROLLBAR),
 		NWidget(NWID_VSCROLLBAR, COLOUR_MAUVE, WID_AIL_SCROLLBAR),
 	EndContainer(),
 	NWidget(WWT_PANEL, COLOUR_MAUVE, WID_AIL_INFO_BG), SetMinimalTextLines(8, WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM), SetResize(1, 0),
@@ -257,8 +259,8 @@ static const NWidgetPart _nested_ai_list_widgets[] = {
 };
 
 /** Window definition for the ai list window. */
-static const WindowDesc _ai_list_desc(
-	WDP_CENTER, 200, 234,
+static WindowDesc _ai_list_desc(
+	WDP_CENTER, "settings_script_list", 200, 234,
 	WC_AI_LIST, WC_NONE,
 	0,
 	_nested_ai_list_widgets, lengthof(_nested_ai_list_widgets)
@@ -296,7 +298,7 @@ struct AISettingsWindow : public Window {
 	 * @param desc The description of the window.
 	 * @param slot The company we're changing the settings for.
 	 */
-	AISettingsWindow(const WindowDesc *desc, CompanyID slot) : Window(),
+	AISettingsWindow(WindowDesc *desc, CompanyID slot) : Window(desc),
 		slot(slot),
 		clicked_button(-1),
 		clicked_dropdown(false),
@@ -306,9 +308,9 @@ struct AISettingsWindow : public Window {
 		this->ai_config = GetConfig(slot);
 		this->RebuildVisibleSettings();
 
-		this->CreateNestedTree(desc);
+		this->CreateNestedTree();
 		this->vscroll = this->GetScrollbar(WID_AIS_SCROLLBAR);
-		this->FinishInitNested(desc, slot);  // Initializes 'this->line_height' as side effect.
+		this->FinishInitNested(slot);  // Initializes 'this->line_height' as side effect.
 
 		this->SetWidgetDisabledState(WID_AIS_RESET, _game_mode != GM_MENU && Company::IsValidID(this->slot));
 
@@ -345,11 +347,11 @@ struct AISettingsWindow : public Window {
 	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
 	{
 		if (widget == WID_AIS_BACKGROUND) {
-			this->line_height = FONT_HEIGHT_NORMAL + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
+			this->line_height = max(SETTING_BUTTON_HEIGHT, FONT_HEIGHT_NORMAL) + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
 
 			resize->width = 1;
 			resize->height = this->line_height;
-			size->height = GB(this->GetWidget<NWidgetCore>(widget)->widget_data, MAT_ROW_START, MAT_ROW_BITS) * this->line_height;
+			size->height = 5 * this->line_height;
 		}
 	}
 
@@ -370,6 +372,7 @@ struct AISettingsWindow : public Window {
 
 		int y = r.top;
 		int button_y_offset = (this->line_height - SETTING_BUTTON_HEIGHT) / 2;
+		int text_y_offset = (this->line_height - FONT_HEIGHT_NORMAL) / 2;
 		for (; this->vscroll->IsVisible(i) && it != visible_settings.end(); i++, it++) {
 			const ScriptConfigItem &config_item = **it;
 			int current_value = config->GetSetting((config_item).name);
@@ -411,7 +414,7 @@ struct AISettingsWindow : public Window {
 				}
 			}
 
-			DrawString(text_left, text_right, y + WD_MATRIX_TOP, str, colour);
+			DrawString(text_left, text_right, y + text_y_offset, str, colour);
 			y += this->line_height;
 		}
 	}
@@ -476,7 +479,7 @@ struct AISettingsWindow : public Window {
 
 							DropDownList *list = new DropDownList();
 							for (int i = config_item.min_value; i <= config_item.max_value; i++) {
-								list->push_back(new DropDownListCharStringItem(config_item.labels->Find(i)->second, i, false));
+								*list->Append() = new DropDownListCharStringItem(config_item.labels->Find(i)->second, i, false);
 							}
 
 							ShowDropDownListAt(this, list, old_val, -1, wi_rect, COLOUR_ORANGE, true);
@@ -559,9 +562,7 @@ struct AISettingsWindow : public Window {
 
 	virtual void OnResize()
 	{
-		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_AIS_BACKGROUND);
-		this->vscroll->SetCapacity(nwi->current_y / this->line_height);
-		nwi->widget_data = (this->vscroll->GetCapacity() << MAT_ROW_START) + (1 << MAT_COL_START);
+		this->vscroll->SetCapacityFromWidget(this, WID_AIS_BACKGROUND);
 	}
 
 	virtual void OnTick()
@@ -588,9 +589,10 @@ static const NWidgetPart _nested_ai_settings_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_MAUVE),
 		NWidget(WWT_CAPTION, COLOUR_MAUVE, WID_AIS_CAPTION), SetDataTip(STR_AI_SETTINGS_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
+		NWidget(WWT_DEFSIZEBOX, COLOUR_MAUVE),
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIS_BACKGROUND), SetMinimalSize(188, 182), SetResize(1, 1), SetFill(1, 0), SetDataTip(0x501, STR_NULL), SetScrollbar(WID_AIS_SCROLLBAR),
+		NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIS_BACKGROUND), SetMinimalSize(188, 182), SetResize(1, 1), SetFill(1, 0), SetMatrixDataTip(1, 0, STR_NULL), SetScrollbar(WID_AIS_SCROLLBAR),
 		NWidget(NWID_VSCROLLBAR, COLOUR_MAUVE, WID_AIS_SCROLLBAR),
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL),
@@ -603,8 +605,8 @@ static const NWidgetPart _nested_ai_settings_widgets[] = {
 };
 
 /** Window definition for the AI settings window. */
-static const WindowDesc _ai_settings_desc(
-	WDP_CENTER, 500, 208,
+static WindowDesc _ai_settings_desc(
+	WDP_CENTER, "settings_script", 500, 208,
 	WC_AI_SETTINGS, WC_NONE,
 	0,
 	_nested_ai_settings_widgets, lengthof(_nested_ai_settings_widgets)
@@ -674,13 +676,13 @@ static const NWidgetPart _nested_ai_config_widgets[] = {
 		EndContainer(),
 		NWidget(WWT_FRAME, COLOUR_MAUVE), SetDataTip(STR_AI_CONFIG_AI, STR_NULL), SetPadding(0, 5, 0, 5),
 			NWidget(NWID_HORIZONTAL),
-				NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIC_LIST), SetMinimalSize(288, 112), SetFill(1, 0), SetDataTip(0x801, STR_AI_CONFIG_AILIST_TOOLTIP), SetScrollbar(WID_AIC_SCROLLBAR),
+				NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIC_LIST), SetMinimalSize(288, 112), SetFill(1, 0), SetMatrixDataTip(1, 8, STR_AI_CONFIG_AILIST_TOOLTIP), SetScrollbar(WID_AIC_SCROLLBAR),
 				NWidget(NWID_VSCROLLBAR, COLOUR_MAUVE, WID_AIC_SCROLLBAR),
 			EndContainer(),
 		EndContainer(),
 		NWidget(NWID_SPACER), SetMinimalSize(0, 9),
 		NWidget(WWT_FRAME, COLOUR_MAUVE), SetDataTip(STR_AI_CONFIG_GAMESCRIPT, STR_NULL), SetPadding(0, 5, 4, 5),
-			NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIC_GAMELIST), SetMinimalSize(288, 14), SetFill(1, 0), SetDataTip(0x101, STR_AI_CONFIG_GAMELIST_TOOLTIP),
+			NWidget(WWT_MATRIX, COLOUR_MAUVE, WID_AIC_GAMELIST), SetMinimalSize(288, 14), SetFill(1, 0), SetMatrixDataTip(1, 1, STR_AI_CONFIG_GAMELIST_TOOLTIP),
 		EndContainer(),
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE), SetPIP(7, 0, 7),
 			NWidget(WWT_PUSHTXTBTN, COLOUR_YELLOW, WID_AIC_CHANGE), SetFill(1, 0), SetMinimalSize(93, 12), SetDataTip(STR_AI_CONFIG_CHANGE, STR_AI_CONFIG_CHANGE_TOOLTIP),
@@ -697,8 +699,8 @@ static const NWidgetPart _nested_ai_config_widgets[] = {
 };
 
 /** Window definition for the configure AI window. */
-static const WindowDesc _ai_config_desc(
-	WDP_CENTER, 0, 0,
+static WindowDesc _ai_config_desc(
+	WDP_CENTER, "settings_script_config", 0, 0,
 	WC_GAME_OPTIONS, WC_NONE,
 	0,
 	_nested_ai_config_widgets, lengthof(_nested_ai_config_widgets)
@@ -712,15 +714,14 @@ struct AIConfigWindow : public Window {
 	int line_height;         ///< Height of a single AI-name line.
 	Scrollbar *vscroll;      ///< Cache of the vertical scrollbar.
 
-	AIConfigWindow() : Window()
+	AIConfigWindow() : Window(&_ai_config_desc)
 	{
-		this->InitNested(&_ai_config_desc, WN_GAME_OPTIONS_AI); // Initializes 'this->line_height' as a side effect.
+		this->InitNested(WN_GAME_OPTIONS_AI); // Initializes 'this->line_height' as a side effect.
 		this->vscroll = this->GetScrollbar(WID_AIC_SCROLLBAR);
 		this->selected_slot = INVALID_COMPANY;
 		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_AIC_LIST);
 		this->vscroll->SetCapacity(nwi->current_y / this->line_height);
 		this->vscroll->SetCount(MAX_COMPANIES);
-		nwi->widget_data = (this->vscroll->GetCapacity() << MAT_ROW_START) + (1 << MAT_COL_START);
 		this->OnInvalidateData(0);
 	}
 
@@ -758,10 +759,30 @@ struct AIConfigWindow : public Window {
 	{
 		switch (widget) {
 			case WID_AIC_GAMELIST:
+				this->line_height = FONT_HEIGHT_NORMAL + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
+				size->height = 1 * this->line_height;
+				break;
+
 			case WID_AIC_LIST:
 				this->line_height = FONT_HEIGHT_NORMAL + WD_MATRIX_TOP + WD_MATRIX_BOTTOM;
-				size->height = GB(this->GetWidget<NWidgetCore>(widget)->widget_data, MAT_ROW_START, MAT_ROW_BITS) * this->line_height;
+				size->height = 8 * this->line_height;
 				break;
+
+			case WID_AIC_CHANGE: {
+				SetDParam(0, STR_AI_CONFIG_CHANGE_GAMESCRIPT);
+				Dimension dim = GetStringBoundingBox(STR_AI_CONFIG_CHANGE);
+
+				SetDParam(0, STR_AI_CONFIG_CHANGE_NONE);
+				dim = maxdim(dim, GetStringBoundingBox(STR_AI_CONFIG_CHANGE));
+
+				SetDParam(0, STR_AI_CONFIG_CHANGE_AI);
+				dim = maxdim(dim, GetStringBoundingBox(STR_AI_CONFIG_CHANGE));
+
+				dim.width += padding.width;
+				dim.height += padding.height;
+				*size = maxdim(*size, dim);
+				break;
+			}
 		}
 	}
 
@@ -851,7 +872,7 @@ struct AIConfigWindow : public Window {
 			case WID_AIC_GAMELIST: {
 				this->selected_slot = OWNER_DEITY;
 				this->InvalidateData();
-				if (click_count > 1 && this->selected_slot != INVALID_COMPANY) ShowAIListWindow((CompanyID)this->selected_slot);
+				if (click_count > 1 && this->selected_slot != INVALID_COMPANY && _game_mode != GM_NORMAL) ShowAIListWindow((CompanyID)this->selected_slot);
 				break;
 			}
 
@@ -897,8 +918,7 @@ struct AIConfigWindow : public Window {
 					ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
 				} else {
 #if defined(ENABLE_NETWORK)
-					ShowNetworkContentListWindow(NULL, CONTENT_TYPE_AI);
-					_network_content_client.RequestContentList(CONTENT_TYPE_GAME);
+					ShowNetworkContentListWindow(NULL, CONTENT_TYPE_AI, CONTENT_TYPE_GAME);
 #endif
 				}
 				break;
@@ -966,7 +986,7 @@ struct AIDebugWindow : public Window {
 	static const int top_offset;    ///< Offset of the text at the top of the WID_AID_LOG_PANEL.
 	static const int bottom_offset; ///< Offset of the text at the bottom of the WID_AID_LOG_PANEL.
 
-	static const unsigned int MAX_BREAK_STR_STRING_LENGTH = 256; ///< Maximum length of the break string.
+	static const uint MAX_BREAK_STR_STRING_LENGTH = 256;   ///< Maximum length of the break string.
 
 	static CompanyID ai_debug_company;                     ///< The AI that is (was last) being debugged.
 	int redraw_timer;                                      ///< Timer for redrawing the window, otherwise it'll happen every tick.
@@ -1042,13 +1062,13 @@ struct AIDebugWindow : public Window {
 	 * @param desc The description of the window.
 	 * @param number The window number (actually unused).
 	 */
-	AIDebugWindow(const WindowDesc *desc, WindowNumber number) : break_editbox(MAX_BREAK_STR_STRING_LENGTH)
+	AIDebugWindow(WindowDesc *desc, WindowNumber number) : Window(desc), break_editbox(MAX_BREAK_STR_STRING_LENGTH)
 	{
-		this->CreateNestedTree(desc);
+		this->CreateNestedTree();
 		this->vscroll = this->GetScrollbar(WID_AID_SCROLLBAR);
 		this->show_break_box = _settings_client.gui.ai_developer_tools;
 		this->GetWidget<NWidgetStacked>(WID_AID_BREAK_STRING_WIDGETS)->SetDisplayedPlane(this->show_break_box ? 0 : SZSP_HORIZONTAL);
-		this->FinishInitNested(desc, number);
+		this->FinishInitNested(number);
 
 		if (!this->show_break_box) break_check_enabled = false;
 
@@ -1057,6 +1077,8 @@ struct AIDebugWindow : public Window {
 		this->highlight_row = -1;
 
 		this->querystrings[WID_AID_BREAK_STR_EDIT_BOX] = &this->break_editbox;
+
+		SetWidgetsDisabledState(!this->show_break_box, WID_AID_BREAK_STR_ON_OFF_BTN, WID_AID_BREAK_STR_EDIT_BOX, WID_AID_MATCH_CASE_BTN, WIDGET_LIST_END);
 
 		/* Restore the break string value from static variable */
 		this->break_editbox.text.Assign(this->break_string);
@@ -1303,23 +1325,6 @@ struct AIDebugWindow : public Window {
 		}
 	}
 
-	virtual EventState OnKeyPress(uint16 key, uint16 keycode)
-	{
-		EventState state = ES_NOT_HANDLED;
-		int num = CheckHotkeyMatch(aidebug_hotkeys, keycode, this);
-		if (num != -1) {
-			if (this->show_break_box && num == WID_AID_BREAK_STR_EDIT_BOX) {
-				this->SetFocusedWidget(WID_AID_BREAK_STR_EDIT_BOX);
-				SetFocusedWindow(this);
-				state = ES_HANDLED;
-			} else if (this->show_break_box || num < WID_AID_BREAK_STRING_WIDGETS) {
-				this->OnClick(Point(), num, 1);
-				state = ES_HANDLED;
-			}
-		}
-		return state;
-	}
-
 	virtual void OnEditboxChanged(int wid)
 	{
 		if (wid == WID_AID_BREAK_STR_EDIT_BOX) {
@@ -1397,7 +1402,7 @@ struct AIDebugWindow : public Window {
 		this->vscroll->SetCapacityFromWidget(this, WID_AID_LOG_PANEL);
 	}
 
-	static Hotkey<AIDebugWindow> aidebug_hotkeys[];
+	static HotkeyList hotkeys;
 };
 
 const int AIDebugWindow::top_offset = WD_FRAMERECT_TOP + 2;
@@ -1414,32 +1419,45 @@ NWidgetBase *MakeCompanyButtonRowsAIDebug(int *biggest_index)
 	return MakeCompanyButtonRows(biggest_index, WID_AID_COMPANY_BUTTON_START, WID_AID_COMPANY_BUTTON_END, 8, STR_AI_DEBUG_SELECT_AI_TOOLTIP);
 }
 
-Hotkey<AIDebugWindow> AIDebugWindow::aidebug_hotkeys[] = {
-	Hotkey<AIDebugWindow>('1', "company_1", WID_AID_COMPANY_BUTTON_START),
-	Hotkey<AIDebugWindow>('2', "company_2", WID_AID_COMPANY_BUTTON_START + 1),
-	Hotkey<AIDebugWindow>('3', "company_3", WID_AID_COMPANY_BUTTON_START + 2),
-	Hotkey<AIDebugWindow>('4', "company_4", WID_AID_COMPANY_BUTTON_START + 3),
-	Hotkey<AIDebugWindow>('5', "company_5", WID_AID_COMPANY_BUTTON_START + 4),
-	Hotkey<AIDebugWindow>('6', "company_6", WID_AID_COMPANY_BUTTON_START + 5),
-	Hotkey<AIDebugWindow>('7', "company_7", WID_AID_COMPANY_BUTTON_START + 6),
-	Hotkey<AIDebugWindow>('8', "company_8", WID_AID_COMPANY_BUTTON_START + 7),
-	Hotkey<AIDebugWindow>('9', "company_9", WID_AID_COMPANY_BUTTON_START + 8),
-	Hotkey<AIDebugWindow>((uint16)0, "company_10", WID_AID_COMPANY_BUTTON_START + 9),
-	Hotkey<AIDebugWindow>((uint16)0, "company_11", WID_AID_COMPANY_BUTTON_START + 10),
-	Hotkey<AIDebugWindow>((uint16)0, "company_12", WID_AID_COMPANY_BUTTON_START + 11),
-	Hotkey<AIDebugWindow>((uint16)0, "company_13", WID_AID_COMPANY_BUTTON_START + 12),
-	Hotkey<AIDebugWindow>((uint16)0, "company_14", WID_AID_COMPANY_BUTTON_START + 13),
-	Hotkey<AIDebugWindow>((uint16)0, "company_15", WID_AID_COMPANY_BUTTON_START + 14),
-	Hotkey<AIDebugWindow>('S', "settings", WID_AID_SETTINGS),
-	Hotkey<AIDebugWindow>('0', "game_script", WID_AID_SCRIPT_GAME),
-	Hotkey<AIDebugWindow>((uint16)0, "reload", WID_AID_RELOAD_TOGGLE),
-	Hotkey<AIDebugWindow>('B', "break_toggle", WID_AID_BREAK_STR_ON_OFF_BTN),
-	Hotkey<AIDebugWindow>('F', "break_string", WID_AID_BREAK_STR_EDIT_BOX),
-	Hotkey<AIDebugWindow>('C', "match_case", WID_AID_MATCH_CASE_BTN),
-	Hotkey<AIDebugWindow>(WKC_RETURN, "continue", WID_AID_CONTINUE_BTN),
-	HOTKEY_LIST_END(AIDebugWindow)
+/**
+ * Handler for global hotkeys of the AIDebugWindow.
+ * @param hotkey Hotkey
+ * @return ES_HANDLED if hotkey was accepted.
+ */
+static EventState AIDebugGlobalHotkeys(int hotkey)
+{
+	if (_game_mode != GM_NORMAL) return ES_NOT_HANDLED;
+	Window *w = ShowAIDebugWindow(INVALID_COMPANY);
+	if (w == NULL) return ES_NOT_HANDLED;
+	return w->OnHotkey(hotkey);
+}
+
+static Hotkey aidebug_hotkeys[] = {
+	Hotkey('1', "company_1", WID_AID_COMPANY_BUTTON_START),
+	Hotkey('2', "company_2", WID_AID_COMPANY_BUTTON_START + 1),
+	Hotkey('3', "company_3", WID_AID_COMPANY_BUTTON_START + 2),
+	Hotkey('4', "company_4", WID_AID_COMPANY_BUTTON_START + 3),
+	Hotkey('5', "company_5", WID_AID_COMPANY_BUTTON_START + 4),
+	Hotkey('6', "company_6", WID_AID_COMPANY_BUTTON_START + 5),
+	Hotkey('7', "company_7", WID_AID_COMPANY_BUTTON_START + 6),
+	Hotkey('8', "company_8", WID_AID_COMPANY_BUTTON_START + 7),
+	Hotkey('9', "company_9", WID_AID_COMPANY_BUTTON_START + 8),
+	Hotkey((uint16)0, "company_10", WID_AID_COMPANY_BUTTON_START + 9),
+	Hotkey((uint16)0, "company_11", WID_AID_COMPANY_BUTTON_START + 10),
+	Hotkey((uint16)0, "company_12", WID_AID_COMPANY_BUTTON_START + 11),
+	Hotkey((uint16)0, "company_13", WID_AID_COMPANY_BUTTON_START + 12),
+	Hotkey((uint16)0, "company_14", WID_AID_COMPANY_BUTTON_START + 13),
+	Hotkey((uint16)0, "company_15", WID_AID_COMPANY_BUTTON_START + 14),
+	Hotkey('S', "settings", WID_AID_SETTINGS),
+	Hotkey('0', "game_script", WID_AID_SCRIPT_GAME),
+	Hotkey((uint16)0, "reload", WID_AID_RELOAD_TOGGLE),
+	Hotkey('B', "break_toggle", WID_AID_BREAK_STR_ON_OFF_BTN),
+	Hotkey('F', "break_string", WID_AID_BREAK_STR_EDIT_BOX),
+	Hotkey('C', "match_case", WID_AID_MATCH_CASE_BTN),
+	Hotkey(WKC_RETURN, "continue", WID_AID_CONTINUE_BTN),
+	HOTKEY_LIST_END
 };
-Hotkey<AIDebugWindow> *_aidebug_hotkeys = AIDebugWindow::aidebug_hotkeys;
+HotkeyList AIDebugWindow::hotkeys("aidebug", aidebug_hotkeys, AIDebugGlobalHotkeys);
 
 /** Widgets for the AI debug window. */
 static const NWidgetPart _nested_ai_debug_widgets[] = {
@@ -1447,6 +1465,7 @@ static const NWidgetPart _nested_ai_debug_widgets[] = {
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
 		NWidget(WWT_CAPTION, COLOUR_GREY), SetDataTip(STR_AI_DEBUG, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
 		NWidget(WWT_SHADEBOX, COLOUR_GREY),
+		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 		NWidget(WWT_STICKYBOX, COLOUR_GREY),
 	EndContainer(),
 	NWidget(WWT_PANEL, COLOUR_GREY, WID_AID_VIEW),
@@ -1486,11 +1505,12 @@ static const NWidgetPart _nested_ai_debug_widgets[] = {
 };
 
 /** Window definition for the AI debug window. */
-static const WindowDesc _ai_debug_desc(
-	WDP_AUTO, 600, 450,
+static WindowDesc _ai_debug_desc(
+	WDP_AUTO, "script_debug", 600, 450,
 	WC_AI_DEBUG, WC_NONE,
 	0,
-	_nested_ai_debug_widgets, lengthof(_nested_ai_debug_widgets)
+	_nested_ai_debug_widgets, lengthof(_nested_ai_debug_widgets),
+	&AIDebugWindow::hotkeys
 );
 
 /**
@@ -1509,18 +1529,6 @@ Window *ShowAIDebugWindow(CompanyID show_company)
 	}
 
 	return NULL;
-}
-
-/**
- * Handler for global AI debug window hotkeys.
- */
-EventState AIDebugGlobalHotkeys(uint16 key, uint16 keycode)
-{
-	int num = CheckHotkeyMatch<AIDebugWindow>(_aidebug_hotkeys, keycode, NULL, true);
-	if (num == -1) return ES_NOT_HANDLED;
-	Window *w = ShowAIDebugWindow(INVALID_COMPANY);
-	if (w == NULL) return ES_NOT_HANDLED;
-	return w->OnKeyPress(key, keycode);
 }
 
 /**

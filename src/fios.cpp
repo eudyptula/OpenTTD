@@ -26,17 +26,18 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /* Variables to display file lists */
-SmallVector<FiosItem, 32> _fios_items;
 static char *_fios_path;
-SmallFiosItem _file_to_saveload;
+static const char *_fios_path_last;
 SortingBits _savegame_sort_order = SORT_BY_DATE | SORT_DESCENDING;
 
 /* OS-specific functions are taken from their respective files (win32/unix/os2 .c) */
 extern bool FiosIsRoot(const char *path);
 extern bool FiosIsValidFile(const char *path, const struct dirent *ent, struct stat *sb);
 extern bool FiosIsHiddenFile(const struct dirent *ent);
-extern void FiosGetDrives();
+extern void FiosGetDrives(FileList &file_list);
 extern bool FiosGetDiskFreeSpace(const char *path, uint64 *tot);
 
 /* get the name of an oldstyle savegame */
@@ -62,11 +63,72 @@ int CDECL CompareFiosItems(const FiosItem *da, const FiosItem *db)
 	return r;
 }
 
-/** Free the list of savegames. */
-void FiosFreeSavegameList()
+FileList::~FileList()
 {
-	_fios_items.Clear();
-	_fios_items.Compact();
+	this->Clear();
+}
+
+/**
+ * Construct a file list with the given kind of files, for the stated purpose.
+ * @param abstract_filetype Kind of files to collect.
+ * @param fop Purpose of the collection, either #SLO_LOAD or #SLO_SAVE.
+ */
+void FileList::BuildFileList(AbstractFileType abstract_filetype, SaveLoadOperation fop)
+{
+	this->Clear();
+
+	assert(fop == SLO_LOAD || SLO_SAVE);
+	switch (abstract_filetype) {
+		case FT_NONE:
+			break;
+
+		case FT_SAVEGAME:
+			FiosGetSavegameList(fop, *this);
+			break;
+
+		case FT_SCENARIO:
+			FiosGetScenarioList(fop, *this);
+			break;
+
+		case FT_HEIGHTMAP:
+			FiosGetHeightmapList(fop, *this);
+			break;
+
+		default:
+			NOT_REACHED();
+	}
+}
+
+/**
+ * Find file information of a file by its name from the file list.
+ * @param file The filename to return information about. Can be the actual name
+ *             or a numbered entry into the filename list.
+ * @return The information on the file, or \c NULL if the file is not available.
+ */
+const FiosItem *FileList::FindItem(const char *file)
+{
+	for (const FiosItem *item = this->Begin(); item != this->End(); item++) {
+		if (strcmp(file, item->name) == 0) return item;
+		if (strcmp(file, item->title) == 0) return item;
+	}
+
+	/* If no name matches, try to parse it as number */
+	char *endptr;
+	int i = strtol(file, &endptr, 10);
+	if (file == endptr || *endptr != '\0') i = -1;
+
+	if (IsInsideMM(i, 0, this->Length())) return this->Get(i);
+
+	/* As a last effort assume it is an OpenTTD savegame and
+	 * that the ".sav" part was not given. */
+	char long_file[MAX_PATH];
+	seprintf(long_file, lastof(long_file), "%s.sav", file);
+	for (const FiosItem *item = this->Begin(); item != this->End(); item++) {
+		if (strcmp(long_file, item->name) == 0) return item;
+		if (strcmp(long_file, item->title) == 0) return item;
+	}
+
+	return NULL;
 }
 
 /**
@@ -89,14 +151,12 @@ StringID FiosGetDescText(const char **path, uint64 *total_free)
  */
 const char *FiosBrowseTo(const FiosItem *item)
 {
-	char *path = _fios_path;
-
 	switch (item->type) {
 		case FIOS_TYPE_DRIVE:
 #if defined(WINCE)
-			snprintf(path, MAX_PATH, PATHSEP "");
+			seprintf(_fios_path, _fios_path_last, PATHSEP "");
 #elif defined(WIN32) || defined(__OS2__)
-			snprintf(path, MAX_PATH, "%c:" PATHSEP, item->title[0]);
+			seprintf(_fios_path, _fios_path_last, "%c:" PATHSEP, item->title[0]);
 #endif
 			/* FALL THROUGH */
 		case FIOS_TYPE_INVALID:
@@ -104,16 +164,16 @@ const char *FiosBrowseTo(const FiosItem *item)
 
 		case FIOS_TYPE_PARENT: {
 			/* Check for possible NULL ptr (not required for UNIXes, but AmigaOS-alikes) */
-			char *s = strrchr(path, PATHSEPCHAR);
-			if (s != NULL && s != path) {
+			char *s = strrchr(_fios_path, PATHSEPCHAR);
+			if (s != NULL && s != _fios_path) {
 				s[0] = '\0'; // Remove last path separator character, so we can go up one level.
 			}
-			s = strrchr(path, PATHSEPCHAR);
+			s = strrchr(_fios_path, PATHSEPCHAR);
 			if (s != NULL) {
 				s[1] = '\0'; // go up a directory
 #if defined(__MORPHOS__) || defined(__AMIGAOS__)
 			/* On MorphOS or AmigaOS paths look like: "Volume:directory/subdirectory" */
-			} else if ((s = strrchr(path, ':')) != NULL) {
+			} else if ((s = strrchr(_fios_path, ':')) != NULL) {
 				s[1] = '\0';
 #endif
 			}
@@ -121,12 +181,12 @@ const char *FiosBrowseTo(const FiosItem *item)
 		}
 
 		case FIOS_TYPE_DIR:
-			strcat(path, item->name);
-			strcat(path, PATHSEP);
+			strecat(_fios_path, item->name, _fios_path_last);
+			strecat(_fios_path, PATHSEP, _fios_path_last);
 			break;
 
 		case FIOS_TYPE_DIRECT:
-			snprintf(path, MAX_PATH, "%s", item->name);
+			seprintf(_fios_path, _fios_path_last, "%s", item->name);
 			break;
 
 		case FIOS_TYPE_FILE:
@@ -147,9 +207,9 @@ const char *FiosBrowseTo(const FiosItem *item)
  * @param path Directory path, may be \c NULL.
  * @param name Filename.
  * @param ext Filename extension (use \c "" for no extension).
- * @param size Size of \a buf.
+ * @param last Last element of buffer \a buf.
  */
-static void FiosMakeFilename(char *buf, const char *path, const char *name, const char *ext, size_t size)
+static void FiosMakeFilename(char *buf, const char *path, const char *name, const char *ext, const char *last)
 {
 	const char *period;
 
@@ -161,15 +221,15 @@ static void FiosMakeFilename(char *buf, const char *path, const char *name, cons
 		unsigned char sepchar = path[(strlen(path) - 1)];
 
 		if (sepchar != ':' && sepchar != '/') {
-			snprintf(buf, size, "%s" PATHSEP "%s%s", path, name, ext);
+			seprintf(buf, last, "%s" PATHSEP "%s%s", path, name, ext);
 		} else {
-			snprintf(buf, size, "%s%s%s", path, name, ext);
+			seprintf(buf, last, "%s%s%s", path, name, ext);
 		}
 	} else {
-		snprintf(buf, size, "%s%s", name, ext);
+		seprintf(buf, last, "%s%s", name, ext);
 	}
 #else
-	snprintf(buf, size, "%s" PATHSEP "%s%s", path, name, ext);
+	seprintf(buf, last, "%s" PATHSEP "%s%s", path, name, ext);
 #endif
 }
 
@@ -177,59 +237,61 @@ static void FiosMakeFilename(char *buf, const char *path, const char *name, cons
  * Make a save game or scenario filename from a name.
  * @param buf Destination buffer for saving the filename.
  * @param name Name of the file.
- * @param size Length of buffer \a buf.
+ * @param last Last element of buffer \a buf.
  */
-void FiosMakeSavegameName(char *buf, const char *name, size_t size)
+void FiosMakeSavegameName(char *buf, const char *name, const char *last)
 {
 	const char *extension = (_game_mode == GM_EDITOR) ? ".scn" : ".sav";
 
-	FiosMakeFilename(buf, _fios_path, name, extension, size);
+	FiosMakeFilename(buf, _fios_path, name, extension, last);
 }
 
 /**
  * Construct a filename for a height map.
  * @param buf Destination buffer.
  * @param name Filename.
- * @param size Size of \a buf.
+ * @param last Last element of buffer \a buf.
  */
-void FiosMakeHeightmapName(char *buf, const char *name, size_t size)
+void FiosMakeHeightmapName(char *buf, const char *name, const char *last)
 {
 	char ext[5];
 	ext[0] = '.';
 	strecpy(ext + 1, GetCurrentScreenshotExtension(), lastof(ext));
 
-	FiosMakeFilename(buf, _fios_path, name, ext, size);
+	FiosMakeFilename(buf, _fios_path, name, ext, last);
 }
 
 /**
  * Delete a file.
  * @param name Filename to delete.
+ * @return Whether the file deletion was successful.
  */
 bool FiosDelete(const char *name)
 {
 	char filename[512];
 
-	FiosMakeSavegameName(filename, name, lengthof(filename));
+	FiosMakeSavegameName(filename, name, lastof(filename));
 	return unlink(filename) == 0;
 }
 
-typedef FiosType fios_getlist_callback_proc(SaveLoadDialogMode mode, const char *filename, const char *ext, char *title, const char *last);
+typedef FiosType fios_getlist_callback_proc(SaveLoadOperation fop, const char *filename, const char *ext, char *title, const char *last);
 
 /**
  * Scanner to scan for a particular type of FIOS file.
  */
 class FiosFileScanner : public FileScanner {
-	SaveLoadDialogMode mode; ///< The mode we want to search for
+	SaveLoadOperation fop;   ///< The kind of file we are looking for.
 	fios_getlist_callback_proc *callback_proc; ///< Callback to check whether the file may be added
+	FileList &file_list;     ///< Destination of the found files.
 public:
 	/**
 	 * Create the scanner
-	 *  @param mode The mode we are in. Some modes don't allow 'parent'.
-	 *  @param callback_proc The function that is called where you need to do the filtering.
+	 * @param fop Purpose of collecting the list.
+	 * @param callback_proc The function that is called where you need to do the filtering.
+	 * @param file_list Destination of the found files.
 	 */
-	FiosFileScanner(SaveLoadDialogMode mode, fios_getlist_callback_proc *callback_proc) :
-		mode(mode),
-		callback_proc(callback_proc)
+	FiosFileScanner(SaveLoadOperation fop, fios_getlist_callback_proc *callback_proc, FileList &file_list) :
+			fop(fop), callback_proc(callback_proc), file_list(file_list)
 	{}
 
 	/* virtual */ bool AddFile(const char *filename, size_t basepath_length, const char *tar_filename);
@@ -249,14 +311,14 @@ bool FiosFileScanner::AddFile(const char *filename, size_t basepath_length, cons
 	char fios_title[64];
 	fios_title[0] = '\0'; // reset the title;
 
-	FiosType type = this->callback_proc(this->mode, filename, ext, fios_title, lastof(fios_title));
+	FiosType type = this->callback_proc(this->fop, filename, ext, fios_title, lastof(fios_title));
 	if (type == FIOS_TYPE_INVALID) return false;
 
-	for (const FiosItem *fios = _fios_items.Begin(); fios != _fios_items.End(); fios++) {
+	for (const FiosItem *fios = file_list.Begin(); fios != file_list.End(); fios++) {
 		if (strcmp(fios->name, filename) == 0) return false;
 	}
 
-	FiosItem *fios = _fios_items.Append();
+	FiosItem *fios = file_list.Append();
 #ifdef WIN32
 	struct _stat sb;
 	if (_tstat(OTTD2FS(filename), &sb) == 0) {
@@ -287,11 +349,12 @@ bool FiosFileScanner::AddFile(const char *filename, size_t basepath_length, cons
 
 /**
  * Fill the list of the files in a directory, according to some arbitrary rule.
- *  @param mode The mode we are in. Some modes don't allow 'parent'.
- *  @param callback_proc The function that is called where you need to do the filtering.
- *  @param subdir The directory from where to start (global) searching.
+ * @param fop Purpose of collecting the list.
+ * @param callback_proc The function that is called where you need to do the filtering.
+ * @param subdir The directory from where to start (global) searching.
+ * @param file_list Destination of the found files.
  */
-static void FiosGetFileList(SaveLoadDialogMode mode, fios_getlist_callback_proc *callback_proc, Subdirectory subdir)
+static void FiosGetFileList(SaveLoadOperation fop, fios_getlist_callback_proc *callback_proc, Subdirectory subdir, FileList &file_list)
 {
 	struct stat sb;
 	struct dirent *dirent;
@@ -300,11 +363,11 @@ static void FiosGetFileList(SaveLoadDialogMode mode, fios_getlist_callback_proc 
 	int sort_start;
 	char d_name[sizeof(fios->name)];
 
-	_fios_items.Clear();
+	file_list.Clear();
 
 	/* A parent directory link exists if we are not in the root directory */
 	if (!FiosIsRoot(_fios_path)) {
-		fios = _fios_items.Append();
+		fios = file_list.Append();
 		fios->type = FIOS_TYPE_PARENT;
 		fios->mtime = 0;
 		strecpy(fios->name, "..", lastof(fios->name));
@@ -320,11 +383,11 @@ static void FiosGetFileList(SaveLoadDialogMode mode, fios_getlist_callback_proc 
 			if (FiosIsValidFile(_fios_path, dirent, &sb) && S_ISDIR(sb.st_mode) &&
 					(!FiosIsHiddenFile(dirent) || strncasecmp(d_name, PERSONAL_DIR, strlen(d_name)) == 0) &&
 					strcmp(d_name, ".") != 0 && strcmp(d_name, "..") != 0) {
-				fios = _fios_items.Append();
+				fios = file_list.Append();
 				fios->type = FIOS_TYPE_DIR;
 				fios->mtime = 0;
 				strecpy(fios->name, d_name, lastof(fios->name));
-				snprintf(fios->title, lengthof(fios->title), "%s" PATHSEP " (Directory)", d_name);
+				seprintf(fios->title, lastof(fios->title), "%s" PATHSEP " (Directory)", d_name);
 				str_validate(fios->title, lastof(fios->title));
 			}
 		}
@@ -335,27 +398,27 @@ static void FiosGetFileList(SaveLoadDialogMode mode, fios_getlist_callback_proc 
 	{
 		SortingBits order = _savegame_sort_order;
 		_savegame_sort_order = SORT_BY_NAME | SORT_ASCENDING;
-		QSortT(_fios_items.Begin(), _fios_items.Length(), CompareFiosItems);
+		QSortT(file_list.files.Begin(), file_list.files.Length(), CompareFiosItems);
 		_savegame_sort_order = order;
 	}
 
 	/* This is where to start sorting for the filenames */
-	sort_start = _fios_items.Length();
+	sort_start = file_list.Length();
 
 	/* Show files */
-	FiosFileScanner scanner(mode, callback_proc);
+	FiosFileScanner scanner(fop, callback_proc, file_list);
 	if (subdir == NO_DIRECTORY) {
 		scanner.Scan(NULL, _fios_path, false);
 	} else {
 		scanner.Scan(NULL, subdir, true, true);
 	}
 
-	QSortT(_fios_items.Get(sort_start), _fios_items.Length() - sort_start, CompareFiosItems);
+	QSortT(file_list.Get(sort_start), file_list.Length() - sort_start, CompareFiosItems);
 
 	/* Show drives */
-	FiosGetDrives();
+	FiosGetDrives(file_list);
 
-	_fios_items.Compact();
+	file_list.Compact();
 }
 
 /**
@@ -384,7 +447,7 @@ static void GetFileTitle(const char *file, char *title, const char *last, Subdir
 
 /**
  * Callback for FiosGetFileList. It tells if a file is a savegame or not.
- * @param mode Save/load mode.
+ * @param fop Purpose of collecting the list.
  * @param file Name of the file to check.
  * @param ext A pointer to the extension identifier inside file
  * @param title Buffer if a callback wants to lookup the title of the file; NULL to skip the lookup
@@ -393,19 +456,23 @@ static void GetFileTitle(const char *file, char *title, const char *last, Subdir
  * @see FiosGetFileList
  * @see FiosGetSavegameList
  */
-FiosType FiosGetSavegameListCallback(SaveLoadDialogMode mode, const char *file, const char *ext, char *title, const char *last)
+FiosType FiosGetSavegameListCallback(SaveLoadOperation fop, const char *file, const char *ext, char *title, const char *last)
 {
 	/* Show savegame files
 	 * .SAV OpenTTD saved game
 	 * .SS1 Transport Tycoon Deluxe preset game
 	 * .SV1 Transport Tycoon Deluxe (Patch) saved game
 	 * .SV2 Transport Tycoon Deluxe (Patch) saved 2-player game */
+
+	/* Don't crash if we supply no extension */
+	if (ext == NULL) return FIOS_TYPE_INVALID;
+
 	if (strcasecmp(ext, ".sav") == 0) {
 		GetFileTitle(file, title, last, SAVE_DIR);
 		return FIOS_TYPE_FILE;
 	}
 
-	if (mode == SLD_LOAD_GAME || mode == SLD_LOAD_SCENARIO) {
+	if (fop == SLO_LOAD) {
 		if (strcasecmp(ext, ".ss1") == 0 || strcasecmp(ext, ".sv1") == 0 ||
 				strcasecmp(ext, ".sv2") == 0) {
 			if (title != NULL) GetOldSaveGameName(file, title, last);
@@ -418,26 +485,30 @@ FiosType FiosGetSavegameListCallback(SaveLoadDialogMode mode, const char *file, 
 
 /**
  * Get a list of savegames.
- * @param mode Save/load mode.
+ * @param fop Purpose of collecting the list.
+ * @param file_list Destination of the found files.
  * @see FiosGetFileList
  */
-void FiosGetSavegameList(SaveLoadDialogMode mode)
+void FiosGetSavegameList(SaveLoadOperation fop, FileList &file_list)
 {
 	static char *fios_save_path = NULL;
+	static char *fios_save_path_last = NULL;
 
 	if (fios_save_path == NULL) {
 		fios_save_path = MallocT<char>(MAX_PATH);
-		FioGetDirectory(fios_save_path, MAX_PATH, SAVE_DIR);
+		fios_save_path_last = fios_save_path + MAX_PATH - 1;
+		FioGetDirectory(fios_save_path, fios_save_path_last, SAVE_DIR);
 	}
 
 	_fios_path = fios_save_path;
+	_fios_path_last = fios_save_path_last;
 
-	FiosGetFileList(mode, &FiosGetSavegameListCallback, NO_DIRECTORY);
+	FiosGetFileList(fop, &FiosGetSavegameListCallback, NO_DIRECTORY, file_list);
 }
 
 /**
  * Callback for FiosGetFileList. It tells if a file is a scenario or not.
- * @param mode Save/load mode.
+ * @param fop Purpose of collecting the list.
  * @param file Name of the file to check.
  * @param ext A pointer to the extension identifier inside file
  * @param title Buffer if a callback wants to lookup the title of the file
@@ -446,7 +517,7 @@ void FiosGetSavegameList(SaveLoadDialogMode mode)
  * @see FiosGetFileList
  * @see FiosGetScenarioList
  */
-static FiosType FiosGetScenarioListCallback(SaveLoadDialogMode mode, const char *file, const char *ext, char *title, const char *last)
+static FiosType FiosGetScenarioListCallback(SaveLoadOperation fop, const char *file, const char *ext, char *title, const char *last)
 {
 	/* Show scenario files
 	 * .SCN OpenTTD style scenario file
@@ -457,7 +528,7 @@ static FiosType FiosGetScenarioListCallback(SaveLoadDialogMode mode, const char 
 		return FIOS_TYPE_SCENARIO;
 	}
 
-	if (mode == SLD_LOAD_GAME || mode == SLD_LOAD_SCENARIO) {
+	if (fop == SLO_LOAD) {
 		if (strcasecmp(ext, ".sv0") == 0 || strcasecmp(ext, ".ss0") == 0 ) {
 			GetOldSaveGameName(file, title, last);
 			return FIOS_TYPE_OLD_SCENARIO;
@@ -469,28 +540,33 @@ static FiosType FiosGetScenarioListCallback(SaveLoadDialogMode mode, const char 
 
 /**
  * Get a list of scenarios.
- * @param mode Save/load mode.
+ * @param fop Purpose of collecting the list.
+ * @param file_list Destination of the found files.
  * @see FiosGetFileList
  */
-void FiosGetScenarioList(SaveLoadDialogMode mode)
+void FiosGetScenarioList(SaveLoadOperation fop, FileList &file_list)
 {
 	static char *fios_scn_path = NULL;
+	static char *fios_scn_path_last = NULL;
 
 	/* Copy the default path on first run or on 'New Game' */
 	if (fios_scn_path == NULL) {
 		fios_scn_path = MallocT<char>(MAX_PATH);
-		FioGetDirectory(fios_scn_path, MAX_PATH, SCENARIO_DIR);
+		fios_scn_path_last = fios_scn_path + MAX_PATH - 1;
+		FioGetDirectory(fios_scn_path, fios_scn_path_last, SCENARIO_DIR);
 	}
 
 	_fios_path = fios_scn_path;
+	_fios_path_last = fios_scn_path_last;
 
 	char base_path[MAX_PATH];
-	FioGetDirectory(base_path, sizeof(base_path), SCENARIO_DIR);
+	FioGetDirectory(base_path, lastof(base_path), SCENARIO_DIR);
 
-	FiosGetFileList(mode, &FiosGetScenarioListCallback, (mode == SLD_LOAD_SCENARIO && strcmp(base_path, _fios_path) == 0) ? SCENARIO_DIR : NO_DIRECTORY);
+	Subdirectory subdir = (fop == SLO_LOAD && strcmp(base_path, _fios_path) == 0) ? SCENARIO_DIR : NO_DIRECTORY;
+	FiosGetFileList(fop, &FiosGetScenarioListCallback, subdir, file_list);
 }
 
-static FiosType FiosGetHeightmapListCallback(SaveLoadDialogMode mode, const char *file, const char *ext, char *title, const char *last)
+static FiosType FiosGetHeightmapListCallback(SaveLoadOperation fop, const char *file, const char *ext, char *title, const char *last)
 {
 	/* Show heightmap files
 	 * .PNG PNG Based heightmap files
@@ -518,7 +594,7 @@ static FiosType FiosGetHeightmapListCallback(SaveLoadDialogMode mode, const char
 		Searchpath sp;
 		FOR_ALL_SEARCHPATHS(sp) {
 			char buf[MAX_PATH];
-			FioAppendDirectory(buf, sizeof(buf), sp, HEIGHTMAP_DIR);
+			FioAppendDirectory(buf, lastof(buf), sp, HEIGHTMAP_DIR);
 
 			if (strncmp(buf, it->second.tar_filename, strlen(buf)) == 0) {
 				match = true;
@@ -536,23 +612,28 @@ static FiosType FiosGetHeightmapListCallback(SaveLoadDialogMode mode, const char
 
 /**
  * Get a list of heightmaps.
- * @param mode Save/load mode.
+ * @param fop Purpose of collecting the list.
+ * @param file_list Destination of the found files.
  */
-void FiosGetHeightmapList(SaveLoadDialogMode mode)
+void FiosGetHeightmapList(SaveLoadOperation fop, FileList &file_list)
 {
 	static char *fios_hmap_path = NULL;
+	static char *fios_hmap_path_last = NULL;
 
 	if (fios_hmap_path == NULL) {
 		fios_hmap_path = MallocT<char>(MAX_PATH);
-		FioGetDirectory(fios_hmap_path, MAX_PATH, HEIGHTMAP_DIR);
+		fios_hmap_path_last = fios_hmap_path + MAX_PATH - 1;
+		FioGetDirectory(fios_hmap_path, fios_hmap_path_last, HEIGHTMAP_DIR);
 	}
 
 	_fios_path = fios_hmap_path;
+	_fios_path_last = fios_hmap_path_last;
 
 	char base_path[MAX_PATH];
-	FioGetDirectory(base_path, sizeof(base_path), HEIGHTMAP_DIR);
+	FioGetDirectory(base_path, lastof(base_path), HEIGHTMAP_DIR);
 
-	FiosGetFileList(mode, &FiosGetHeightmapListCallback, strcmp(base_path, _fios_path) == 0 ? HEIGHTMAP_DIR : NO_DIRECTORY);
+	Subdirectory subdir = strcmp(base_path, _fios_path) == 0 ? HEIGHTMAP_DIR : NO_DIRECTORY;
+	FiosGetFileList(fop, &FiosGetHeightmapListCallback, subdir, file_list);
 }
 
 /**
@@ -565,7 +646,7 @@ const char *FiosGetScreenshotDir()
 
 	if (fios_screenshot_path == NULL) {
 		fios_screenshot_path = MallocT<char>(MAX_PATH);
-		FioGetDirectory(fios_screenshot_path, MAX_PATH, SCREENSHOT_DIR);
+		FioGetDirectory(fios_screenshot_path, fios_screenshot_path + MAX_PATH - 1, SCREENSHOT_DIR);
 	}
 
 	return fios_screenshot_path;

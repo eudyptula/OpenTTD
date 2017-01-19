@@ -34,8 +34,9 @@ struct VehicleListIdentifier {
 	CompanyID company;    ///< The company associated with this list.
 	uint32 index;         ///< A vehicle list type specific index.
 
-	uint32 Pack();
-	bool Unpack(uint32 data);
+	uint32 Pack() const;
+	bool UnpackIfValid(uint32 data);
+	static VehicleListIdentifier UnPack(uint32 data);
 
 	/**
 	 * Create a simple vehicle list.
@@ -47,10 +48,7 @@ struct VehicleListIdentifier {
 	VehicleListIdentifier(VehicleListType type, VehicleType vtype, CompanyID company, uint index = 0) :
 		type(type), vtype(vtype), company(company), index(index) {}
 
-	VehicleListIdentifier(uint32 data);
-
-	/** Simple empty constructor. In this case you must set everything! */
-	VehicleListIdentifier() {}
+	VehicleListIdentifier() : type(), vtype(), company(), index() {}
 };
 
 /** A list of vehicles. */
@@ -58,5 +56,6 @@ typedef SmallVector<const Vehicle *, 32> VehicleList;
 
 bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &identifier);
 void BuildDepotVehicleList(VehicleType type, TileIndex tile, VehicleList *engine_list, VehicleList *wagon_list, bool individual_wagons = false);
+uint GetUnitNumberDigits(VehicleList &vehicles);
 
 #endif /* VEHICLELIST_H */

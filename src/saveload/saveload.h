@@ -22,15 +22,18 @@ enum SaveOrLoadResult {
 	SL_REINIT = 2, ///< error that was caught in the middle of updating game state, need to clear it. (can only happen during load)
 };
 
-/** Save or load mode. @see SaveOrLoad */
-enum SaveOrLoadMode {
-	SL_INVALID    = -1, ///< Invalid mode.
-	SL_LOAD       =  0, ///< Load game.
-	SL_SAVE       =  1, ///< Save game.
-	SL_OLD_LOAD   =  2, ///< Load old game.
-	SL_PNG        =  3, ///< Load PNG file (height map).
-	SL_BMP        =  4, ///< Load BMP file (height map).
-	SL_LOAD_CHECK =  5, ///< Load for game preview.
+/** Deals with the type of the savegame, independent of extension */
+struct FileToSaveLoad {
+	SaveLoadOperation file_op;           ///< File operation to perform.
+	DetailedFileType detail_ftype;   ///< Concrete file type (PNG, BMP, old save, etc).
+	AbstractFileType abstract_ftype; ///< Abstract type of file (scenario, heightmap, etc).
+	char name[MAX_PATH];             ///< Name of the file.
+	char title[255];                 ///< Internal name of the game.
+
+	void SetMode(FiosType ft);
+	void SetMode(SaveLoadOperation fop, AbstractFileType aft, DetailedFileType dft);
+	void SetName(const char *name);
+	void SetTitle(const char *title);
 };
 
 /** Types of save games. */
@@ -43,10 +46,12 @@ enum SavegameType {
 	SGT_INVALID = 0xFF, ///< broken savegame (used internally)
 };
 
+extern FileToSaveLoad _file_to_saveload;
+
 void GenerateDefaultSaveName(char *buf, const char *last);
 void SetSaveLoadError(uint16 str);
 const char *GetSaveLoadErrorString();
-SaveOrLoadResult SaveOrLoad(const char *filename, int mode, Subdirectory sb, bool threaded = true);
+SaveOrLoadResult SaveOrLoad(const char *filename, SaveLoadOperation fop, DetailedFileType dft, Subdirectory sb, bool threaded = true);
 void WaitTillSaved();
 void ProcessAsyncSaveFinish();
 void DoExitSave();
@@ -73,20 +78,22 @@ struct NullStruct {
 
 /** Type of reference (#SLE_REF, #SLE_CONDREF). */
 enum SLRefType {
-	REF_ORDER         = 0, ///< Load/save a reference to an order.
-	REF_VEHICLE       = 1, ///< Load/save a reference to a vehicle.
-	REF_STATION       = 2, ///< Load/save a reference to a station.
-	REF_TOWN          = 3, ///< Load/save a reference to a town.
-	REF_VEHICLE_OLD   = 4, ///< Load/save an old-style reference to a vehicle (for pre-4.4 savegames).
-	REF_ROADSTOPS     = 5, ///< Load/save a reference to a bus/truck stop.
-	REF_ENGINE_RENEWS = 6, ///< Load/save a reference to an engine renewal (autoreplace).
-	REF_CARGO_PACKET  = 7, ///< Load/save a reference to a cargo packet.
-	REF_ORDERLIST     = 8, ///< Load/save a reference to an orderlist.
-	REF_STORAGE       = 9, ///< Load/save a reference to a persistent storage.
+	REF_ORDER          =  0, ///< Load/save a reference to an order.
+	REF_VEHICLE        =  1, ///< Load/save a reference to a vehicle.
+	REF_STATION        =  2, ///< Load/save a reference to a station.
+	REF_TOWN           =  3, ///< Load/save a reference to a town.
+	REF_VEHICLE_OLD    =  4, ///< Load/save an old-style reference to a vehicle (for pre-4.4 savegames).
+	REF_ROADSTOPS      =  5, ///< Load/save a reference to a bus/truck stop.
+	REF_ENGINE_RENEWS  =  6, ///< Load/save a reference to an engine renewal (autoreplace).
+	REF_CARGO_PACKET   =  7, ///< Load/save a reference to a cargo packet.
+	REF_ORDERLIST      =  8, ///< Load/save a reference to an orderlist.
+	REF_STORAGE        =  9, ///< Load/save a reference to a persistent storage.
+	REF_LINK_GRAPH     = 10, ///< Load/save a reference to a link graph.
+	REF_LINK_GRAPH_JOB = 11, ///< Load/save a reference to a link graph job.
 };
 
 /** Highest possible savegame version. */
-#define SL_MAX_VERSION 255
+#define SL_MAX_VERSION UINT16_MAX
 
 /** Flags of a chunk. */
 enum ChunkType {
@@ -210,6 +217,7 @@ struct SaveLoad {
 	 * during runtime. Decision on which one to use is controlled by the function
 	 * that is called to save it. address: global=true, offset: global=false */
 	void *address;       ///< address of variable OR offset of variable in the struct (max offset is 65536)
+	size_t size;         ///< the sizeof size.
 };
 
 /** Same as #SaveLoad but global variables are used (for better readability); */
@@ -225,7 +233,7 @@ typedef SaveLoad SaveLoadGlobVarList;
  * @param to       Last savegame version that has the field.
  * @note In general, it is better to use one of the SLE_* macros below.
  */
-#define SLE_GENERAL(cmd, base, variable, type, length, from, to) {false, cmd, type, length, from, to, (void*)cpp_offsetof(base, variable)}
+#define SLE_GENERAL(cmd, base, variable, type, length, from, to) {false, cmd, type, length, from, to, (void*)cpp_offsetof(base, variable), cpp_sizeof(base, variable)}
 
 /**
  * Storage of a variable in some savegame versions.
@@ -338,11 +346,11 @@ typedef SaveLoad SaveLoadGlobVarList;
 /** Translate values ingame to different values in the savegame and vv. */
 #define SLE_WRITEBYTE(base, variable, value) SLE_GENERAL(SL_WRITEBYTE, base, variable, 0, 0, value, value)
 
-#define SLE_VEH_INCLUDE() {false, SL_VEH_INCLUDE, 0, 0, 0, SL_MAX_VERSION, NULL}
-#define SLE_ST_INCLUDE() {false, SL_ST_INCLUDE, 0, 0, 0, SL_MAX_VERSION, NULL}
+#define SLE_VEH_INCLUDE() {false, SL_VEH_INCLUDE, 0, 0, 0, SL_MAX_VERSION, NULL, 0}
+#define SLE_ST_INCLUDE() {false, SL_ST_INCLUDE, 0, 0, 0, SL_MAX_VERSION, NULL, 0}
 
 /** End marker of a struct/class save or load. */
-#define SLE_END() {false, SL_END, 0, 0, 0, 0, NULL}
+#define SLE_END() {false, SL_END, 0, 0, 0, 0, NULL, 0}
 
 /**
  * Storage of global simple variables, references (pointers), and arrays.
@@ -353,7 +361,7 @@ typedef SaveLoad SaveLoadGlobVarList;
  * @param to       Last savegame version that has the field.
  * @note In general, it is better to use one of the SLEG_* macros below.
  */
-#define SLEG_GENERAL(cmd, variable, type, length, from, to) {true, cmd, type, length, from, to, (void*)&variable}
+#define SLEG_GENERAL(cmd, variable, type, length, from, to) {true, cmd, type, length, from, to, (void*)&variable, sizeof(variable)}
 
 /**
  * Storage of a global variable in some savegame versions.
@@ -446,7 +454,7 @@ typedef SaveLoad SaveLoadGlobVarList;
 #define SLEG_CONDNULL(length, from, to) {true, SL_ARR, SLE_FILE_U8 | SLE_VAR_NULL | SLF_NOT_IN_CONFIG, length, from, to, (void*)NULL}
 
 /** End marker of global variables save or load. */
-#define SLEG_END() {true, SL_END, 0, 0, 0, 0, NULL}
+#define SLEG_END() {true, SL_END, 0, 0, 0, 0, NULL, 0}
 
 /**
  * Checks whether the savegame is below \a major.\a minor.

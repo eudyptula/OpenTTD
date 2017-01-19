@@ -49,7 +49,7 @@ enum TileLayoutFlags {
 	TLF_SPRITE_VAR10      = 0x40,   ///< Resolve sprite with a specific value in variable 10.
 	TLF_PALETTE_VAR10     = 0x80,   ///< Resolve palette with a specific value in variable 10.
 
-	TLF_KNOWN_FLAGS       = 0x7F,   ///< Known flags. Any unknown set flag will disable the GRF.
+	TLF_KNOWN_FLAGS       = 0xFF,   ///< Known flags. Any unknown set flag will disable the GRF.
 
 	/** Flags which are still required after loading the GRF. */
 	TLF_DRAWING_FLAGS     = ~TLF_CUSTOM_PALETTE,
@@ -297,7 +297,7 @@ uint32 GetTerrainType(TileIndex tile, TileContext context = TCX_NORMAL);
 TileIndex GetNearbyTile(byte parameter, TileIndex tile, bool signed_offsets = true, Axis axis = INVALID_AXIS);
 uint32 GetNearbyTileInformation(TileIndex tile, bool grf_version8);
 uint32 GetCompanyInfo(CompanyID owner, const struct Livery *l = NULL);
-CommandCost GetErrorMessageFromLocationCallbackResult(uint16 cb_res, uint32 grfid, StringID default_error);
+CommandCost GetErrorMessageFromLocationCallbackResult(uint16 cb_res, const GRFFile *grffile, StringID default_error);
 
 void ErrorUnknownCallbackResult(uint32 grfid, uint16 cbid, uint16 cb_res);
 bool ConvertBooleanCallback(const struct GRFFile *grffile, uint16 cbid, uint16 cb_res);
@@ -324,13 +324,11 @@ struct GRFFilePropsBase {
 /** Data related to the handling of grf files. */
 struct GRFFileProps : GRFFilePropsBase<1> {
 	/** Set all default data constructor for the props. */
-	GRFFileProps(uint16 subst_id) :
+	GRFFileProps(uint16 subst_id = 0) :
 			GRFFilePropsBase<1>(), subst_id(subst_id), override(subst_id)
 	{
 	}
 
-	/** Simple constructor for the props. */
-	GRFFileProps() : GRFFilePropsBase<1>() {}
 	uint16 subst_id;
 	uint16 override;                      ///< id of the entity been replaced by
 };

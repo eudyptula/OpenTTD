@@ -22,6 +22,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 /**
  * Convert RGB colours to Grayscale using 29.9% Red, 58.7% Green, 11.4% Blue
  *  (average luminosity formula, NTSC Colour Space)
@@ -46,9 +48,11 @@ static void ReadHeightmapPNGImageData(byte *map, png_structp png_ptr, png_infop 
 	uint x, y;
 	byte gray_palette[256];
 	png_bytep *row_pointers = NULL;
+	bool has_palette = png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_PALETTE;
+	uint channels = png_get_channels(png_ptr, info_ptr);
 
 	/* Get palette and convert it to grayscale */
-	if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_PALETTE) {
+	if (has_palette) {
 		int i;
 		int palette_size;
 		png_color *palette;
@@ -79,11 +83,11 @@ static void ReadHeightmapPNGImageData(byte *map, png_structp png_ptr, png_infop 
 	for (x = 0; x < png_get_image_width(png_ptr, info_ptr); x++) {
 		for (y = 0; y < png_get_image_height(png_ptr, info_ptr); y++) {
 			byte *pixel = &map[y * png_get_image_width(png_ptr, info_ptr) + x];
-			uint x_offset = x * png_get_channels(png_ptr, info_ptr);
+			uint x_offset = x * channels;
 
-			if (png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_PALETTE) {
+			if (has_palette) {
 				*pixel = gray_palette[row_pointers[y][x_offset]];
-			} else if (png_get_channels(png_ptr, info_ptr) == 3) {
+			} else if (channels == 3) {
 				*pixel = RGBToGrayscale(row_pointers[y][x_offset + 0],
 						row_pointers[y][x_offset + 1], row_pointers[y][x_offset + 2]);
 			} else {
@@ -98,7 +102,7 @@ static void ReadHeightmapPNGImageData(byte *map, png_structp png_ptr, png_infop 
  * If map == NULL only the size of the PNG is read, otherwise a map
  * with grayscale pixels is allocated and assigned to *map.
  */
-static bool ReadHeightmapPNG(char *filename, uint *x, uint *y, byte **map)
+static bool ReadHeightmapPNG(const char *filename, uint *x, uint *y, byte **map)
 {
 	FILE *fp;
 	png_structp png_ptr = NULL;
@@ -228,7 +232,7 @@ static void ReadHeightmapBMPImageData(byte *map, BmpInfo *info, BmpData *data)
  * If map == NULL only the size of the BMP is read, otherwise a map
  * with grayscale pixels is allocated and assigned to *map.
  */
-static bool ReadHeightmapBMP(char *filename, uint *x, uint *y, byte **map)
+static bool ReadHeightmapBMP(const char *filename, uint *x, uint *y, byte **map)
 {
 	FILE *f;
 	BmpInfo info;
@@ -360,12 +364,19 @@ static void GrayscaleToMapHeights(uint img_width, uint img_height, byte *map)
 				assert(img_row < img_height);
 				assert(img_col < img_width);
 
-				/* Colour scales from 0 to 255, OpenTTD height scales from 0 to 15 */
-				SetTileHeight(tile, map[img_row * img_width + img_col] / 16);
+				uint heightmap_height = map[img_row * img_width + img_col];
+
+				if (heightmap_height > 0) {
+					/* 0 is sea level.
+					 * Other grey scales are scaled evenly to the available height levels > 0.
+					 * (The coastline is independent from the number of height levels) */
+					heightmap_height = 1 + (heightmap_height - 1) * _settings_game.construction.max_heightlevel / 255;
+				}
+
+				SetTileHeight(tile, heightmap_height);
 			}
 			/* Only clear the tiles within the map area. */
-			if (TileX(tile) != MapMaxX() && TileY(tile) != MapMaxY() &&
-					(!_settings_game.construction.freeform_edges || (TileX(tile) != 0 && TileY(tile) != 0))) {
+			if (IsInnerTile(tile)) {
 				MakeClear(tile, CLEAR_GRASS, 3);
 			}
 		}
@@ -433,45 +444,56 @@ void FixSlopes()
 }
 
 /**
- * Reads the heightmap with the correct file reader
+ * Reads the heightmap with the correct file reader.
+ * @param dft Type of image file.
+ * @param filename Name of the file to load.
+ * @param [out] x Length of the image.
+ * @param [out] y Height of the image.
+ * @param [inout] map If not \c NULL, destination to store the loaded block of image data.
+ * @return Whether loading was successful.
  */
-static bool ReadHeightMap(char *filename, uint *x, uint *y, byte **map)
+static bool ReadHeightMap(DetailedFileType dft, const char *filename, uint *x, uint *y, byte **map)
 {
-	switch (_file_to_saveload.mode) {
-		default: NOT_REACHED();
+	switch (dft) {
+		default:
+			NOT_REACHED();
+
 #ifdef WITH_PNG
-		case SL_PNG:
+		case DFT_HEIGHTMAP_PNG:
 			return ReadHeightmapPNG(filename, x, y, map);
 #endif /* WITH_PNG */
-		case SL_BMP:
+
+		case DFT_HEIGHTMAP_BMP:
 			return ReadHeightmapBMP(filename, x, y, map);
 	}
 }
 
 /**
  * Get the dimensions of a heightmap.
+ * @param dft Type of image file.
  * @param filename to query
  * @param x dimension x
  * @param y dimension y
  * @return Returns false if loading of the image failed.
  */
-bool GetHeightmapDimensions(char *filename, uint *x, uint *y)
+bool GetHeightmapDimensions(DetailedFileType dft, const char *filename, uint *x, uint *y)
 {
-	return ReadHeightMap(filename, x, y, NULL);
+	return ReadHeightMap(dft, filename, x, y, NULL);
 }
 
 /**
  * Load a heightmap from file and change the map in his current dimensions
  *  to a landscape representing the heightmap.
  * It converts pixels to height. The brighter, the higher.
+ * @param dft Type of image file.
  * @param filename of the heightmap file to be imported
  */
-void LoadHeightmap(char *filename)
+void LoadHeightmap(DetailedFileType dft, const char *filename)
 {
 	uint x, y;
 	byte *map = NULL;
 
-	if (!ReadHeightMap(filename, &x, &y, &map)) {
+	if (!ReadHeightMap(dft, filename, &x, &y, &map)) {
 		free(map);
 		return;
 	}

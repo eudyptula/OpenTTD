@@ -19,6 +19,8 @@
 
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 static const uint MAX_ARTICULATED_PARTS = 100; ///< Maximum of articulated parts per vehicle, i.e. when to abort calling the articulated vehicle callback.
 
 /**
@@ -158,6 +160,41 @@ CargoArray GetCapacityOfArticulatedParts(EngineID engine)
 	}
 
 	return capacity;
+}
+
+/**
+ * Get the default cargoes and refits of an articulated vehicle.
+ * The refits are linked to a cargo rather than an articulated part to prevent a long list of parts.
+ * @param engine Model to investigate.
+ * @param[out] cargoes Total amount of units that can be transported, summed by cargo.
+ * @param[out] refits Whether a (possibly partial) refit for each cargo is possible.
+ */
+void GetArticulatedVehicleCargoesAndRefits(EngineID engine, CargoArray *cargoes, uint32 *refits)
+{
+	cargoes->Clear();
+	*refits = 0;
+
+	const Engine *e = Engine::Get(engine);
+
+	CargoID cargo_type;
+	uint16 cargo_capacity = GetVehicleDefaultCapacity(engine, &cargo_type);
+	if (cargo_type < NUM_CARGO && cargo_capacity > 0) {
+		(*cargoes)[cargo_type] += cargo_capacity;
+		if (IsEngineRefittable(engine)) SetBit(*refits, cargo_type);
+	}
+
+	if (!e->IsGroundVehicle() || !HasBit(e->info.callback_mask, CBM_VEHICLE_ARTIC_ENGINE)) return;
+
+	for (uint i = 1; i < MAX_ARTICULATED_PARTS; i++) {
+		EngineID artic_engine = GetNextArticulatedPart(i, engine);
+		if (artic_engine == INVALID_ENGINE) break;
+
+		cargo_capacity = GetVehicleDefaultCapacity(artic_engine, &cargo_type);
+		if (cargo_type < NUM_CARGO && cargo_capacity > 0) {
+			(*cargoes)[cargo_type] += cargo_capacity;
+			if (IsEngineRefittable(artic_engine)) SetBit(*refits, cargo_type);
+		}
+	}
 }
 
 /**
@@ -355,6 +392,7 @@ void AddArticulatedParts(Vehicle *first)
 					t->cargo_type = front->cargo_type; // Needed for livery selection
 					t->cargo_cap = 0;
 				}
+				t->refit_cap = 0;
 
 				t->SetArticulatedPart();
 				break;
@@ -381,6 +419,7 @@ void AddArticulatedParts(Vehicle *first)
 					rv->cargo_type = front->cargo_type; // Needed for livery selection
 					rv->cargo_cap = 0;
 				}
+				rv->refit_cap = 0;
 
 				rv->SetArticulatedPart();
 				break;
@@ -394,6 +433,7 @@ void AddArticulatedParts(Vehicle *first)
 		v->x_pos = first->x_pos;
 		v->y_pos = first->y_pos;
 		v->z_pos = first->z_pos;
+		v->date_of_last_service = first->date_of_last_service;
 		v->build_year = first->build_year;
 		v->vehstatus = first->vehstatus & ~VS_STOPPED;
 
@@ -401,11 +441,11 @@ void AddArticulatedParts(Vehicle *first)
 		v->max_age = 0;
 		v->engine_type = engine_type;
 		v->value = 0;
-		v->cur_image = SPR_IMG_QUERY;
+		v->sprite_seq.Set(SPR_IMG_QUERY);
 		v->random_bits = VehicleRandomBits();
 
 		if (flip_image) v->spritenum++;
 
-		VehicleUpdatePosition(v);
+		v->UpdatePosition();
 	}
 }

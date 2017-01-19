@@ -20,6 +20,8 @@
 #include "table/sprites.h"
 #include "table/strings.h"
 
+#include "safeguards.h"
+
 TransparencyOptionBits _transparency_opt;  ///< The bits that should be transparent.
 TransparencyOptionBits _transparency_lock; ///< Prevent these bits from flipping with X.
 TransparencyOptionBits _invisibility_opt;  ///< The bits that should be invisible.
@@ -28,9 +30,9 @@ byte _display_opt; ///< What do we want to draw/do?
 class TransparenciesWindow : public Window
 {
 public:
-	TransparenciesWindow(const WindowDesc *desc, int window_number) : Window()
+	TransparenciesWindow(WindowDesc *desc, int window_number) : Window(desc)
 	{
-		this->InitNested(desc, window_number);
+		this->InitNested(window_number);
 	}
 
 	virtual void OnPaint()
@@ -102,7 +104,7 @@ public:
 		}
 	}
 
-	virtual Point OnInitialPosition(const WindowDesc *desc, int16 sm_width, int16 sm_height, int window_number)
+	virtual Point OnInitialPosition(int16 sm_width, int16 sm_height, int window_number)
 	{
 		Point pt = GetToolbarAlignedWindowPosition(sm_width);
 		pt.y += 2 * (sm_height - this->GetWidget<NWidgetBase>(WID_TT_BUTTONS)->current_y);
@@ -146,8 +148,8 @@ static const NWidgetPart _nested_transparency_widgets[] = {
 	EndContainer(),
 };
 
-static const WindowDesc _transparency_desc(
-	WDP_MANUAL, 0, 0,
+static WindowDesc _transparency_desc(
+	WDP_MANUAL, "toolbar_transparency", 0, 0,
 	WC_TRANSPARENCY_TOOLBAR, WC_NONE,
 	0,
 	_nested_transparency_widgets, lengthof(_nested_transparency_widgets)
