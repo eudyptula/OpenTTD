@@ -77,6 +77,9 @@ GRFLoadedFeatures _loaded_newgrf_features;
 
 static const uint MAX_SPRITEGROUP = UINT8_MAX; ///< Maximum GRF-local ID for a spritegroup.
 
+/** Base GRF ID for OpenTTD's base graphics GRFs. */
+static const uint32 OPENTTD_GRAPHICS_BASE_GRF_ID = BSWAP32(0xFF4F5400);
+
 /** Temporary data during loading of GRFs */
 struct GrfProcessingState {
 private:
@@ -5671,9 +5674,17 @@ static void GraphicsNew(ByteReader *buf)
 	/* Load <num> sprites starting from <replace>, then skip <skip_num> sprites. */
 	grfmsg(2, "GraphicsNew: Replacing sprites %d to %d of %s (type 0x%02X) at SpriteID 0x%04X", offset, offset + num - 1, action5_type->name, type, replace);
 
-	for (; num > 0; num--) {
+	for (uint16 n = num; n > 0; n--) {
 		_cur.nfo_line++;
 		LoadNextSprite(replace == 0 ? _cur.spriteid++ : replace++, _cur.file_index, _cur.nfo_line, _cur.grf_container_ver);
+	}
+
+	if (type == 0x04 && ((_cur.grfconfig->ident.grfid & 0x00FFFFFF) == OPENTTD_GRAPHICS_BASE_GRF_ID || _cur.grfconfig->ident.grfid == BSWAP32(0xFF4F4701))) {
+		/* Signal graphics action 5: Fill duplicate signal sprite block if this is a baseset GRF or OpenGFX */
+		const SpriteID end = offset + num;
+		for (SpriteID i = offset; i < end; i++) {
+			DupSprite(SPR_SIGNALS_BASE + i, SPR_DUP_SIGNALS_BASE + i);
+		}
 	}
 
 	if (type == 0x0D) _loaded_newgrf_features.shore = SHORE_REPLACE_ACTION_5;

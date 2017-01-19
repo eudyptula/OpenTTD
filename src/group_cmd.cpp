@@ -24,6 +24,7 @@
 #include "company_func.h"
 #include "core/pool_func.hpp"
 #include "order_backup.h"
+#include "tracerestrict.h"
 
 #include "table/strings.h"
 
@@ -343,6 +344,9 @@ CommandCost CmdDeleteGroup(TileIndex tile, DoCommandFlag flags, uint32 p1, uint3
 		}
 
 		VehicleType vt = g->vehicle_type;
+
+		/* notify tracerestrict that group is about to be deleted */
+		TraceRestrictRemoveGroupID(g->index);
 
 		/* Delete the Replace Vehicle Windows */
 		DeleteWindowById(WC_REPLACE_VEHICLE, g->vehicle_type);

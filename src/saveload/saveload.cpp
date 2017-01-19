@@ -268,8 +268,9 @@
  *  196   Train speed control
  *  196   Last travel time for vehicles added
  *  197   Signal in tunnels and bridges patch
+ *  198   Trace restrict patch
  */
-extern const uint16 SAVEGAME_VERSION = 197; ///< Current savegame version of OpenTTD.
+extern const uint16 SAVEGAME_VERSION = 198; ///< Current savegame version of OpenTTD.
 
 SavegameType _savegame_type; ///< type of savegame we are loading
 FileToSaveLoad _file_to_saveload; ///< File to save or load in the openttd loop.
@@ -454,6 +455,7 @@ extern const ChunkHandler _linkgraph_chunk_handlers[];
 extern const ChunkHandler _airport_chunk_handlers[];
 extern const ChunkHandler _object_chunk_handlers[];
 extern const ChunkHandler _persistent_storage_chunk_handlers[];
+extern const ChunkHandler _trace_restrict_chunk_handlers[];
 
 /** Array of all chunks in a savegame, \c NULL terminated. */
 static const ChunkHandler * const _chunk_handlers[] = {
@@ -490,6 +492,7 @@ static const ChunkHandler * const _chunk_handlers[] = {
 	_airport_chunk_handlers,
 	_object_chunk_handlers,
 	_persistent_storage_chunk_handlers,
+	_trace_restrict_chunk_handlers,
 	NULL,
 };
 

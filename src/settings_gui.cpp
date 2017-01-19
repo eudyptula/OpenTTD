@@ -1478,6 +1478,7 @@ static SettingsContainer &GetSettingsTree()
 			graphics->Add(new SettingEntry("gui.zoom_max"));
 			graphics->Add(new SettingEntry("gui.smallmap_land_colour"));
 			graphics->Add(new SettingEntry("gui.graph_line_thickness"));
+			graphics->Add(new SettingEntry("gui.show_restricted_signal_default"));
 		}
 
 		SettingsPage *sound = main->Add(new SettingsPage(STR_CONFIG_SETTING_SOUND));
@@ -1583,6 +1584,7 @@ static SettingsContainer &GetSettingsTree()
 			interface->Add(new SettingEntry("gui.timetable_in_ticks"));
 			interface->Add(new SettingEntry("gui.timetable_arrival_departure"));
 			interface->Add(new SettingEntry("gui.expenses_layout"));
+			interface->Add(new SettingEntry("gui.show_train_weight_ratios_in_details"));
 		}
 
 		SettingsPage *advisors = main->Add(new SettingsPage(STR_CONFIG_SETTING_ADVISORS));

@@ -97,7 +97,7 @@ private:
 				m_res_fail_td = td;
 			}
 		} else {
-			if (!TryReserveRailTrack(tile, TrackdirToTrack(td))) {
+			if (!TryReserveRailTrackdir(tile, td)) {
 				/* Tile couldn't be reserved, undo. */
 				m_res_fail_tile = tile;
 				m_res_fail_td = td;
@@ -119,7 +119,7 @@ private:
 				tile = TILE_ADD(tile, diff);
 			}
 		} else if (tile != m_res_fail_tile || td != m_res_fail_td) {
-			UnreserveRailTrack(tile, TrackdirToTrack(td));
+			UnreserveRailTrackdir(tile, td);
 		}
 		return (tile != m_res_dest || td != m_res_dest_td) && (tile != m_res_fail_tile || td != m_res_fail_td);
 	}
@@ -138,8 +138,8 @@ public:
 	{
 		assert(node->m_parent != NULL);
 
-		/* We will never pass more than two signals, no need to check for a safe tile. */
-		if (node->m_parent->m_num_signals_passed >= 2) return;
+		/* We will never pass more than two non-reserve-through signals, no need to check for a safe tile. */
+		if (node->m_parent->m_num_signals_passed - node->m_parent->m_num_signals_res_through_passed >= 2) return;
 
 		if (!node->IterateTiles(Yapf().GetVehicle(), Yapf(), *this, &CYapfReserveTrack<Types>::FindSafePositionProc)) {
 			m_res_node = node;

@@ -401,6 +401,7 @@ widget_type.h
 os/windows/win32.h
 music/win32_m.h
 sound/win32_s.h
+unit_conversion.h
 video/win32_v.h
 window_func.h
 window_gui.h
@@ -1203,3 +1204,8 @@ thread/thread.h
 #else
 	thread/thread_none.cpp
 #end
+
+tracerestrict.h
+tracerestrict.cpp
+tracerestrict_gui.cpp
+saveload/tracerestrict_sl.cpp

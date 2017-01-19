@@ -1920,6 +1920,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\..\src\unit_conversion.h"
+				>
+			</File>
+			<File
 				RelativePath=".\..\src\video\win32_v.h"
 				>
 			</File>
@@ -4517,6 +4521,22 @@
 			</File>
 			<File
 				RelativePath=".\..\src\thread\thread_win32.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\..\src\tracerestrict.h"
+				>
+			</File>
+			<File
+				RelativePath=".\..\src\tracerestrict.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\..\src\tracerestrict_gui.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\..\src\saveload\tracerestrict_sl.cpp"
 				>
 			</File>
 		</Filter>
