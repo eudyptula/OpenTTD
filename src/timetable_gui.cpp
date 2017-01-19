@@ -162,7 +162,7 @@ struct TimetableWindow : Window {
 	bool show_expected;     ///< Whether we show expected arrival or scheduled
 	uint deparr_time_width; ///< The width of the departure/arrival time
 	uint deparr_abbr_width; ///< The width of the departure/arrival abbreviation
-    int clicked_widget;     ///< The widget that was clicked (used to determine what to do in OnQueryTextFinished)
+	int clicked_widget;     ///< The widget that was clicked (used to determine what to do in OnQueryTextFinished)
 	Scrollbar *vscroll;
 	bool query_is_speed_query; ///< The currently open query window is a speed query and not a time query.
 
@@ -572,7 +572,7 @@ struct TimetableWindow : Window {
 	{
 		const Vehicle *v = this->vehicle;
 
-        this->clicked_widget = widget;
+		this->clicked_widget = widget;
 
 		switch (widget) {
 			case WID_VT_ORDER_VIEW: // Order view button
