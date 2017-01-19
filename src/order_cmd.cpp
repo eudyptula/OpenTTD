@@ -1020,9 +1020,9 @@ CommandCost CmdReverseOrder(TileIndex tile, DoCommandFlag flags, uint32 p1, uint
 		}
 
 		if (v->GetFirstOrder()->IsType(OT_GOTO_DEPOT) && v->GetLastOrder()->IsType(OT_GOTO_STATION))
-            v->GetLastOrder()->SetLoadType(OLFB_NO_LOAD);
-        if (last_order->IsType(OT_GOTO_DEPOT) && v->GetOrder(last_idx-1)->IsType(OT_GOTO_STATION))
-            v->GetOrder(last_idx-1)->SetLoadType(OLFB_NO_LOAD);
+			v->GetLastOrder()->SetLoadType(OLFB_NO_LOAD);
+		if (last_order->IsType(OT_GOTO_DEPOT) && v->GetOrder(last_idx-1)->IsType(OT_GOTO_STATION))
+			v->GetOrder(last_idx-1)->SetLoadType(OLFB_NO_LOAD);
 	}
 
 	return CommandCost();
