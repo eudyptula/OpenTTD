@@ -17,8 +17,8 @@
 #include <vector>
 
 static const SaveLoad _trace_restrict_mapping_desc[] = {
-  SLE_VAR(TraceRestrictMappingItem, program_id, SLE_UINT32),
-  SLE_END()
+		SLE_VAR(TraceRestrictMappingItem, program_id, SLE_UINT32),
+		SLE_END()
 };
 
 /**
