@@ -323,7 +323,7 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 				}
 			}
 			break;
-
+			
 		case OT_GOTO_WAYPOINT:
 			SetDParam(0, (order->GetNonStopType() & ONSF_NO_STOP_AT_INTERMEDIATE_STATIONS) ? STR_ORDER_GO_NON_STOP_TO_WAYPOINT : STR_ORDER_GO_TO_WAYPOINT);
 			SetDParam(1, order->GetDestination());
