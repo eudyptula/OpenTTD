@@ -318,7 +318,7 @@ void DrawOrderString(const Vehicle *v, const Order *order, int order_index, int 
 					SetDParam(5, order->IsWaitTimetabled() ? STR_TIMETABLE_STAY_FOR : STR_TIMETABLE_STAY_FOR_ESTIMATED);
 					SetTimetableParams(6, 7, order->GetWaitTime());
 				}
-			} 
+			}
 			break;
 			
 		case OT_GOTO_WAYPOINT:
