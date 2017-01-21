@@ -20,6 +20,8 @@
 #include "table/sprites.h"
 #include "table/strings.h"
 
+#include "overlay_cmd.h"
+
 #include "safeguards.h"
 
 TransparencyOptionBits _transparency_opt;  ///< The bits that should be transparent.
@@ -75,14 +77,17 @@ public:
 		if (widget >= WID_TT_BEGIN && widget < WID_TT_END) {
 			if (_ctrl_pressed) {
 				/* toggle the bit of the transparencies lock variable */
-				ToggleTransparencyLock((TransparencyOption)(widget - WID_TT_BEGIN));
+				ToggleTransparencyLock((TransparencyOption) (widget - WID_TT_BEGIN));
 				this->SetDirty();
 			} else {
 				/* toggle the bit of the transparencies variable and play a sound */
-				ToggleTransparency((TransparencyOption)(widget - WID_TT_BEGIN));
+				ToggleTransparency((TransparencyOption) (widget - WID_TT_BEGIN));
 				if (_settings_client.sound.click_beep) SndPlayFx(SND_15_BEEP);
 				MarkWholeScreenDirty();
 			}
+		} else if (widget == WID_TT_COVERAGE) {
+			Overlays::Instance()->AddAllStations();
+			MarkWholeScreenDirty();
 		} else if (widget == WID_TT_BUTTONS) {
 			uint i;
 			for (i = WID_TT_BEGIN; i < WID_TT_END; i++) {
@@ -143,6 +148,7 @@ static const NWidgetPart _nested_transparency_widgets[] = {
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_TT_CATENARY), SetMinimalSize(22, 22), SetFill(0, 1), SetDataTip(SPR_BUILD_X_ELRAIL, STR_TRANSPARENT_CATENARY_TOOLTIP),
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_TT_LOADING), SetMinimalSize(22, 22), SetFill(0, 1), SetDataTip(SPR_IMG_TRAINLIST, STR_TRANSPARENT_LOADING_TOOLTIP),
 		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WIT_TT_TUNNELS), SetMinimalSize(22, 22), SetFill(0, 1), SetDataTip(SPR_IMG_ROAD_TUNNEL, STR_TRANSPARENT_TUNNELS_TOOLTIP),
+		NWidget(WWT_IMGBTN, COLOUR_DARK_GREEN, WID_TT_COVERAGE), SetMinimalSize(22, 22), SetFill(0, 1), SetDataTip(SPR_IMG_SMALLMAP, STR_TRANSPARENT_COVERAGE_TOOLTIP),
 		NWidget(WWT_PANEL, COLOUR_DARK_GREEN), SetFill(1, 1), EndContainer(),
 	EndContainer(),
 	/* Panel with 'invisibility' buttons. */

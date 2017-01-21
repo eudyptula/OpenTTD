@@ -28,6 +28,8 @@ public:
 	
 	void Clear();
 
+	void AddAllStations();
+
 	bool IsTileInCatchmentArea(const TileInfo* ti, CatchmentType type);
 
 	bool HasStation(const Station* st);
