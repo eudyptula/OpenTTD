@@ -43,6 +43,12 @@ void Overlays::Clear()
 	this->catchmentOverlay.clear();
 };
 
+void Overlays::AddAllStations()
+{
+	Station *st;
+	FOR_ALL_STATIONS(st) AddStation(st);
+};
+
 bool Overlays::IsTileInCatchmentArea(const TileInfo* ti, CatchmentType type) 
 {
 	for(std::set<const Station *>::iterator iter = catchmentOverlay.begin();iter != catchmentOverlay.end();) {

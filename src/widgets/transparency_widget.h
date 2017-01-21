@@ -26,6 +26,7 @@ enum TransparencyToolbarWidgets {
 	WID_TT_CATENARY,                 ///< Catenary transparency toggle button.
 	WID_TT_LOADING,                  ///< Loading indicators transparency toggle button.
 	WID_TT_END,                      ///< End of toggle buttons.
+	WID_TT_COVERAGE,                 ///< Toggle station coverage
 
 	/* Panel with buttons for invisibility */
 	WID_TT_BUTTONS,                  ///< Panel with 'invisibility' buttons.
