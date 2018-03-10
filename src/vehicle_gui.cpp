@@ -2399,6 +2399,20 @@ void StartStopVehicle(const Vehicle *v, bool texteffect)
 	DoCommandP(v->tile, v->index, 0, _vehicle_command_translation_table[VCT_CMD_START_STOP][v->type], texteffect ? CcStartStopVehicle : NULL);
 }
 
+void SkipVehicleOrder(const Vehicle *v, bool texteffect)
+{
+	assert(v->IsPrimaryVehicle());
+
+	/* Don't skip when there's nothing to skip */
+	if (v->GetNumOrders() <= 1) return;
+
+	// TODO Add texteffect like in StartStopVehicle
+	_shift_pressed = false;
+	DoCommandP(v->tile, v->index, (v->cur_implicit_order_index + 1) % v->GetNumOrders(),
+			   CMD_SKIP_TO_ORDER | CMD_MSG(STR_ERROR_CAN_T_SKIP_ORDER));
+	_shift_pressed = true;
+}
+
 /** Checks whether the vehicle may be refitted at the moment.*/
 static bool IsVehicleRefitable(const Vehicle *v)
 {
