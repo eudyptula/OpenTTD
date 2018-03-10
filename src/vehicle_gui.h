@@ -97,6 +97,7 @@ static inline WindowClass GetWindowClassForVehicleType(VehicleType vt)
 void ShowVehicleViewWindow(const Vehicle *v);
 bool VehicleClicked(const Vehicle *v);
 void StartStopVehicle(const Vehicle *v, bool texteffect);
+void SkipVehicleOrder(const Vehicle *v, bool texteffect);
 
 Vehicle *CheckClickOnVehicle(const struct ViewPort *vp, int x, int y);
 
