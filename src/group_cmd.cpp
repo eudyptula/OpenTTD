@@ -641,7 +641,8 @@ static uint8 GroupSpecificName(Vehicle *v, char *str, char *str_last)
 		Station *station_first = Station::GetIfValid(first->GetDestination());
 		Station *station_last = Station::GetIfValid(last->GetDestination());
 
-		if(station_last->IsValidID == false || station_first->IsValidID == false) return 1;
+        // TODO Is this required (fails to compile)?
+        //if(station_last->IsValidID == false || station_first->IsValidID == false) return 1;
 
 		Town *town_first = station_first->town;
 		Town *town_last = station_last->town;
