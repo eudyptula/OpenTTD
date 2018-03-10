@@ -2687,8 +2687,10 @@ void SkipVehicleOrder(const Vehicle *v, bool texteffect)
 	if (v->GetNumOrders() <= 1) return;
 
 	// TODO Add texteffect like in StartStopVehicle
+	_shift_pressed = false;
 	DoCommandP(v->tile, v->index, (v->cur_implicit_order_index + 1) % v->GetNumOrders(),
 			   CMD_SKIP_TO_ORDER | CMD_MSG(STR_ERROR_CAN_T_SKIP_ORDER));
+	_shift_pressed = true;
 }
 
 /** Strings for aircraft breakdown types */
