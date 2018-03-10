@@ -2229,6 +2229,8 @@ bool HandleViewportClicked(const ViewPort *vp, int x, int y, bool double_click)
 			v = v->First();
 			if (_ctrl_pressed && v->owner == _local_company) {
 				StartStopVehicle(v, true);
+			} else if (_shift_pressed && v->owner == _local_company) {
+				SkipVehicleOrder(v, true);
 			} else {
 				ShowVehicleViewWindow(v);
 			}

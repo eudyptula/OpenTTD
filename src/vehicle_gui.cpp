@@ -2679,6 +2679,18 @@ void StartStopVehicle(const Vehicle *v, bool texteffect)
 	DoCommandP(v->tile, v->index, 0, _vehicle_command_translation_table[VCT_CMD_START_STOP][v->type], texteffect ? CcStartStopVehicle : NULL);
 }
 
+void SkipVehicleOrder(const Vehicle *v, bool texteffect)
+{
+	assert(v->IsPrimaryVehicle());
+
+	/* Don't skip when there's nothing to skip */
+	if (v->GetNumOrders() <= 1) return;
+
+	// TODO Add texteffect like in StartStopVehicle
+	DoCommandP(v->tile, v->index, (v->cur_implicit_order_index + 1) % v->GetNumOrders(),
+			   CMD_SKIP_TO_ORDER | CMD_MSG(STR_ERROR_CAN_T_SKIP_ORDER));
+}
+
 /** Strings for aircraft breakdown types */
 static const StringID _aircraft_breakdown_strings[] = {
 	STR_BREAKDOWN_TYPE_LOW_SPEED,
