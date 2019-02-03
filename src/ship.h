@@ -12,17 +12,23 @@
 #ifndef SHIP_H
 #define SHIP_H
 
+#include <deque>
+
 #include "vehicle_base.h"
 #include "water_map.h"
 
 void GetShipSpriteSize(EngineID engine, uint &width, uint &height, int &xoffs, int &yoffs, EngineImageType image_type);
 WaterClass GetEffectiveWaterClass(TileIndex tile);
 
+typedef std::deque<TrackdirByte> ShipPathCache;
+
 /**
  * All ships have this type.
  */
 struct Ship FINAL : public SpecializedVehicle<Ship, VEH_SHIP> {
-	TrackBitsByte state; ///< The "track" the ship is following.
+	TrackBitsByte state;    ///< The "track" the ship is following.
+	ShipPathCache path;     ///< Cached path.
+	DirectionByte rotation; ///< Visible direction.
 
 	/** We don't want GCC to zero our struct! It already is zeroed and has an index! */
 	Ship() : SpecializedVehicleBase() {}
@@ -30,7 +36,7 @@ struct Ship FINAL : public SpecializedVehicle<Ship, VEH_SHIP> {
 	virtual ~Ship() { this->PreDestructor(); }
 
 	void MarkDirty();
-	void UpdateDeltaXY(Direction direction);
+	void UpdateDeltaXY();
 	ExpensesType GetExpenseType(bool income) const { return income ? EXPENSES_SHIP_INC : EXPENSES_SHIP_RUN; }
 	void PlayLeaveStationSound() const;
 	bool IsPrimaryVehicle() const { return true; }
@@ -46,7 +52,10 @@ struct Ship FINAL : public SpecializedVehicle<Ship, VEH_SHIP> {
 	TileIndex GetOrderStationLocation(StationID station);
 	bool FindClosestDepot(TileIndex *location, DestinationID *destination, bool *reverse);
 	void UpdateCache();
+	void SetDestTile(TileIndex tile);
 };
+
+static const uint SHIP_MAX_ORDER_DISTANCE = 130;
 
 /**
  * Iterate over all ships.

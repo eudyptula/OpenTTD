@@ -11,6 +11,7 @@
 
 #include "../stdafx.h"
 #include "../string_func.h"
+#include "../strings_func.h"
 #include "saveload_internal.h"
 
 #include "table/strings.h"
@@ -60,9 +61,9 @@ char *_old_name_array = NULL;
 char *CopyFromOldName(StringID id)
 {
 	/* Is this name an (old) custom name? */
-	if (GB(id, 11, 5) != 15) return NULL;
+	if (GetStringTab(id) != TEXT_TAB_OLD_CUSTOM) return NULL;
 
-	if (IsSavegameVersionBefore(37)) {
+	if (IsSavegameVersionBefore(SLV_37)) {
 		/* Allow for expansion when converted to UTF-8. */
 		char tmp[LEN_OLD_STRINGS * MAX_CHAR_LENGTH];
 		uint offs = _savegame_type == SGT_TTO ? LEN_OLD_STRINGS_TTO * GB(id, 0, 8) : LEN_OLD_STRINGS * GB(id, 0, 9);
