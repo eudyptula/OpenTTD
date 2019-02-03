@@ -18,6 +18,7 @@
 #include "cmd_helper.h"
 #include "settings_type.h"
 #include "core/sort_func.hpp"
+#include "settings_type.h"
 
 #include "table/strings.h"
 
@@ -274,12 +275,17 @@ CommandCost CmdSetTimetableStart(TileIndex tile, DoCommandFlag flags, uint32 p1,
 	CommandCost ret = CheckOwnership(v->owner);
 	if (ret.Failed()) return ret;
 
+	DateTicks start_date = (Date)p2 / DAY_TICKS;
+
+#if WALLCLOCK_NETWORK_COMPATIBLE
 	/* Don't let a timetable start more than 15 years into the future or 1 year in the past. */
-	Date start_date = (Date)p2;
 	if (start_date < 0 || start_date > MAX_DAY) return CMD_ERROR;
 	if (start_date - _date > 15 * DAYS_IN_LEAP_YEAR) return CMD_ERROR;
 	if (_date - start_date > DAYS_IN_LEAP_YEAR) return CMD_ERROR;
 	if (timetable_all && !v->orders.list->IsCompleteTimetable()) return CMD_ERROR;
+#else
+	start_date = ((DateTicks)_date * DAY_TICKS) + _date_fract + (DateTicks)(int32)p2;
+#endif
 
 	if (flags & DC_EXEC) {
 		SmallVector<Vehicle *, 8> vehs;
@@ -571,7 +577,11 @@ void UpdateVehicleTimetable(Vehicle *v, bool travelling)
 		just_started = !HasBit(v->vehicle_flags, VF_TIMETABLE_STARTED);
 
 		if (v->timetable_start != 0) {
+#if WALLCLOCK_NETWORK_COMPATIBLE
 			v->lateness_counter = (_date - v->timetable_start) * DAY_TICKS + _date_fract;
+#else
+			v->lateness_counter = (_date * DAY_TICKS) + _date_fract - v->timetable_start;
+#endif
 			v->timetable_start = 0;
 		}
 

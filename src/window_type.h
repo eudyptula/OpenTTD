@@ -693,6 +693,11 @@ enum WindowClass {
 	 */
 	WC_FRAMETIME_GRAPH,
 
+	/**
+	 * Departure boards
+	 */
+	WC_DEPARTURES_BOARD,
+
 	WC_INVALID = 0xFFFF, ///< Invalid window.
 };
 
