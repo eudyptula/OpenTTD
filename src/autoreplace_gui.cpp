@@ -402,9 +402,11 @@ public:
 
 		/* Disable the "Start Replacing" button if:
 		 *    Either engines list is empty
-		 * or The selected replacement engine has a replacement (to prevent loops). */
+		 * or The selected replacement engine has a replacement (to prevent loops).
+		 *    (Allow loops when the selected replacement engine is replacing itself.) */
+		EngineID id = EngineReplacementForCompany(c, this->sel_engine[1], this->sel_group);
 		this->SetWidgetDisabledState(WID_RV_START_REPLACE,
-				this->sel_engine[0] == INVALID_ENGINE || this->sel_engine[1] == INVALID_ENGINE || EngineReplacementForCompany(c, this->sel_engine[1], this->sel_group) != INVALID_ENGINE);
+				this->sel_engine[0] == INVALID_ENGINE || this->sel_engine[1] == INVALID_ENGINE || ( id != INVALID_ENGINE && id != this->sel_engine[1] ) );
 
 		/* Disable the "Stop Replacing" button if:
 		 *   The left engines list (existing vehicle) is empty
