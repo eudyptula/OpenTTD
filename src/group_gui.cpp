@@ -803,7 +803,17 @@ public:
 				}
 				break;
 			}
+			case WID_GL_CREATE_GROUP: { // make new group with vehicle specific name and add vehicle
+				const VehicleID vindex = this->vehicle_sel;
+				this->vehicle_sel = INVALID_VEHICLE;
+				this->group_over = INVALID_GROUP;
+				this->SetDirty();
+
+				DoCommandP(0, vindex | (_ctrl_pressed ? 1 << 31 : 0),0 , CMD_CREATE_GROUP_SPECIFIC_NAME | CMD_MSG(STR_ERROR_GROUP_CAN_T_CREATE_SPECIFIC_NAME),  NULL);
+				
+				break;
 		}
+	}
 	}
 
 	virtual void OnDragDrop(Point pt, int widget)
@@ -855,6 +865,9 @@ public:
 						assert(Group::IsValidID(this->vli.index));
 
 						DoCommandP(0, this->vli.index, 0, CMD_REMOVE_ALL_VEHICLES_GROUP | CMD_MSG(STR_ERROR_GROUP_CAN_T_REMOVE_ALL_VEHICLES));
+						break;
+					case ADI_AUTO_GROUP: // Automatically group all vehicles
+						DoCommandP(0, this->vli.index, this->vli.vtype, CMD_AUTO_GROUP_VEHICLES_GROUP | CMD_MSG(STR_ERROR_GROUP_CAN_T_AUTO_GROUP_VEHICLES));
 						break;
 					default: NOT_REACHED();
 				}

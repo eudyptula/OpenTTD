@@ -32,6 +32,7 @@ struct BaseVehicleListWindow : public Window {
 		ADI_DEPOT,
 		ADI_ADD_SHARED,
 		ADI_REMOVE_ALL,
+		ADI_AUTO_GROUP,
 	};
 
 	static const StringID vehicle_depot_name[];
