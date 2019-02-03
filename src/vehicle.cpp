@@ -52,12 +52,36 @@
 #include "gamelog.h"
 #include "linkgraph/linkgraph.h"
 #include "linkgraph/refresh.h"
+#include "framerate_type.h"
 
 #include "table/strings.h"
 
 #include "safeguards.h"
 
-#define GEN_HASH(x, y) ((GB((y), 6 + ZOOM_LVL_SHIFT, 6) << 6) + GB((x), 7 + ZOOM_LVL_SHIFT, 6))
+/* Number of bits in the hash to use from each vehicle coord */
+static const uint GEN_HASHX_BITS = 6;
+static const uint GEN_HASHY_BITS = 6;
+
+/* Size of each hash bucket */
+static const uint GEN_HASHX_BUCKET_BITS = 7;
+static const uint GEN_HASHY_BUCKET_BITS = 6;
+
+/* Compute hash for vehicle coord */
+#define GEN_HASHX(x)    GB((x), GEN_HASHX_BUCKET_BITS + ZOOM_LVL_SHIFT, GEN_HASHX_BITS)
+#define GEN_HASHY(y)   (GB((y), GEN_HASHY_BUCKET_BITS + ZOOM_LVL_SHIFT, GEN_HASHY_BITS) << GEN_HASHX_BITS)
+#define GEN_HASH(x, y) (GEN_HASHY(y) + GEN_HASHX(x))
+
+/* Maximum size until hash repeats */
+static const int GEN_HASHX_SIZE = 1 << (GEN_HASHX_BUCKET_BITS + GEN_HASHX_BITS + ZOOM_LVL_SHIFT);
+static const int GEN_HASHY_SIZE = 1 << (GEN_HASHY_BUCKET_BITS + GEN_HASHY_BITS + ZOOM_LVL_SHIFT);
+
+/* Increments to reach next bucket in hash table */
+static const int GEN_HASHX_INC = 1;
+static const int GEN_HASHY_INC = 1 << GEN_HASHX_BITS;
+
+/* Mask to wrap-around buckets */
+static const uint GEN_HASHX_MASK =  (1 << GEN_HASHX_BITS) - 1;
+static const uint GEN_HASHY_MASK = ((1 << GEN_HASHY_BITS) - 1) << GEN_HASHX_BITS;
 
 VehicleID _new_vehicle_id;
 uint16 _returned_refit_capacity;      ///< Stores the capacity after a refit operation.
@@ -71,7 +95,7 @@ INSTANTIATE_POOL_METHODS(Vehicle)
 
 /**
  * Determine shared bounds of all sprites.
- * @param [out] bounds Shared bounds.
+ * @param[out] bounds Shared bounds.
  */
 void VehicleSpriteSeq::GetBounds(Rect *bounds) const
 {
@@ -196,7 +220,7 @@ bool Vehicle::NeedsServicing() const
 		if (replace_when_old && !v->NeedsAutorenewing(c, false)) continue;
 
 		/* Check refittability */
-		uint32 available_cargo_types, union_mask;
+		CargoTypes available_cargo_types, union_mask;
 		GetArticulatedRefitMasks(new_engine, true, &union_mask, &available_cargo_types);
 		/* Is there anything to refit? */
 		if (union_mask != 0) {
@@ -618,7 +642,7 @@ static void UpdateVehicleTileHash(Vehicle *v, bool remove)
 	v->hash_tile_current = new_hash;
 }
 
-static Vehicle *_vehicle_viewport_hash[0x1000];
+static Vehicle *_vehicle_viewport_hash[1 << (GEN_HASHX_BITS + GEN_HASHY_BITS)];
 
 static void UpdateVehicleViewportHash(Vehicle *v, int x, int y)
 {
@@ -699,7 +723,7 @@ bool Vehicle::IsEngineCountable() const
 
 /**
  * Check whether Vehicle::engine_type has any meaning.
- * @return true if the vehicle has a useable engine type.
+ * @return true if the vehicle has a usable engine type.
  */
 bool Vehicle::HasEngineType() const
 {
@@ -922,8 +946,15 @@ void CallVehicleTicks()
 
 	RunVehicleDayProc();
 
-	Station *st;
-	FOR_ALL_STATIONS(st) LoadUnloadStation(st);
+	{
+		PerformanceMeasurer framerate(PFE_GL_ECONOMY);
+		Station *st;
+		FOR_ALL_STATIONS(st) LoadUnloadStation(st);
+	}
+	PerformanceAccumulator::Reset(PFE_GL_TRAINS);
+	PerformanceAccumulator::Reset(PFE_GL_ROADVEHS);
+	PerformanceAccumulator::Reset(PFE_GL_SHIPS);
+	PerformanceAccumulator::Reset(PFE_GL_AIRCRAFT);
 
 	Vehicle *v;
 	FOR_ALL_VEHICLES(v) {
@@ -1088,26 +1119,26 @@ void ViewportAddVehicles(DrawPixelInfo *dpi)
 	/* The hash area to scan */
 	int xl, xu, yl, yu;
 
-	if (dpi->width + (70 * ZOOM_LVL_BASE) < (1 << (7 + 6 + ZOOM_LVL_SHIFT))) {
-		xl = GB(l - (70 * ZOOM_LVL_BASE), 7 + ZOOM_LVL_SHIFT, 6);
-		xu = GB(r,                        7 + ZOOM_LVL_SHIFT, 6);
+	if (dpi->width + (MAX_VEHICLE_PIXEL_X * ZOOM_LVL_BASE) < GEN_HASHX_SIZE) {
+		xl = GEN_HASHX(l - MAX_VEHICLE_PIXEL_X * ZOOM_LVL_BASE);
+		xu = GEN_HASHX(r);
 	} else {
 		/* scan whole hash row */
 		xl = 0;
-		xu = 0x3F;
+		xu = GEN_HASHX_MASK;
 	}
 
-	if (dpi->height + (70 * ZOOM_LVL_BASE) < (1 << (6 + 6 + ZOOM_LVL_SHIFT))) {
-		yl = GB(t - (70 * ZOOM_LVL_BASE), 6 + ZOOM_LVL_SHIFT, 6) << 6;
-		yu = GB(b,                        6 + ZOOM_LVL_SHIFT, 6) << 6;
+	if (dpi->height + (MAX_VEHICLE_PIXEL_Y * ZOOM_LVL_BASE) < GEN_HASHY_SIZE) {
+		yl = GEN_HASHY(t - MAX_VEHICLE_PIXEL_Y * ZOOM_LVL_BASE);
+		yu = GEN_HASHY(b);
 	} else {
 		/* scan whole column */
 		yl = 0;
-		yu = 0x3F << 6;
+		yu = GEN_HASHY_MASK;
 	}
 
-	for (int y = yl;; y = (y + (1 << 6)) & (0x3F << 6)) {
-		for (int x = xl;; x = (x + 1) & 0x3F) {
+	for (int y = yl;; y = (y + GEN_HASHY_INC) & GEN_HASHY_MASK) {
+		for (int x = xl;; x = (x + GEN_HASHX_INC) & GEN_HASHX_MASK) {
 			const Vehicle *v = _vehicle_viewport_hash[x + y]; // already masked & 0xFFF
 
 			while (v != NULL) {
@@ -1269,7 +1300,7 @@ bool Vehicle::HandleBreakdown()
 			SetWindowDirty(WC_VEHICLE_VIEW, this->index);
 			SetWindowDirty(WC_VEHICLE_DETAILS, this->index);
 
-			/* FALL THROUGH */
+			FALLTHROUGH;
 		case 1:
 			/* Aircraft breakdowns end only when arriving at the airport */
 			if (this->type == VEH_AIRCRAFT) return false;
@@ -1791,11 +1822,12 @@ LiveryScheme GetEngineLiveryScheme(EngineID engine_type, EngineID parent_engine_
 					if (parent_engine_type == INVALID_ENGINE) {
 						return LS_PASSENGER_WAGON_STEAM;
 					} else {
+						bool is_mu = HasBit(EngInfo(parent_engine_type)->misc_flags, EF_RAIL_IS_MU);
 						switch (RailVehInfo(parent_engine_type)->engclass) {
 							default: NOT_REACHED();
 							case EC_STEAM:    return LS_PASSENGER_WAGON_STEAM;
-							case EC_DIESEL:   return LS_PASSENGER_WAGON_DIESEL;
-							case EC_ELECTRIC: return LS_PASSENGER_WAGON_ELECTRIC;
+							case EC_DIESEL:   return is_mu ? LS_DMU : LS_PASSENGER_WAGON_DIESEL;
+							case EC_ELECTRIC: return is_mu ? LS_EMU : LS_PASSENGER_WAGON_ELECTRIC;
 							case EC_MONORAIL: return LS_PASSENGER_WAGON_MONORAIL;
 							case EC_MAGLEV:   return LS_PASSENGER_WAGON_MAGLEV;
 						}
@@ -1864,14 +1896,24 @@ const Livery *GetEngineLivery(EngineID engine_type, CompanyID company, EngineID 
 	const Company *c = Company::Get(company);
 	LiveryScheme scheme = LS_DEFAULT;
 
-	/* The default livery is always available for use, but its in_use flag determines
-	 * whether any _other_ liveries are in use. */
-	if (c->livery[LS_DEFAULT].in_use && (livery_setting == LIT_ALL || (livery_setting == LIT_COMPANY && company == _local_company))) {
-		/* Determine the livery scheme to use */
-		scheme = GetEngineLiveryScheme(engine_type, parent_engine_type, v);
+	if (livery_setting == LIT_ALL || (livery_setting == LIT_COMPANY && company == _local_company)) {
+		if (v != NULL) {
+			const Group *g = Group::GetIfValid(v->First()->group_id);
+			if (g != NULL) {
+				/* Traverse parents until we find a livery or reach the top */
+				while (g->livery.in_use == 0 && g->parent != INVALID_GROUP) {
+					g = Group::Get(g->parent);
+				}
+				if (g->livery.in_use != 0) return &g->livery;
+			}
+		}
 
-		/* Switch back to the default scheme if the resolved scheme is not in use */
-		if (!c->livery[scheme].in_use) scheme = LS_DEFAULT;
+		/* The default livery is always available for use, but its in_use flag determines
+		 * whether any _other_ liveries are in use. */
+		if (c->livery[LS_DEFAULT].in_use != 0) {
+			/* Determine the livery scheme to use */
+			scheme = GetEngineLiveryScheme(engine_type, parent_engine_type, v);
+		}
 	}
 
 	return &c->livery[scheme];
@@ -2169,6 +2211,7 @@ void Vehicle::LeaveStation()
 	st->loading_vehicles.remove(this);
 
 	HideFillingPercent(&this->fill_percent_te_id);
+	trip_occupancy = CalcPercentVehicleFilled(this, NULL);
 
 	if (this->type == VEH_TRAIN && !(this->vehstatus & VS_CRASHED)) {
 		/* Trigger station animation (trains only) */
@@ -2342,7 +2385,7 @@ CommandCost Vehicle::SendToDepot(DoCommandFlag flags, DepotCommand command)
 			SetBit(gv_flags, GVF_SUPPRESS_IMPLICIT_ORDERS);
 		}
 
-		this->dest_tile = location;
+		this->SetDestTile(location);
 		this->current_order.MakeGoToDepot(destination, ODTF_MANUAL);
 		if (!(command & DEPOT_SERVICE)) this->current_order.SetDepotActionType(ODATFB_HALT);
 		SetWindowWidgetDirty(WC_VEHICLE_VIEW, this->index, WID_VV_START_STOP);
@@ -2713,7 +2756,7 @@ void Vehicle::RemoveFromShared()
 	if (this->orders.list->GetNumVehicles() == 1) {
 		/* When there is only one vehicle, remove the shared order list window. */
 		DeleteWindowById(GetWindowClassForVehicleType(this->type), vli.Pack());
-		InvalidateVehicleOrder(this->FirstShared(), 0);
+		InvalidateVehicleOrder(this->FirstShared(), VIWD_MODIFY_ORDERS);
 	} else if (were_first) {
 		/* If we were the first one, update to the new first one.
 		 * Note: FirstShared() is already the new first */
@@ -2864,7 +2907,7 @@ const uint16 &Vehicle::GetGroundVehicleFlags() const
 
 /**
  * Calculates the set of vehicles that will be affected by a given selection.
- * @param set [inout] Set of affected vehicles.
+ * @param[in,out] set Set of affected vehicles.
  * @param v First vehicle of the selection.
  * @param num_vehicles Number of vehicles in the selection (not counting articulated parts).
  * @pre \a set must be empty.
