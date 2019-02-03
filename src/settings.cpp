@@ -179,7 +179,8 @@ static int ParseIntList(const char *p, int *items, int maxitems)
 				/* Do not accept multiple commas between numbers */
 				if (!comma) return -1;
 				comma = false;
-				/* FALL THROUGH */
+				FALLTHROUGH;
+
 			case ' ':
 				p++;
 				break;
@@ -1095,7 +1096,7 @@ static bool InvalidateNewGRFChangeWindows(int32 p1)
 
 static bool InvalidateCompanyLiveryWindow(int32 p1)
 {
-	InvalidateWindowClassesData(WC_COMPANY_COLOUR);
+	InvalidateWindowClassesData(WC_COMPANY_COLOUR, -1);
 	return RedrawScreen(p1);
 }
 
@@ -1174,6 +1175,7 @@ static bool MaxNoAIsChange(int32 i)
 		ShowErrorMessage(STR_WARNING_NO_SUITABLE_AI, INVALID_STRING_ID, WL_CRITICAL);
 	}
 
+	InvalidateWindowClassesData(WC_GAME_OPTIONS, 0);
 	return true;
 }
 
@@ -1334,6 +1336,16 @@ static bool CheckSharingAir(int32 p1)
 	return CheckSharingChangePossible(VEH_AIRCRAFT);
 }
 
+static bool InvalidateShipPathCache(int32 p1)
+{
+	Ship *s;
+	FOR_ALL_SHIPS(s) {
+		s->path.clear();
+	}
+	return true;
+}
+
+
 #ifdef ENABLE_NETWORK
 
 static bool UpdateClientName(int32 p1)
@@ -1388,7 +1400,7 @@ static void PrepareOldDiffCustom()
  */
 static void HandleOldDiffCustom(bool savegame)
 {
-	uint options_to_load = GAME_DIFFICULTY_NUM - ((savegame && IsSavegameVersionBefore(4)) ? 1 : 0);
+	uint options_to_load = GAME_DIFFICULTY_NUM - ((savegame && IsSavegameVersionBefore(SLV_4)) ? 1 : 0);
 
 	if (!savegame) {
 		/* If we did read to old_diff_custom, then at least one value must be non 0. */
@@ -1480,7 +1492,7 @@ static int DecodeHexNibble(char c)
  * Parse a sequence of characters (supposedly hex digits) into a sequence of bytes.
  * After the hex number should be a \c '|' character.
  * @param pos First character to convert.
- * @param dest [out] Output byte array to write the bytes.
+ * @param[out] dest Output byte array to write the bytes.
  * @param dest_size Number of bytes in \a dest.
  * @return Whether reading was successful.
  */
@@ -1689,9 +1701,9 @@ static void HandleSettingDescs(IniFile *ini, SettingDescProc *proc, SettingDescP
 {
 	if (basic_settings) {
 		proc(ini, (const SettingDesc*)_misc_settings,    "misc",  NULL);
-#if defined(WIN32) && !defined(DEDICATED)
+#if defined(_WIN32) && !defined(DEDICATED)
 		proc(ini, (const SettingDesc*)_win32_settings,   "win32", NULL);
-#endif /* WIN32 */
+#endif /* _WIN32 */
 	}
 
 	if (other_settings) {
@@ -1710,7 +1722,7 @@ static void HandleSettingDescs(IniFile *ini, SettingDescProc *proc, SettingDescP
 static IniFile *IniLoadConfig()
 {
 	IniFile *ini = new IniFile(_list_group_names);
-	ini->LoadFromDisk(_config_file, BASE_DIR);
+	ini->LoadFromDisk(_config_file, NO_DIRECTORY);
 	return ini;
 }
 
@@ -1769,7 +1781,7 @@ void SaveToConfig()
 
 /**
  * Get the list of known NewGrf presets.
- * @param list[inout] Pointer to list for storing the preset names.
+ * @param[in,out] list Pointer to list for storing the preset names.
  */
 void GetGRFPresetList(GRFPresetList *list)
 {
