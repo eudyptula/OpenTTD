@@ -1006,6 +1006,8 @@ public:
 
 		return v;
 	}
+
+	bool IsDrawn() const;
 };
 
 /**
