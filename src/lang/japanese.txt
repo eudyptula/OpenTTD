@@ -669,10 +669,7 @@ STR_MUSIC_TOOLTIP_SELECT_CUSTOM_2_USER_DEFINED                  :{BLACK}プレ�
 STR_MUSIC_TOOLTIP_TOGGLE_PROGRAM_SHUFFLE                        :{BLACK}プレイリストのシャッフルの有効/無効を切り替えます
 STR_MUSIC_TOOLTIP_SHOW_MUSIC_TRACK_SELECTION                    :{BLACK}曲選択のウィンドウを表示します
 
-STR_ERROR_NO_SONGS                                              :{WHITE}選択した音楽セットに曲がありません
-
 # Playlist window
-STR_PLAYLIST_MUSIC_PROGRAM_SELECTION                            :{WHITE}プレイリストの選択
 STR_PLAYLIST_TRACK_NAME                                         :{TINY_FONT}{LTBLUE}{ZEROFILL_NUM} "{STRING}"
 STR_PLAYLIST_TRACK_INDEX                                        :{TINY_FONT}{BLACK}楽曲索引
 STR_PLAYLIST_PROGRAM                                            :{TINY_FONT}{BLACK}プレイリスト - '{STRING}'
@@ -1254,6 +1251,7 @@ STR_CONFIG_SETTING_DYNAMIC_ENGINES_EXISTING_VEHICLES            :{WHITE}この�
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE                   :インフラ補修: {STRING}
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE_HELPTEXT          :有効にすると、インフラ設備にも維持費が発生するようになります。維持費はネットワークのサイズに非線形で比例する為、小さい会社よりも大きい会社の方が影響が大きくなります
 
+
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS                        :空港の旧式化撤廃: {STRING}
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS_HELPTEXT               :有効にすると、いずれの種類の空港であっても、その開発後であれば永久に建設が可能になります
 
@@ -1337,8 +1335,6 @@ STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_HELPTEXT                :ミニマップ
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_GREEN                   :緑
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_DARK_GREEN              :濃緑
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_VIOLET                  :青紫
-STR_CONFIG_SETTING_REVERSE_SCROLLING                            :スクロール方面を反転: {STRING}
-STR_CONFIG_SETTING_REVERSE_SCROLLING_HELPTEXT                   :マウス右ボタンで地図をスクロールする時の挙動を設定します。無効にした場合はマウスはカメラを動かします(マウスの移動方向に移動します)。有効にした場合は地図を動かします(マウスの移動方向と逆に移動します)
 STR_CONFIG_SETTING_SMOOTH_SCROLLING                             :画面のスムーズスクロール: {STRING}
 STR_CONFIG_SETTING_SMOOTH_SCROLLING_HELPTEXT                    :ミニマップでの移動や「現在位置に移動」などのコマンドを使用した際にメイン画面がどのように移動するかを設定します。有効にした場合はスムーズにスクロールして移動します。無効の場合は目的地に直接ジャンプします
 STR_CONFIG_SETTING_MEASURE_TOOLTIP                              :測定ツールチップ表示: {STRING}
@@ -1370,8 +1366,6 @@ STR_CONFIG_SETTING_RIGHT_MOUSE_BTN_EMU_COMMAND                  :コマンド+�
 STR_CONFIG_SETTING_RIGHT_MOUSE_BTN_EMU_CONTROL                  :Ctrl+クリック (Win)
 STR_CONFIG_SETTING_RIGHT_MOUSE_BTN_EMU_OFF                      :切
 
-STR_CONFIG_SETTING_LEFT_MOUSE_BTN_SCROLLING                     :左ドラッグスクロール: {STRING}
-STR_CONFIG_SETTING_LEFT_MOUSE_BTN_SCROLLING_HELPTEXT            :有効にすると左ドラッグでマップのスクロールができるようになります。特にタッチスクリーンを利用しているときに便利です
 
 STR_CONFIG_SETTING_AUTOSAVE                                     :オートセーブ: {STRING}
 STR_CONFIG_SETTING_AUTOSAVE_HELPTEXT                            :オートセーブの間隔を設定します
@@ -2589,6 +2583,7 @@ STR_LAND_AREA_INFORMATION_AIRPORTTILE_NAME                      :{BLACK}空港�
 STR_LAND_AREA_INFORMATION_NEWGRF_NAME                           :{BLACK}NewGRF: {LTBLUE}{STRING}
 STR_LAND_AREA_INFORMATION_CARGO_ACCEPTED                        :{BLACK}受入れ貨物: {LTBLUE}
 STR_LAND_AREA_INFORMATION_CARGO_EIGHTS                          :({COMMA}/8 {STRING})
+STR_LANG_AREA_INFORMATION_RAIL_TYPE                             : {BLACK}線路の種類: {LTBLUE}{STRING}
 STR_LANG_AREA_INFORMATION_RAIL_SPEED_LIMIT                      :{BLACK}線路の制限速度: {LTBLUE}{VELOCITY}
 STR_LANG_AREA_INFORMATION_ROAD_SPEED_LIMIT                      :{BLACK}道路の最高速度: {LTBLUE}{VELOCITY}
 
@@ -2687,7 +2682,14 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :社有地
 STR_ABOUT_OPENTTD                                               :{WHITE}OpenTTDについて
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}オリジナル版権{COPYRIGHT} 1995 Chris Sawyer All rights reserved
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD バージョン {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2016 The OpenTTD team
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2019 The OpenTTD team
+
+# Framerate display window
+############ Leave those lines in this order!!
+############ End of leave-in-this-order
+############ Leave those lines in this order!!
+############ End of leave-in-this-order
+
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}ゲームを保存
@@ -2980,8 +2982,6 @@ STR_TOWN_POPULATION                                             :{BLACK}地域�
 STR_TOWN_VIEW_TOWN_CAPTION                                      :{WHITE}{TOWN}
 STR_TOWN_VIEW_CITY_CAPTION                                      :{WHITE}{TOWN}(市)
 STR_TOWN_VIEW_POPULATION_HOUSES                                 :{BLACK}人口: {ORANGE}{COMMA}人{BLACK}　建物: {ORANGE}{COMMA}戸
-STR_TOWN_VIEW_PASSENGERS_LAST_MONTH_MAX                         :{BLACK}旅客数(先月): {ORANGE}{COMMA}人{BLACK}　最大: {ORANGE}{COMMA}人
-STR_TOWN_VIEW_MAIL_LAST_MONTH_MAX                               :{BLACK}郵便袋(先月): {ORANGE}{COMMA}袋{BLACK}　最大: {ORANGE}{COMMA}袋
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH                              :{BLACK}街の成長に必要な物資:
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_REQUIRED_GENERAL             :{ORANGE}{STRING}が{RED}必要です
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_REQUIRED_WINTER              :{ORANGE}{STRING}が{BLACK}冬に必要です
@@ -3033,7 +3033,7 @@ STR_LOCAL_AUTHORITY_ACTION_TOOLTIP_BRIBE                        :{YELLOW}買収�
 
 # Goal window
 STR_GOALS_CAPTION                                               :{WHITE}{COMPANY} 目標
-STR_GOALS_SPECTATOR_CAPTION                                     :{BLACK}大目標
+STR_GOALS_SPECTATOR_CAPTION                                     :{WHITE}大目標
 STR_GOALS_GLOBAL_TITLE                                          :{BLACK}大目標:
 STR_GOALS_TEXT                                                  :{ORANGE}{STRING}
 STR_GOALS_NONE                                                  :{ORANGE}- なし -
@@ -3112,8 +3112,8 @@ STR_STATION_VIEW_ACCEPTS_BUTTON                                 :{BLACK}受入�
 STR_STATION_VIEW_ACCEPTS_TOOLTIP                                :{BLACK}受入れる貨物のリストを表示します
 STR_STATION_VIEW_ACCEPTS_CARGO                                  :{BLACK}受入れ貨物: {WHITE}{CARGO_LIST}
 
-STR_STATIOV_VIEW_EXCLUSIVE_RIGHTS_SELF                          :{BLACK}この停留施設は街の独占輸送契約の恩恵下にあります
-STR_STATIOV_VIEW_EXCLUSIVE_RIGHTS_COMPANY                       :{YELLOW}{COMPANY}{BLACK}はこの街と独占輸送契約を締結しています
+STR_STATION_VIEW_EXCLUSIVE_RIGHTS_SELF                          :{BLACK}この停留施設は街の独占輸送契約の恩恵下にあります
+STR_STATION_VIEW_EXCLUSIVE_RIGHTS_COMPANY                       :{YELLOW}{COMPANY}{BLACK}はこの街と独占輸送契約を締結しています
 
 STR_STATION_VIEW_RATINGS_BUTTON                                 :{BLACK}評価
 STR_STATION_VIEW_RATINGS_TOOLTIP                                :{BLACK}停留施設の評価を表示します
@@ -3174,7 +3174,7 @@ STR_WAYPOINT_VIEW_CHANGE_WAYPOINT_NAME                          :{BLACK}中継�
 STR_BUOY_VIEW_CENTER_TOOLTIP                                    :{BLACK}メイン画面をこのブイの場所に移動します。Ctrl+クリックでこのブイの場所を新たなビューポートに表示します
 STR_BUOY_VIEW_CHANGE_BUOY_NAME                                  :{BLACK}ブイの名称を変更
 
-STR_EDIT_WAYPOINT_NAME                                          :中継駅名を表示
+STR_EDIT_WAYPOINT_NAME                                          :{WHITE}中継駅名を表示
 
 # Finances window
 STR_FINANCES_CAPTION                                            :{WHITE}{COMPANY} 経営状況　{BLACK}{COMPANY_NUM}
@@ -3286,18 +3286,8 @@ STR_INDUSTRY_VIEW_LOCATION_TOOLTIP                              :{BLACK}メイ�
 STR_INDUSTRY_VIEW_PRODUCTION_LEVEL                              :{BLACK}生産量: {YELLOW}{COMMA}%
 STR_INDUSTRY_VIEW_INDUSTRY_ANNOUNCED_CLOSURE                    :{YELLOW}この産業拠点は間もなく閉鎖されます!
 
-############ range for requires starts
-STR_INDUSTRY_VIEW_REQUIRES_CARGO                                :{BLACK}必要資源: {YELLOW}{STRING}{STRING}
-STR_INDUSTRY_VIEW_REQUIRES_CARGO_CARGO                          :{BLACK}必要資源: {YELLOW}{STRING}{STRING}と{STRING}{STRING}
-STR_INDUSTRY_VIEW_REQUIRES_CARGO_CARGO_CARGO                    :{BLACK}必要資源: {YELLOW}{STRING}{STRING}、{STRING}{STRING}、{STRING}{STRING}
-############ range for requires ends
 
-############ range for produces starts
-STR_INDUSTRY_VIEW_WAITING_FOR_PROCESSING                        :{BLACK}加工待ちの貨物:
-STR_INDUSTRY_VIEW_WAITING_STOCKPILE_CARGO                       :{YELLOW}{CARGO_LONG}{STRING}{BLACK}
-STR_INDUSTRY_VIEW_PRODUCES_CARGO                                :{BLACK}生産品: {YELLOW}{STRING}{STRING}
-STR_INDUSTRY_VIEW_PRODUCES_CARGO_CARGO                          :{BLACK}生産品: {YELLOW}{STRING}{STRING}、{STRING}{STRING}
-############ range for produces ends
+STR_INDUSTRY_VIEW_REQUIRES                                      : {BLACK}必要物資:
 
 STR_CONFIG_GAME_PRODUCTION                                      :{WHITE}生産量を変更 (8の倍数、最大2040)
 STR_CONFIG_GAME_PRODUCTION_LEVEL                                :{WHITE}生産量を変更 (%表記、最大800%)
@@ -3360,6 +3350,7 @@ STR_GROUP_ADD_SHARED_VEHICLE                                    :共有輸送機
 STR_GROUP_REMOVE_ALL_VEHICLES                                   :全輸送機器を削除
 
 STR_GROUP_RENAME_CAPTION                                        :{BLACK}グループ名を変更
+
 
 # Build vehicle window
 STR_BUY_VEHICLE_TRAIN_RAIL_CAPTION                              :新規機関車(非電化)
@@ -3525,10 +3516,7 @@ STR_ENGINE_PREVIEW_MAGLEV_LOCOMOTIVE                            :リニア列車
 
 STR_ENGINE_PREVIEW_COST_WEIGHT_SPEED_POWER                      :{BLACK}価格: {CURRENCY_LONG} 重量: {WEIGHT_SHORT}{}最高速度: {VELOCITY}{}出力: {POWER}{}運用費: {CURRENCY_LONG}/年{}収容量: {CARGO_LONG}
 STR_ENGINE_PREVIEW_COST_WEIGHT_SPEED_POWER_MAX_TE               :{BLACK}価格: {CURRENCY_LONG} 重量: {WEIGHT_SHORT}{}最高速度: {VELOCITY} 出力: {POWER} 最大牽引力: {6:FORCE}{}運用費: {4:CURRENCY_LONG}/年{}収容量 {5:CARGO_LONG}
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_CAPACITY_CAPACITY_RUNCOST     :{BLACK}価格: {CURRENCY_LONG} 最高速度: {VELOCITY}{}収容量: {CARGO_LONG}、{CARGO_LONG}{}運用費: {CURRENCY_LONG}/年
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_CAPACITY_RUNCOST              :{BLACK}価格: {CURRENCY_LONG} 最高速度: {VELOCITY}{}収容量: {CARGO_LONG}{}運用費: {CURRENCY_LONG}/年
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_RANGE_CAPACITY_CAPACITY_RUNCOST:{BLACK}価格: {CURRENCY_LONG} 最高速度: {VELOCITY} 航続距離: {COMMA}タイル{}収容量: {CARGO_LONG}、{CARGO_LONG}{}運用費: {CURRENCY_LONG}/年
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_RANGE_CAPACITY_RUNCOST        :{BLACK}価格: {CURRENCY_LONG} 最高速度: {VELOCITY} 航続距離: {COMMA}タイル{}収容量: {CARGO_LONG}{}運用費: {CURRENCY_LONG}/年
+STR_ENGINE_PREVIEW_COST_MAX_SPEED_CAP_RUNCOST                   :{BLACK}価格: {CURRENCY_LONG} 最高速度: {VELOCITY}{}収容量: {CARGO_LONG}{}運用費: {CURRENCY_LONG}/年
 
 # Autoreplace window
 STR_REPLACE_VEHICLES_WHITE                                      :{WHITE}{STRING}の自動置換 - {STRING}
@@ -3558,6 +3546,7 @@ STR_REPLACE_HELP_STOP_BUTTON                                    :{BLACK}クリ�
 STR_REPLACE_ENGINE_WAGON_SELECT_HELP                            :{BLACK}置換対象を機関車/貨車に切り替えます
 STR_REPLACE_ENGINES                                             :機関車
 STR_REPLACE_WAGONS                                              :貨車
+STR_REPLACE_ALL_RAILTYPE                                        :全ての鉄道車両
 
 STR_REPLACE_HELP_RAILTYPE                                       :{BLACK}置換対象となる線路種類を切り替えます
 STR_REPLACE_HELP_REPLACE_INFO_TAB                               :{BLACK}左で選択された機関車の置換対象を(あれば)表示します
@@ -3650,7 +3639,6 @@ STR_VEHICLE_INFO_AGE                                            :{COMMA}年({COM
 STR_VEHICLE_INFO_AGE_RED                                        :{RED}{COMMA}年({COMMA}年)
 
 STR_VEHICLE_INFO_MAX_SPEED                                      :{BLACK}最高速度: {LTBLUE}{VELOCITY}
-STR_VEHICLE_INFO_MAX_SPEED_RANGE                                :{BLACK}最高速度: {LTBLUE}{VELOCITY} {BLACK}航続距離: {LTBLUE}{COMMA}タイル
 STR_VEHICLE_INFO_WEIGHT_POWER_MAX_SPEED                         :{BLACK}重量: {LTBLUE}{WEIGHT_SHORT}　{BLACK}出力: {LTBLUE}{POWER}{BLACK}　最高速度: {LTBLUE}{VELOCITY}
 STR_VEHICLE_INFO_WEIGHT_POWER_MAX_SPEED_MAX_TE                  :{BLACK}重量: {LTBLUE}{WEIGHT_SHORT}　{BLACK}出力: {LTBLUE}{POWER}{BLACK}　最高速度: {LTBLUE}{VELOCITY}　{BLACK}最大牽引力: {LTBLUE}{FORCE}
 
@@ -4209,7 +4197,6 @@ STR_ERROR_TOO_MANY_STATIONS_LOADING                             :{WHITE}停留�
 STR_ERROR_TOO_MANY_STATION_SPECS                                :{WHITE}駅の部分が多すぎます
 STR_ERROR_TOO_MANY_BUS_STOPS                                    :{WHITE}バス停が多すぎます
 STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :{WHITE}荷役所が多すぎます
-STR_ERROR_TOO_CLOSE_TO_ANOTHER_STATION                          :{WHITE}他の停留施設に近すぎます
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_DOCK                             :{WHITE}他の埠頭に近すぎます
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_AIRPORT                          :{WHITE}他の空港に近すぎます
 STR_ERROR_CAN_T_RENAME_STATION                                  :{WHITE}駅名を変更できません
