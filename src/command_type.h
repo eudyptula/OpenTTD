@@ -293,6 +293,8 @@ enum Commands {
 	CMD_SHOW_STORY_PAGE,              ///< show a story page
 	CMD_REMOVE_STORY_PAGE,            ///< remove a story page
 	CMD_REMOVE_STORY_PAGE_ELEMENT,    ///< remove a story page element
+	CMD_SCROLL_VIEWPORT,              ///< scroll main viewport of players
+
 	CMD_LEVEL_LAND,                   ///< level land
 
 	CMD_BUILD_LOCK,                   ///< build a lock
@@ -322,6 +324,7 @@ enum Commands {
 	CMD_REMOVE_ALL_VEHICLES_GROUP,    ///< remove all vehicles from a group
 	CMD_AUTO_GROUP_VEHICLES_GROUP,    ///< group all vehicles
 	CMD_SET_GROUP_REPLACE_PROTECTION, ///< set the autoreplace-protection for a group
+	CMD_SET_GROUP_LIVERY,             ///< set the livery for a group
 
 	CMD_MOVE_ORDER,                   ///< move an order
 	CMD_CHANGE_TIMETABLE,             ///< change the timetable for a vehicle
