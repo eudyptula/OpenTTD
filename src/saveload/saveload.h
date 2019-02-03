@@ -290,6 +290,7 @@ enum SaveLoadVersion : uint16 {
 
 	SLV_GROUP_LIVERIES,                     ///< 205  PR#7108 Livery storage change and group liveries.
 
+	SLV_SIGNAL_TUNNEL,
 	SLV_LAST_TRAVEL_TIMES,
 	SLV_INFRASTRUCTURE_SHARING,
 	SLV_AUTO_TIMETABLES,
