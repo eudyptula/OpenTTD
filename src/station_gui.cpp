@@ -42,6 +42,7 @@
 
 #include <set>
 #include <vector>
+#include <algorithm>
 
 #include "safeguards.h"
 
@@ -272,6 +273,35 @@ protected:
 		}
 
 		return diff;
+	}
+
+	/** Sort stations by their highest available waiting cargo per station */
+	static int CDECL StationMaxWaitingAvailablePerStationSorter(const Station * const *a, const Station * const *b)
+	{
+		// TODO This is used for sorting, inefficient to compute all the time, store it global
+		std::map<CargoID, uint> count_a, count_b;
+
+		CargoID j;
+		FOR_EACH_SET_CARGO_ID(j, cargo_filter) {
+				count_a[j] += (*a)->goods[j].cargo.AvailableMaxCount();
+				count_b[j] += (*b)->goods[j].cargo.AvailableMaxCount();
+			}
+
+		const std::map<CargoID, uint>::iterator &max_a =
+				std::max_element(count_a.begin(), count_a.end(),
+				                 [] (const std::map<CargoID, uint>::value_type &p1, const std::map<CargoID, uint>::value_type &p2) {
+					                 return p1.second < p2.second;
+				                 }
+				);
+
+		const std::map<CargoID, uint>::iterator &max_b =
+				std::max_element(count_b.begin(), count_b.end(),
+				                 [] (const std::map<CargoID, uint>::value_type &p1, const std::map<CargoID, uint>::value_type &p2) {
+					                 return p1.second < p2.second;
+				                 }
+				);
+
+		return max_a->second - max_b->second;
 	}
 
 	/** Sort stations by their rating */
@@ -677,6 +707,7 @@ GUIStationList::SortFunction * const CompanyStationsWindow::sorter_funcs[] = {
 	&StationTypeSorter,
 	&StationWaitingTotalSorter,
 	&StationWaitingAvailableSorter,
+	&StationMaxWaitingAvailablePerStationSorter,
 	&StationRatingMaxSorter,
 	&StationRatingMinSorter
 };
@@ -687,6 +718,7 @@ const StringID CompanyStationsWindow::sorter_names[] = {
 	STR_SORT_BY_FACILITY,
 	STR_SORT_BY_WAITING_TOTAL,
 	STR_SORT_BY_WAITING_AVAILABLE,
+	STR_SORT_BY_MAX_WAITING_AVAILABLE,
 	STR_SORT_BY_RATING_MAX,
 	STR_SORT_BY_RATING_MIN,
 	INVALID_STRING_ID
