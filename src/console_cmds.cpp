@@ -62,7 +62,7 @@ public:
 
 	/**
 	 * (Re-)validate the file storage cache. Only makes a change if the storage was invalid, or if \a force_reload.
-	 * @param Always reload the file storage cache.
+	 * @param force_reload Always reload the file storage cache.
 	 */
 	void ValidateFileList(bool force_reload = false)
 	{
@@ -256,8 +256,8 @@ DEF_CONSOLE_CMD(ConResetTile)
 
 /**
  * Scroll to a tile on the map.
- * @param arg1 tile tile number or tile x coordinate.
- * @param arg2 optionally tile y coordinate.
+ * param x tile number or tile x coordinate.
+ * param y optional y coordinate.
  * @note When only one argument is given it is intepreted as the tile number.
  *       When two arguments are given, they are interpreted as the tile's x
  *       and y coordinates.
@@ -304,7 +304,7 @@ DEF_CONSOLE_CMD(ConScrollToTile)
 
 /**
  * Save the map to a file.
- * @param filename the filename to save the map to.
+ * param filename the filename to save the map to.
  * @return True when help was displayed or the file attempted to be saved.
  */
 DEF_CONSOLE_CMD(ConSave)
@@ -553,29 +553,36 @@ DEF_CONSOLE_CMD(ConBan)
 
 DEF_CONSOLE_CMD(ConUnBan)
 {
-
 	if (argc == 0) {
-		IConsoleHelp("Unban a client from a network game. Usage: 'unban <ip | client-id>'");
+		IConsoleHelp("Unban a client from a network game. Usage: 'unban <ip | banlist-index>'");
 		IConsoleHelp("For a list of banned IP's, see the command 'banlist'");
 		return true;
 	}
 
 	if (argc != 2) return false;
 
-	uint index = (strchr(argv[1], '.') == NULL) ? atoi(argv[1]) : 0;
-	index--;
-	uint i = 0;
-
-	for (char **iter = _network_ban_list.Begin(); iter != _network_ban_list.End(); iter++, i++) {
-		if (strcmp(_network_ban_list[i], argv[1]) == 0 || index == i) {
-			free(_network_ban_list[i]);
-			_network_ban_list.Erase(iter);
-			IConsolePrint(CC_DEFAULT, "IP unbanned.");
-			return true;
-		}
+	/* Try by IP. */
+	uint index;
+	for (index = 0; index < _network_ban_list.Length(); index++) {
+		if (strcmp(_network_ban_list[index], argv[1]) == 0) break;
 	}
 
-	IConsolePrint(CC_DEFAULT, "IP not in ban-list.");
+	/* Try by index. */
+	if (index >= _network_ban_list.Length()) {
+		index = atoi(argv[1]) - 1U; // let it wrap
+	}
+
+	if (index < _network_ban_list.Length()) {
+		char msg[64];
+		seprintf(msg, lastof(msg), "Unbanned %s", _network_ban_list[index]);
+		IConsolePrint(CC_DEFAULT, msg);
+		free(_network_ban_list[index]);
+		_network_ban_list.Erase(_network_ban_list.Get(index));
+	} else {
+		IConsolePrint(CC_DEFAULT, "Invalid list index or IP not in ban-list.");
+		IConsolePrint(CC_DEFAULT, "For a list of banned IP's, see the command 'banlist'");
+	}
+
 	return true;
 }
 
@@ -1888,6 +1895,37 @@ static void IConsoleDebugLibRegister()
 }
 #endif
 
+DEF_CONSOLE_CMD(ConFramerate)
+{
+	extern void ConPrintFramerate(); // framerate_gui.cpp
+
+	if (argc == 0) {
+		IConsoleHelp("Show frame rate and game speed information");
+		return true;
+	}
+
+	ConPrintFramerate();
+	return true;
+}
+
+DEF_CONSOLE_CMD(ConFramerateWindow)
+{
+	extern void ShowFramerateWindow();
+
+	if (argc == 0) {
+		IConsoleHelp("Open the frame rate window");
+		return true;
+	}
+
+	if (_network_dedicated) {
+		IConsoleError("Can not open frame rate window on a dedicated server");
+		return false;
+	}
+
+	ShowFramerateWindow();
+	return true;
+}
+
 /*******************************
  * console command registration
  *******************************/
@@ -2018,6 +2056,8 @@ void IConsoleStdLibRegister()
 #ifdef _DEBUG
 	IConsoleDebugLibRegister();
 #endif
+	IConsoleCmdRegister("fps",     ConFramerate);
+	IConsoleCmdRegister("fps_wnd", ConFramerateWindow);
 
 	/* NewGRF development stuff */
 	IConsoleCmdRegister("reload_newgrfs",  ConNewGRFReload, ConHookNewGRFDeveloperTool);

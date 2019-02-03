@@ -649,10 +649,7 @@ STR_MUSIC_TOOLTIP_SELECT_CUSTOM_2_USER_DEFINED                  :{BLACK}'اپن�
 STR_MUSIC_TOOLTIP_TOGGLE_PROGRAM_SHUFFLE                        :{BLACK}پروگرام ہلانے کی تدویم کیجئیے
 STR_MUSIC_TOOLTIP_SHOW_MUSIC_TRACK_SELECTION                    :{BLACK}گانا چننے کا اختیار دینے والی ونڈو دکھائیں
 
-STR_ERROR_NO_SONGS                                              :{WHITE}کوئی گانا دستیاب نہیں ہے
-
 # Playlist window
-STR_PLAYLIST_MUSIC_PROGRAM_SELECTION                            :{WHITE}موسیقی کے پروگرام کا انتخاب کریں
 STR_PLAYLIST_TRACK_NAME                                         :{TINY_FONT}{LTBLUE}{ZEROFILL_NUM} "{STRING}"
 STR_PLAYLIST_TRACK_INDEX                                        :{TINY_FONT}{BLACK}گانوں کی فہرست
 STR_PLAYLIST_PROGRAM                                            :{TINY_FONT}{BLACK}پروگرام - '{STRING}'
@@ -1115,6 +1112,7 @@ STR_CONFIG_SETTING_STOP_ON_TOWN_ROAD                            :شہر کی م�
 STR_CONFIG_SETTING_STOP_ON_COMPETITOR_ROAD                      :مد مقابلوں کی ملکیت سڑکوں پر ڈرائیو تھرو اڈے بنانے کی اجازت: {STRING}
 STR_CONFIG_SETTING_DYNAMIC_ENGINES_EXISTING_VEHICLES            :{WHITE}جب گاڑیاں موجود ہوں تو یہ سیٹنگ بدلنا ممکن نہیں
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE                   :انفراسٹرکچر کی بحالی: {STRING}
+
 
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS                        :ہوائی اڈوں کی معیاد کبھی ختم نہ ہو: {STRING}
 
@@ -2129,6 +2127,13 @@ STR_FOUND_TOWN_SELECT_LAYOUT_RANDOM                             :{G=f}{BLACK}ک�
 STR_ABOUT_OPENTTD                                               :{WHITE}اوپن ٹی ٹی ڈی کے متعلق
 STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} ٢٠٠٢ - ٢٠١٦ OpenTTD ٹیم
 
+# Framerate display window
+############ Leave those lines in this order!!
+############ End of leave-in-this-order
+############ Leave those lines in this order!!
+############ End of leave-in-this-order
+
+
 # Save/load game/scenario
 
 
@@ -2318,11 +2323,7 @@ STR_COMPANY_INFRASTRUCTURE_VIEW_TOTAL                           :{WHITE}{CURRENC
 # Industry view
 STR_INDUSTRY_VIEW_PRODUCTION_LAST_MONTH_TITLE                   :{BLACK}گزشتہ ماہ کی پیداوار:
 
-############ range for requires starts
-############ range for requires ends
 
-############ range for produces starts
-############ range for produces ends
 
 
 # Vehicle lists
@@ -2344,6 +2345,7 @@ STR_VEHICLE_LIST_MANAGE_LIST                                    :{BLACK}فہرس
 
 
 STR_GROUPS_CLICK_ON_GROUP_FOR_TOOLTIP                           :{BLACK}گروپ ۔ اس گروپ ک تمام گاڑیاں دیکھنے کے لیے اسے دبایں۔ پکڑ کے اوپر نیچے بھی کر سکتے ہیں۔
+
 
 
 
@@ -2404,8 +2406,6 @@ STR_DEPOT_VEHICLE_TOOLTIP_CARGO                                 :{}{CARGO_LONG} 
 
 # Engine preview window
 
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_RANGE_CAPACITY_CAPACITY_RUNCOST:{BLACK}قیمت: {CURRENCY_LONG} حد رفتار: {VELOCITY} پہنچ: {COMMA} ٹائلیں{} گنجائش: {CARGO_LONG}, {CARGO_LONG}{}چلانے کا خرچہ: {CURRENCY_LONG} سالانہ
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_RANGE_CAPACITY_RUNCOST        :{BLACK}قیمت: {CURRENCY_LONG} حد رفتار: {VELOCITY} پہنچ: {COMMA} ٹائلیں{} گنجائش: {CARGO_LONG}{}چلانے کا خرچہ: {CURRENCY_LONG} سالانہ
 
 # Autoreplace window
 
@@ -2446,7 +2446,6 @@ STR_VEHICLE_COMMAND_STARTED                                     :{GREEN} شرو�
 
 # The next two need to stay in this order
 
-STR_VEHICLE_INFO_MAX_SPEED_RANGE                                :{BLACK}حد رفتار: {LTBLUE}{VELOCITY} {BLACK} پہنچ: {LTBLUE}{COMMA} ٹائلیں
 
 
 
