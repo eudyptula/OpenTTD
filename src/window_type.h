@@ -682,6 +682,18 @@ enum WindowClass {
 	WC_SAVE_PRESET,
 
 	/**
+	 * Framerate display; %Window numbers:
+	 *   - 0 = #FramerateDisplayWidgets
+	 */
+	WC_FRAMERATE_DISPLAY,
+
+	/**
+	 * Frame time graph; %Window numbers:
+	 *   - 0 = #FrametimeGraphWindowWidgets
+	 */
+	WC_FRAMETIME_GRAPH,
+
+	/**
 	 * Departure boards
 	 */
 	WC_DEPARTURES_BOARD,
