@@ -489,6 +489,7 @@ STR_ABOUT_MENU_SCREENSHOT                                       :צילום מס
 STR_ABOUT_MENU_ZOOMIN_SCREENSHOT                                :צילום מסך בהגדלה מלאה
 STR_ABOUT_MENU_DEFAULTZOOM_SCREENSHOT                           :ברירת מחדל של תקריב צילום מסך
 STR_ABOUT_MENU_GIANT_SCREENSHOT                                 :צילום מסך ענק
+STR_ABOUT_MENU_SHOW_FRAMERATE                                   :הצג קצב פריימים
 STR_ABOUT_MENU_ABOUT_OPENTTD                                    :'OpenTTD'{NBSP}אודות
 STR_ABOUT_MENU_SPRITE_ALIGNER                                   :מיישר ספרייטים
 STR_ABOUT_MENU_TOGGLE_BOUNDING_BOXES                            :הדלק/כבה הצגת תיבות גבול של ספרייטים
@@ -664,6 +665,7 @@ STR_MUSIC_RULER_MARKER                                          :{TINY_FONT}{BLA
 STR_MUSIC_TRACK_NONE                                            :{TINY_FONT}{DKGREEN}--
 STR_MUSIC_TRACK_DIGIT                                           :{TINY_FONT}{DKGREEN}{ZEROFILL_NUM}
 STR_MUSIC_TITLE_NONE                                            :{TINY_FONT}{DKGREEN}------
+STR_MUSIC_TITLE_NOMUSIC                                         :{TINY_FONT}{DKGREEN}אין מוזיקה זמינה
 STR_MUSIC_TITLE_NAME                                            :{TINY_FONT}{DKGREEN}"{STRING}"
 STR_MUSIC_TRACK                                                 :{TINY_FONT}{BLACK}רצועה
 STR_MUSIC_XTITLE                                                :{TINY_FONT}{BLACK}כותרת
@@ -683,14 +685,13 @@ STR_MUSIC_TOOLTIP_SELECT_CUSTOM_2_USER_DEFINED                  :{BLACK}(בחר 
 STR_MUSIC_TOOLTIP_TOGGLE_PROGRAM_SHUFFLE                        :{BLACK}עירבוב תוכניות פועל/כבוי
 STR_MUSIC_TOOLTIP_SHOW_MUSIC_TRACK_SELECTION                    :{BLACK}הצג את חלון בחירת המנגינה
 
-STR_ERROR_NO_SONGS                                              :{WHITE}נבחרה ערכת מוזיקה ללא שירים. לא יושמעו שירים
-
 # Playlist window
-STR_PLAYLIST_MUSIC_PROGRAM_SELECTION                            :{WHITE}בחירת תכנית מנגינה
+STR_PLAYLIST_MUSIC_SELECTION_SETNAME                            :{WHITE}תוכנית מוזיקה - '{STRING}'
 STR_PLAYLIST_TRACK_NAME                                         :{TINY_FONT}{LTBLUE}{ZEROFILL_NUM} "{STRING}"
 STR_PLAYLIST_TRACK_INDEX                                        :{TINY_FONT}{BLACK}רשימת רצועות
 STR_PLAYLIST_PROGRAM                                            :{TINY_FONT}{BLACK}תוכנית- '{STRING}'
 STR_PLAYLIST_CLEAR                                              :{TINY_FONT}{BLACK}מחק
+STR_PLAYLIST_CHANGE_SET                                         :{BLACK}ערכת שינוי
 STR_PLAYLIST_TOOLTIP_CLEAR_CURRENT_PROGRAM_CUSTOM1              :{BLACK}מחק תוכנית נוכחית
 STR_PLAYLIST_TOOLTIP_CLICK_TO_ADD_TRACK                         :{BLACK}(לחץ כאן כדי להוסיף לתוכנית הנוכחית(מותאם אישית1 או מותאם אישית 2 בלבד
 STR_PLAYLIST_TOOLTIP_CLICK_TO_REMOVE_TRACK                      :{BLACK}(לחץ על רצועה כדי להסיר אותה מהתוכנית הנוחכית(מותאם אישית 1 או מותאם אישית 2 בלבד
@@ -939,6 +940,7 @@ STR_GAME_OPTIONS_CURRENCY_ZAR                                   :(ZAR) ראנד 
 STR_GAME_OPTIONS_CURRENCY_CUSTOM                                :אחר...
 STR_GAME_OPTIONS_CURRENCY_GEL                                   :לארי גאורגי (GEL)
 STR_GAME_OPTIONS_CURRENCY_IRR                                   :ריאל איראני (IRR)
+STR_GAME_OPTIONS_CURRENCY_RUB                                   :רובל רוסי (RUB)
 ############ end of currency region
 
 STR_GAME_OPTIONS_ROAD_VEHICLES_FRAME                            :{BLACK}רכבי כביש
@@ -1268,6 +1270,7 @@ STR_CONFIG_SETTING_DYNAMIC_ENGINES_EXISTING_VEHICLES            :{WHITE}שינו
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE                   :תחזוקת תשתיות: {STRING}
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE_HELPTEXT          :כאשר מאופשר, תשתיות גורמות לעלויות תחזוקה. העלות גדלה באופן שהוא מעבר ליחסי לעומת גודל הרשת, וכך משפיע יותר על חברות גדולות מאשר על חברות קטנות
 
+
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS                        :בטל התיישנות נמלי תעופה: {STRING}
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS_HELPTEXT               :אפשור הגדרה זו גורם לכל סוג נמל תעופה להישאר זמין לעד אחרי השקתו
 
@@ -1351,8 +1354,10 @@ STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_HELPTEXT                :צבע פני �
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_GREEN                   :ירוק
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_DARK_GREEN              :ירוק כהה
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_VIOLET                  :סגול
-STR_CONFIG_SETTING_REVERSE_SCROLLING                            :{STRING} :היפוך כיוון הגלילה של התצוגה
-STR_CONFIG_SETTING_REVERSE_SCROLLING_HELPTEXT                   :התנהגות בעת גלילת המפה באמצעות כפתור העכבר האמצעי. כאשר מבוטל, העכבר מזיז את המצלמה. כאשר מאופשר, העכבר מזיז את המפה
+STR_CONFIG_SETTING_SCROLLMODE                                   :התנהגות גלילת תצוגה: {STRING}
+STR_CONFIG_SETTING_SCROLLMODE_DEFAULT                           :הזז את התצוגה עם כפתור עכבר ימני, מיקום העכבר נעול
+STR_CONFIG_SETTING_SCROLLMODE_RMB_LOCKED                        :הזזת מפה עם כפתור עכבר ימני, מיקום העכבר נעול
+STR_CONFIG_SETTING_SCROLLMODE_LMB                               :הזז מפה עם כפתור עכבר שמאלי
 STR_CONFIG_SETTING_SMOOTH_SCROLLING                             :{STRING} :גלילה חלקה של התצוגה המשנית
 STR_CONFIG_SETTING_SMOOTH_SCROLLING_HELPTEXT                    :שלוט כיצד התצוגה הראשית נגללת למיקום מסוים כאשר מקליקים על המפה הקטנה אן כאשר נותנים הוראה לגלול לעצם מסוים על גבי המפה. אם מאופשר, חלון התצוגה נגלל באופן חלק, אם מבוטל הוא מוקפץ ישירות אל נקודת המטרה
 STR_CONFIG_SETTING_MEASURE_TOOLTIP                              :{STRING} :'הצג מידות בעת בניית כבישים/מסילות וכיוב
@@ -1384,8 +1389,8 @@ STR_CONFIG_SETTING_RIGHT_MOUSE_BTN_EMU_COMMAND                  :Command-click
 STR_CONFIG_SETTING_RIGHT_MOUSE_BTN_EMU_CONTROL                  :Control-click
 STR_CONFIG_SETTING_RIGHT_MOUSE_BTN_EMU_OFF                      :כבוי
 
-STR_CONFIG_SETTING_LEFT_MOUSE_BTN_SCROLLING                     :גלילה בלחיצה שמאלית: {STRING}
-STR_CONFIG_SETTING_LEFT_MOUSE_BTN_SCROLLING_HELPTEXT            :אפשר גלילת המפה באמצעות גרירתה עם כפתור העכבר השמאלי. אפשרות זו שימושית במיוחד בעת שימוש במסך מגע לצורך גלילה
+STR_CONFIG_SETTING_RIGHT_MOUSE_WND_CLOSE                        :סגירת חלון בכפתור ימני: {STRING}
+STR_CONFIG_SETTING_RIGHT_MOUSE_WND_CLOSE_HELPTEXT               :סוגר חלון על-ידי לחיצה ימנית בתוכו. מבטל הצגת מידע בלחיצה ימנית!
 
 STR_CONFIG_SETTING_AUTOSAVE                                     :שמירה אוטומטית: {STRING}
 STR_CONFIG_SETTING_AUTOSAVE_HELPTEXT                            :בחר פרק זמן בין שמירות אוטומטיות
@@ -1753,7 +1758,7 @@ STR_INTRO_CONFIG_SETTINGS_TREE                                  :{BLACK}הגדר
 STR_INTRO_NEWGRF_SETTINGS                                       :{BLACK}(NewGRF)הגדרות שדרוג גראפי
 STR_INTRO_ONLINE_CONTENT                                        :{BLACK} בדוק תוכן מקוון
 STR_INTRO_SCRIPT_SETTINGS                                       :{BLACK}הגדרות סקריפטים של משחק/שחקני מחשב
-STR_INTRO_QUIT                                                  :{BLACK}צא
+STR_INTRO_QUIT                                                  :{BLACK}יציאה
 
 STR_INTRO_TOOLTIP_NEW_GAME                                      :{BLACK}התחל משחק חדש. Ctrl+לחיצה מדלג על תצורת מפה
 STR_INTRO_TOOLTIP_LOAD_GAME                                     :{BLACK}טען משחק שמור
@@ -1775,6 +1780,7 @@ STR_INTRO_TOOLTIP_ONLINE_CONTENT                                :{BLACK} חפש 
 STR_INTRO_TOOLTIP_SCRIPT_SETTINGS                               :{BLACK} הצג הגדרות סקריפטים של משחק/שחקני מחשב
 STR_INTRO_TOOLTIP_QUIT                                          :{BLACK}צא מ-'OpenTTD'
 
+STR_INTRO_BASESET                                               :{BLACK}חסרים {NUM} ספרייט עבור גרפיקות הבסיס שנבחרו. אנא בדוק עדכונים לערכה זו.
 STR_INTRO_TRANSLATION                                           :{BLACK}בתרגום זה חסרים {P 0 "מחרוזת " ""}{NUM}{P "" " מחרוזות"}. אנא עזור לשפר את OpenTTD ע"י הצטרפות כמתרגם. קרא בקובץ readme.txt לפרטים.
 
 # Quit window
@@ -1810,7 +1816,7 @@ STR_CHEAT_EXTRA_DYNAMITE                                        :{LTBLUE}טרק�
 STR_CHEAT_CROSSINGTUNNELS                                       :{ORANGE}{STRING}{LTBLUE} :מנהרות יכולות לחצות זו את זו
 STR_CHEAT_NO_JETCRASH                                           :{LTBLUE}מטוסי סילון לא יתרסקו (לעיתים קרובות) בשדות תעופה קטנים: {ORANGE}{STRING}
 STR_CHEAT_EDIT_MAX_HL                                           :{LTBLUE}ערוך את הגובה המקסימלי במפה: {ORANGE}{NUM}
-STR_CHEAT_EDIT_MAX_HL_QUERY_CAPT                                :ערוך את הגובה המקסימלי של הרים במפה
+STR_CHEAT_EDIT_MAX_HL_QUERY_CAPT                                :{WHITE}ערוך את הגובה המקסימלי של הרים במפה
 STR_CHEAT_SWITCH_CLIMATE_TEMPERATE_LANDSCAPE                    :אקלים ממוזג
 STR_CHEAT_SWITCH_CLIMATE_SUB_ARCTIC_LANDSCAPE                   :אקלים קר
 STR_CHEAT_SWITCH_CLIMATE_SUB_TROPICAL_LANDSCAPE                 :אקלים טרופי
@@ -2603,6 +2609,7 @@ STR_LAND_AREA_INFORMATION_AIRPORTTILE_NAME                      :{BLACK}שם מ�
 STR_LAND_AREA_INFORMATION_NEWGRF_NAME                           :{BLACK}{LTBLUE}{STRING}: שדרוג גראפי
 STR_LAND_AREA_INFORMATION_CARGO_ACCEPTED                        :{BLACK} :מקבל {LTBLUE}
 STR_LAND_AREA_INFORMATION_CARGO_EIGHTS                          :({1:STRING} {0:COMMA}/8 )
+STR_LANG_AREA_INFORMATION_RAIL_TYPE                             :{BLACK}סוג מסילה: {LTBLUE}{STRING}
 STR_LANG_AREA_INFORMATION_RAIL_SPEED_LIMIT                      :{BLACK}מגבלת מהירות על המסילה: {LTBLUE}{VELOCITY}
 STR_LANG_AREA_INFORMATION_ROAD_SPEED_LIMIT                      :{BLACK}הגבלת מהירות בכביש: {LTBLUE}{VELOCITY}
 
@@ -2615,29 +2622,29 @@ STR_LAI_CLEAR_DESCRIPTION_FIELDS                                :שדות
 STR_LAI_CLEAR_DESCRIPTION_SNOW_COVERED_LAND                     :אדמה מכוסה בשלג
 STR_LAI_CLEAR_DESCRIPTION_DESERT                                :מדבר
 
-STR_LAI_RAIL_DESCRIPTION_TRACK                                  :מסילת ברזל מסילה
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_SIGNALS              :מסילת ברזל מסילה עם רמזורים חוסמים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRESIGNALS                  :מסילת ברזל מסילה עם רמזורים מקדימים
+STR_LAI_RAIL_DESCRIPTION_TRACK                                  :מסילת ברזל
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_SIGNALS              :מסילת ברזל עם רמזורים חוסמים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRESIGNALS                  :מסילת ברזל עם רמזורים מקדימים
 STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXITSIGNALS                 :מסילת ברזל מסילה עם רמזורי יציאה
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBOSIGNALS                :מסילת ברזל מסילה עם רמזורים משולבים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBSSIGNALS                  :מסילת ברזל מסילה עם רמזורי נתיב
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NOENTRYSIGNALS              :מסילת ברזל מסילה עם רמזורי נתיב חד-סטריים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBOSIGNALS                :מסילת ברזל עם רמזורים משולבים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBSSIGNALS                  :מסילת ברזל עם רמזורי נתיב
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NOENTRYSIGNALS              :מסילת ברזל עם רמזורי נתיב חד-סטריים
 STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PRESIGNALS           :מסילת ברזל מסילה עם רמזורים חוסמים ומקדימים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_EXITSIGNALS          :מסילת ברזל מסילה עם רמזורים חוסמים ורמזורי יציאה
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_COMBOSIGNALS         :מסילת ברזל מסילה עם רמזורים חוסמים ורמזורים משולבים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PBSSIGNALS           :מסילת ברזל מסילה עם רמזורים חוסמים ורמזורי נתיב
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_NOENTRYSIGNALS       :מסילת ברזל מסילה עם רמזורים חוסמים ורמזורי נתיב חד-סטריים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_EXITSIGNALS             :מסילת ברזל מסילה עם רמזורים מקדימים ורמזורי יציאה
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_COMBOSIGNALS            :מסילת ברזל מסילה עם רמזורים מקדימים ורמזורים משולבים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_EXITSIGNALS          :מסילת ברזל עם רמזורים חוסמים ורמזורי יציאה
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_COMBOSIGNALS         :מסילת ברזל עם רמזורים חוסמים ורמזורים משולבים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_PBSSIGNALS           :מסילת ברזל עם רמזורים חוסמים ורמזורי נתיב
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_NORMAL_NOENTRYSIGNALS       :מסילת ברזל עם רמזורים חוסמים ורמזורי נתיב חד-סטריים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_EXITSIGNALS             :מסילת ברזל עם רמזורים מקדימים ורמזורי יציאה
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_COMBOSIGNALS            :מסילת ברזל עם רמזורים מקדימים ורמזורים משולבים
 STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_PBSSIGNALS              :מסילת ברזל מסילה עם רמזורים מקדימים ורמזורי נתיב
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_NOENTRYSIGNALS          :מסילת ברזל מסילה עם רמזורים מקדימים ורמזורי נתיב חד-סטריים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_COMBOSIGNALS           :מסילת ברזל מסילה עם רמזורי יציאה ורמזורים משולבים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_PBSSIGNALS             :מסילת ברזל מסילה עם רמזורי יציאה ורמזורי נתיב
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_NOENTRYSIGNALS         :מסילת ברזל מסילה עם רמזורי יציאה ורמזורי נתיב חד-סטריים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_PBSSIGNALS            :מסילת ברזל מסילה עם רמזורים משולבים ורמזורי נתיב
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_NOENTRYSIGNALS        :מסילת ברזל מסילה עם רמזורים משולבים ורמזורי נתיב חד-סטריים
-STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBS_NOENTRYSIGNALS          :מסילת ברזל מסילה עם רמזורי נתיב ורמזורי נתיב חד-סטריים
-STR_LAI_RAIL_DESCRIPTION_TRAIN_DEPOT                            :מסילת ברזל מוסך רכבות
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PRE_NOENTRYSIGNALS          :מסילת ברזל עם רמזורים מקדימים ורמזורי נתיב חד-סטריים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_COMBOSIGNALS           :מסילת ברזל עם רמזורי יציאה ורמזורים משולבים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_PBSSIGNALS             :מסילת ברזל עם רמזורי יציאה ורמזורי נתיב
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_EXIT_NOENTRYSIGNALS         :מסילת ברזל עם רמזורי יציאה ורמזורי נתיב חד-סטריים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_PBSSIGNALS            :מסילת ברזל עם רמזורים משולבים ורמזורי נתיב
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_COMBO_NOENTRYSIGNALS        :מסילת ברזל עם רמזורים משולבים ורמזורי נתיב חד-סטריים
+STR_LAI_RAIL_DESCRIPTION_TRACK_WITH_PBS_NOENTRYSIGNALS          :מסילת ברזל עם רמזורי נתיב ורמזורי נתיב חד-סטריים
+STR_LAI_RAIL_DESCRIPTION_TRAIN_DEPOT                            :מוסך רכבות
 
 STR_LAI_ROAD_DESCRIPTION_ROAD                                   :כביש
 STR_LAI_ROAD_DESCRIPTION_ROAD_WITH_STREETLIGHTS                 :כביש עם תאורת רחוב
@@ -2699,9 +2706,45 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :שטח בבעל
 
 # About OpenTTD window
 STR_ABOUT_OPENTTD                                               :{WHITE}OpenTTD אודות
-STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}כל הזכויות שמורות , {COPYRIGHT}1995 כריס סויר - {NBSP}זכויות יוצרים מקוריות
+STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}כל הזכויות שמורות , {COPYRIGHT}1995 כריס סויר - זכויות יוצרים מקוריות
 STR_ABOUT_VERSION                                               :{BLACK}{REV} גירסה , OpenTTD
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2016 The OpenTTD team
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT}2002-2019 The OpenTTD team
+
+# Framerate display window
+STR_FRAMERATE_CAPTION                                           :{WHITE}קצב ריענון
+STR_FRAMERATE_CAPTION_SMALL                                     :{STRING}{WHITE} ({DECIMAL}x)
+STR_FRAMERATE_RATE_GAMELOOP                                     :{WHITE}קצב סימולציה: {STRING}
+STR_FRAMERATE_RATE_GAMELOOP_TOOLTIP                             :{BLACK}מספר פעימות משחק לשניה
+STR_FRAMERATE_RATE_BLITTER_TOOLTIP                              :{BLACK}מספר פריימים של וידאו המעובדים בשניה
+STR_FRAMERATE_SPEED_FACTOR_TOOLTIP                              :{BLACK} כמה מהר המשחק כרגע רץ, בהשוואה למהירות הצפוייה בקצב סימולציה רגיל.
+STR_FRAMERATE_CURRENT                                           :נוכחי{WHITE}
+STR_FRAMERATE_DATA_POINTS                                       :{WHITE}נתונים מבוססים על {COMMA} מדידות
+STR_FRAMERATE_MS_GOOD                                           :{LTBLUE}{DECIMAL} מילישניה
+STR_FRAMERATE_FPS_GOOD                                          :{LTBLUE}{DECIMAL} פריים/ים
+STR_FRAMERATE_FPS_WARN                                          :{YELLOW}{DECIMAL} פריים/ים
+STR_FRAMERATE_FPS_BAD                                           :{RED}{DECIMAL} פריים/ים
+STR_FRAMERATE_GRAPH_SECONDS                                     :{TINY_FONT}{COMMA} ש'
+############ Leave those lines in this order!!
+STR_FRAMERATE_GAMELOOP                                          :{BLACK}סה"כ לולאת משחק:
+STR_FRAMERATE_GL_ROADVEHS                                       :{WHITE} פעימות כלי רכב:
+STR_FRAMERATE_GL_SHIPS                                          :{WHITE} פעימות כלי שייט:
+STR_FRAMERATE_GL_LANDSCAPE                                      :{WHITE} נקודות עולם:
+STR_FRAMERATE_DRAWING                                           :{WHITE}עיבוד גרפיקה:
+STR_FRAMERATE_DRAWING_VIEWPORTS                                 :{BLACK} תצוגות עולם:
+STR_FRAMERATE_VIDEO                                             :{BLACK}פלט וידאו:
+STR_FRAMERATE_SOUND                                             :{WHITE} ערבוב צליל:
+############ End of leave-in-this-order
+############ Leave those lines in this order!!
+STR_FRAMETIME_CAPTION_GAMELOOP                                  :לולאת משחק
+STR_FRAMETIME_CAPTION_GL_ECONOMY                                :טיפול במטען
+STR_FRAMETIME_CAPTION_GL_TRAINS                                 :פעימות רכבת
+STR_FRAMETIME_CAPTION_GL_LANDSCAPE                              :פעימות עולם
+STR_FRAMETIME_CAPTION_GL_LINKGRAPH                              :השהיית גרף קשרים
+STR_FRAMETIME_CAPTION_DRAWING                                   :עיבוד גרפיקה
+STR_FRAMETIME_CAPTION_DRAWING_VIEWPORTS                         :עיבוד תצוגת עולם
+STR_FRAMETIME_CAPTION_VIDEO                                     :פלט וידאו
+############ End of leave-in-this-order
+
 
 # Save/load game/scenario
 STR_SAVELOAD_SAVE_CAPTION                                       :{WHITE}שמור משחק
@@ -2725,11 +2768,12 @@ STR_SAVELOAD_DETAIL_CAPTION                                     :{BLACK}פרטי
 STR_SAVELOAD_DETAIL_NOT_AVAILABLE                               :{BLACK}אין מידע זמין
 STR_SAVELOAD_DETAIL_COMPANY_INDEX                               :{SILVER}{COMMA}: {WHITE}{STRING}
 STR_SAVELOAD_DETAIL_GRFSTATUS                                   :{SILVER}NewGRF: {WHITE}{STRING}
+STR_SAVELOAD_FILTER_TITLE                                       :{BLACK}מחרוזת סינון:
 
 STR_SAVELOAD_OSKTITLE                                           :{BLACK}הכנס שם לשמירה
 
 # World generation
-STR_MAPGEN_WORLD_GENERATION_CAPTION                             :{WHITE}יצור עולם
+STR_MAPGEN_WORLD_GENERATION_CAPTION                             :{WHITE}יצירת עולם
 STR_MAPGEN_MAPSIZE                                              :{BLACK}:גודל המפה
 STR_MAPGEN_MAPSIZE_TOOLTIP                                      :{BLACK}בחר את גודל המפה במשבצות. מספר המשבצות הזמינות תהיה קצת קטנה יותר.
 STR_MAPGEN_BY                                                   :{BLACK}*
@@ -2987,6 +3031,7 @@ STR_EDIT_SIGN_SIGN_OSKTITLE                                     :{BLACK}הכנס
 STR_TOWN_DIRECTORY_CAPTION                                      :{WHITE}ערים
 STR_TOWN_DIRECTORY_NONE                                         :{ORANGE}- אין -
 STR_TOWN_DIRECTORY_TOWN                                         :{ORANGE}{TOWN}{BLACK} ({COMMA})
+STR_TOWN_DIRECTORY_CITY                                         :{ORANGE}{TOWN}{YELLOW} (City){BLACK} ({COMMA})
 STR_TOWN_DIRECTORY_LIST_TOOLTIP                                 :{BLACK}שמות ערים - לחץ על שם כדי למקד את התצוגה על העיר. Ctrl+לחיצה פותח חלונית תצוגה חדשה על מיקום העיר
 STR_TOWN_POPULATION                                             :{BLACK}אוכלוסיית העולם: {COMMA}
 
@@ -2994,8 +3039,6 @@ STR_TOWN_POPULATION                                             :{BLACK}אוכל
 STR_TOWN_VIEW_TOWN_CAPTION                                      :{WHITE}{TOWN}
 STR_TOWN_VIEW_CITY_CAPTION                                      :{WHITE}{TOWN} (עיר)
 STR_TOWN_VIEW_POPULATION_HOUSES                                 :{ORANGE}{1:COMMA}{BLACK} :בתים {ORANGE}{0:COMMA}{BLACK} :אוכלוסיה
-STR_TOWN_VIEW_PASSENGERS_LAST_MONTH_MAX                         :{ORANGE}{1:COMMA}{BLACK} :מספר מירבי {ORANGE}{0:COMMA}{BLACK} :נוסעים בחודש שעבר
-STR_TOWN_VIEW_MAIL_LAST_MONTH_MAX                               :{ORANGE}{1:COMMA}{BLACK} :מספר מירבי {ORANGE}{0:COMMA}{BLACK} :שקי דואר בחודש שעבר
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH                              :{BLACK}המטען שצריך בשביל גידול עיר
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_REQUIRED_GENERAL             :{ORANGE}{STRING}{RED} דרוש
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_REQUIRED_WINTER              :{ORANGE}{STRING}{BLACK} דרוש בחורף
@@ -3126,8 +3169,8 @@ STR_STATION_VIEW_ACCEPTS_BUTTON                                 :{BLACK}מקבל
 STR_STATION_VIEW_ACCEPTS_TOOLTIP                                :{BLACK}הצג רשימת סוגי המטען שהתחנה מקבלת
 STR_STATION_VIEW_ACCEPTS_CARGO                                  :{BLACK}מקבלת: {WHITE}{CARGO_LIST}
 
-STR_STATIOV_VIEW_EXCLUSIVE_RIGHTS_SELF                          :{BLACK}לתחנה זו זכויות תעבורה בלעדיות בעיירה זו.
-STR_STATIOV_VIEW_EXCLUSIVE_RIGHTS_COMPANY                       :{YELLOW}{COMPANY}{BLACK} רכשה זכויות תעבורה בלעדיות בעיירה זו.
+STR_STATION_VIEW_EXCLUSIVE_RIGHTS_SELF                          :{BLACK}לתחנה זו זכויות תעבורה בלעדיות בעיירה זו.
+STR_STATION_VIEW_EXCLUSIVE_RIGHTS_COMPANY                       :{YELLOW}{COMPANY}{BLACK} רכשה זכויות תעבורה בלעדיות בעיירה זו.
 
 STR_STATION_VIEW_RATINGS_BUTTON                                 :{BLACK}דירוג
 STR_STATION_VIEW_RATINGS_TOOLTIP                                :{BLACK}הצג את דירוג השירות
@@ -3300,18 +3343,10 @@ STR_INDUSTRY_VIEW_LOCATION_TOOLTIP                              :{BLACK}מקד �
 STR_INDUSTRY_VIEW_PRODUCTION_LEVEL                              :{BLACK}רמת הפקה: {YELLOW}{COMMA}%
 STR_INDUSTRY_VIEW_INDUSTRY_ANNOUNCED_CLOSURE                    :{YELLOW}התעשייה הכריזה על סגירה מתקרבת!
 
-############ range for requires starts
-STR_INDUSTRY_VIEW_REQUIRES_CARGO                                :{YELLOW}{1:STRING}{0:STRING}{BLACK} : דורש
-STR_INDUSTRY_VIEW_REQUIRES_CARGO_CARGO                          :{YELLOW}{3:STRING}{2:STRING},{1:STRING}{0:STRING}{BLACK} :דורש
-STR_INDUSTRY_VIEW_REQUIRES_CARGO_CARGO_CARGO                    :{YELLOW}{5:STRING}{4:STRING},{3:STRING}{2:STRING},{1:STRING}{0:STRING}{BLACK} :דורש
-############ range for requires ends
 
-############ range for produces starts
-STR_INDUSTRY_VIEW_WAITING_FOR_PROCESSING                        :{BLACK}סחורה שמחכה לעיבוד:
-STR_INDUSTRY_VIEW_WAITING_STOCKPILE_CARGO                       :{YELLOW}{CARGO_LONG}{STRING}{BLACK}
-STR_INDUSTRY_VIEW_PRODUCES_CARGO                                :{YELLOW}{1:STRING}{0:STRING}{BLACK} :מייצר
-STR_INDUSTRY_VIEW_PRODUCES_CARGO_CARGO                          :{YELLOW}{3:STRING}{2:STRING},{1:STRING}{0:STRING}{BLACK} :מייצר
-############ range for produces ends
+STR_INDUSTRY_VIEW_REQUIRES                                      :{BLACK}דורש:
+STR_INDUSTRY_VIEW_ACCEPT_CARGO                                  :{YELLOW}{STRING}{BLACK}{3:STRING}
+STR_INDUSTRY_VIEW_ACCEPT_CARGO_AMOUNT                           :{YELLOW}{STRING}{BLACK}: {CARGO_SHORT} ממתין{STRING}
 
 STR_CONFIG_GAME_PRODUCTION                                      :{WHITE}שנה תפוקה (כפולות של 8, עד 2040)
 STR_CONFIG_GAME_PRODUCTION_LEVEL                                :{WHITE}שינוי ברמת ההפקה (עד 800% אחוז)
@@ -3375,6 +3410,11 @@ STR_GROUP_REMOVE_ALL_VEHICLES                                   :הסר את כ�
 
 STR_GROUP_RENAME_CAPTION                                        :{BLACK}שנה שם קבוצה
 
+STR_GROUP_PROFIT_THIS_YEAR                                      :רווח בשנה זו:
+STR_GROUP_PROFIT_LAST_YEAR                                      :רווח שנה שעברה:
+STR_GROUP_OCCUPANCY                                             :שימוש נוכחי:
+STR_GROUP_OCCUPANCY_VALUE                                       :{NUM}%
+
 # Build vehicle window
 STR_BUY_VEHICLE_TRAIN_RAIL_CAPTION                              :רכבות חדשות
 STR_BUY_VEHICLE_TRAIN_ELRAIL_CAPTION                            :רכבות חשמליות חדשות
@@ -3406,6 +3446,7 @@ STR_PURCHASE_INFO_ALL_TYPES                                     :כל סוגי �
 STR_PURCHASE_INFO_ALL_BUT                                       :{CARGO_LIST} כל סוגי המטען למעט
 STR_PURCHASE_INFO_MAX_TE                                        :{BLACK}כוח סחיבה מקסימלי: {GOLD}{FORCE}
 STR_PURCHASE_INFO_AIRCRAFT_RANGE                                :{BLACK}טווח: {GOLD}{COMMA} משבצות
+STR_PURCHASE_INFO_AIRCRAFT_TYPE                                 :{BLACK}סוג כלי טיס: {GOLD}{STRING}
 
 STR_BUY_VEHICLE_TRAIN_LIST_TOOLTIP                              :{BLACK} בחירת קרונות - לחץ על קרון לקבלת מידע
 STR_BUY_VEHICLE_ROAD_VEHICLE_LIST_TOOLTIP                       :{BLACK}רשימת כלי הרכב - בחר כלי רכב למידע
@@ -3444,7 +3485,7 @@ STR_BUY_VEHICLE_AIRCRAFT_SHOW_TOGGLE_BUTTON                     :{BLACK}תצוג
 
 STR_BUY_VEHICLE_TRAIN_HIDE_SHOW_TOGGLE_TOOLTIP                  :{BLACK}החלף בין הסתרה/הצגה של סוג רכבת
 STR_BUY_VEHICLE_ROAD_VEHICLE_HIDE_SHOW_TOGGLE_TOOLTIP           :{BLACK}החלף בין הסתרה/הצגה של סוג רכב כביש
-STR_BUY_VEHICLE_SHIP_HIDE_SHOW_TOGGLE_TOOLTIP                   :הסתר/הצג סוג של כלי שיט
+STR_BUY_VEHICLE_SHIP_HIDE_SHOW_TOGGLE_TOOLTIP                   :{BLACK}הסתר/הצג סוג של כלי שיט
 STR_BUY_VEHICLE_AIRCRAFT_HIDE_SHOW_TOGGLE_TOOLTIP               :{BLACK}הסתר/הצג סוג של כלי טיס
 
 STR_QUERY_RENAME_TRAIN_TYPE_CAPTION                             :{WHITE}שנה את שם סוג קרון הרכבת
@@ -3539,10 +3580,11 @@ STR_ENGINE_PREVIEW_MAGLEV_LOCOMOTIVE                            :קטר פס מ�
 
 STR_ENGINE_PREVIEW_COST_WEIGHT_SPEED_POWER                      :{BLACK}{1:WEIGHT_SHORT} :משקל  {NBSP}{0:CURRENCY_LONG}  :מחיר{}  {NBSP}{3:POWER} :עצמת מנוע   {NBSP}{2:VELOCITY} :מהירות {NBSP}{}{5:CARGO_LONG} : קיבולת {NBSP} לשנה  {NBSP}{4:CURRENCY_LONG} :עלות תפעולית
 STR_ENGINE_PREVIEW_COST_WEIGHT_SPEED_POWER_MAX_TE               :{BLACK}עלות: {CURRENCY_LONG} משקל: {WEIGHT_SHORT}{}מהירות: {VELOCITY}  הספק: {POWER}  מקסימלי T.E.: {6:FORCE}{}עלות תפעולית: {4:CURRENCY_LONG}/לשנה{}קיבולת: {5:CARGO_LONG}
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_CAPACITY_CAPACITY_RUNCOST     :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}קיבולת: {CARGO_LONG}, {CARGO_LONG}{}עלות שוטפת: {CURRENCY_LONG}/לשנה
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_CAPACITY_RUNCOST              :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}קיבולת: {CARGO_LONG}{}הוצאה שוטפת: {CURRENCY_LONG}/לשנה
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_RANGE_CAPACITY_CAPACITY_RUNCOST:{BLACK}עלות: {CURRENCY_LONG} מהירות מירבית: {VELOCITY} טווח: {COMMA} משבצות{}קיבולת: {CARGO_LONG}, {CARGO_LONG}{}עלות תפעול: {CURRENCY_LONG}/שנה
-STR_ENGINE_PREVIEW_COST_MAX_SPEED_RANGE_CAPACITY_RUNCOST        :{BLACK}עלות: {CURRENCY_LONG} מהירות מירבית: {VELOCITY} טווח: {COMMA} משבצות{}קיבולת: {CARGO_LONG}{}עלות תפעול: {CURRENCY_LONG}/שנה
+STR_ENGINE_PREVIEW_COST_MAX_SPEED_CAP_RUNCOST                   :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}קיבולת: {CARGO_LONG}{}הוצאה שוטפת: {CURRENCY_LONG}/לשנה
+STR_ENGINE_PREVIEW_COST_MAX_SPEED_TYPE_CAP_CAP_RUNCOST          :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}סוג כלי טיס: {STRING}{}קיבולת: {CARGO_LONG}, {CARGO_LONG}{}עלות תפעולית: {CURRENCY_LONG}/שנה
+STR_ENGINE_PREVIEW_COST_MAX_SPEED_TYPE_CAP_RUNCOST              :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}סוג כלי טיס: {STRING}{}קיבולת: {CARGO_LONG}{}עלות תפעולית: {CURRENCY_LONG}/שנה
+STR_ENGINE_PREVIEW_COST_MAX_SPEED_TYPE_RANGE_CAP_CAP_RUNCOST    :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}סוג כלי טיס: {STRING} טווח: {COMMA} משבצות{}קיבולת: {CARGO_LONG}, {CARGO_LONG}{}עלות תפעולית: {CURRENCY_LONG}/שנה
+STR_ENGINE_PREVIEW_COST_MAX_SPEED_TYPE_RANGE_CAP_RUNCOST        :{BLACK}עלות: {CURRENCY_LONG} מהירות מקסימלית: {VELOCITY}{}סוג כלי טיס: {STRING} טווח: {COMMA} משבצות{}קיבולת: {CARGO_LONG}{}עלות תפעולית: {CURRENCY_LONG}/שנה
 
 # Autoreplace window
 STR_REPLACE_VEHICLES_WHITE                                      :{WHITE}החלף {STRING} - {STRING}
@@ -3572,6 +3614,7 @@ STR_REPLACE_HELP_STOP_BUTTON                                    :{BLACK}לחץ �
 STR_REPLACE_ENGINE_WAGON_SELECT_HELP                            :{BLACK}החלף בין חלונות החלפת קרון וקטר
 STR_REPLACE_ENGINES                                             :מנועים/קטרים
 STR_REPLACE_WAGONS                                              :קרונות
+STR_REPLACE_ALL_RAILTYPE                                        :כלל הרכבות
 
 STR_REPLACE_HELP_RAILTYPE                                       :{BLACK}בחר את סוג המסילה עבורה ברצונך להחליף קטרים
 STR_REPLACE_HELP_REPLACE_INFO_TAB                               :{BLACK} מציג אילו קטרים מוחלפים זה בזה
@@ -3664,7 +3707,8 @@ STR_VEHICLE_INFO_AGE                                            :({1:COMMA}) ש�
 STR_VEHICLE_INFO_AGE_RED                                        :{RED}({1:COMMA}) שנים {NBSP}{0:COMMA}
 
 STR_VEHICLE_INFO_MAX_SPEED                                      :{BLACK}מהירות מקסימלית: {LTBLUE}{VELOCITY}
-STR_VEHICLE_INFO_MAX_SPEED_RANGE                                :{BLACK}מהירות מירבית: {LTBLUE}{VELOCITY} {BLACK}טווח: {LTBLUE}{COMMA} משבצות
+STR_VEHICLE_INFO_MAX_SPEED_TYPE                                 :{BLACK}מהירות מקס.: {LTBLUE}{VELOCITY} {BLACK}סוג כלי טיס: {LTBLUE}{STRING}
+STR_VEHICLE_INFO_MAX_SPEED_TYPE_RANGE                           :{BLACK}מהירות מקסימלית: {LTBLUE}{VELOCITY} {BLACK}סוג כלי טיס: {LTBLUE}{STRING} {BLACK}טווח: {LTBLUE}{COMMA} משבצות
 STR_VEHICLE_INFO_WEIGHT_POWER_MAX_SPEED                         :{BLACK}משקל: {LTBLUE}{WEIGHT_SHORT} {BLACK}הספק: {LTBLUE}{POWER}{BLACK} מהירות מקסימלית: {LTBLUE}{VELOCITY}
 STR_VEHICLE_INFO_WEIGHT_POWER_MAX_SPEED_MAX_TE                  :{BLACK}משקל: {LTBLUE}{WEIGHT_SHORT} {BLACK}הספק: {LTBLUE}{POWER}{BLACK} מהירות מקסימלית: {LTBLUE}{VELOCITY} {BLACK}T.E. מקסימלי: {LTBLUE}{FORCE}
 
@@ -3798,6 +3842,7 @@ STR_ORDER_CONDITIONAL_AGE                                       :גיל (שני�
 STR_ORDER_CONDITIONAL_REQUIRES_SERVICE                          :זקוק לטיפול
 STR_ORDER_CONDITIONAL_UNCONDITIONALLY                           :תמיד
 STR_ORDER_CONDITIONAL_REMAINING_LIFETIME                        :זמן חיים נותר (שנים)
+STR_ORDER_CONDITIONAL_MAX_RELIABILITY                           :אמינות מירבית
 
 STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP                        :{BLACK}כיצד יושוו נתוני כלי הרכב לערך נתון מסויים
 STR_ORDER_CONDITIONAL_COMPARATOR_EQUALS                         :שווה ל
@@ -4069,7 +4114,7 @@ STR_FEEDER                                                      :{YELLOW}העב�
 STR_FEEDER_INCOME_TINY                                          :{TINY_FONT}{YELLOW}העברה: {CURRENCY_LONG}{WHITE} / {GREEN}הכנסה:{CURRENCY_LONG}
 STR_FEEDER_INCOME                                               :{YELLOW}העברה:  {CURRENCY_LONG}{WHITE} / {GREEN}הכנסה: {CURRENCY_LONG}
 STR_FEEDER_COST_TINY                                            :{TINY_FONT}{YELLOW}העברה: {CURRENCY_LONG}{WHITE} / {RED}עלות: {CURRENCY_LONG}
-STR_FEEDER_COST                                                 :{YELLOW}העברה: {CURRENCY_LONG}{WHITE} / עלות: {CURRENCY_LONG}
+STR_FEEDER_COST                                                 :{YELLOW}העברה: {CURRENCY_LONG}{WHITE} / {RED}עלות: {CURRENCY_LONG}
 STR_MESSAGE_ESTIMATED_COST                                      :{WHITE}{CURRENCY_LONG} :מחיר משוער
 STR_MESSAGE_ESTIMATED_INCOME                                    :{WHITE}{CURRENCY_LONG} :הכנסה משוערת
 
@@ -4223,7 +4268,6 @@ STR_ERROR_TOO_MANY_STATIONS_LOADING                             :{WHITE}יותר
 STR_ERROR_TOO_MANY_STATION_SPECS                                :{WHITE}התחנה מורכבת מיותר מידי חלקים
 STR_ERROR_TOO_MANY_BUS_STOPS                                    :{WHITE}יותר מידי תחנות אוטובוס
 STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :{WHITE}יותר מידי תחנות משאיות
-STR_ERROR_TOO_CLOSE_TO_ANOTHER_STATION                          :{WHITE}קרוב מידי לתחנה או איזור טעינה אחרים
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_DOCK                             :{WHITE}יותר מידי קרוב למזח אחר
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_AIRPORT                          :{WHITE}קרוב מידי לשדה תעופה אחר
 STR_ERROR_CAN_T_RENAME_STATION                                  :{WHITE}לא ניתן לשנות שם תחנה...
@@ -4231,6 +4275,7 @@ STR_ERROR_DRIVE_THROUGH_ON_TOWN_ROAD                            :{WHITE}... כב
 STR_ERROR_DRIVE_THROUGH_DIRECTION                               :{WHITE}הכביש פונה לכיוון לא נכון...
 STR_ERROR_DRIVE_THROUGH_CORNER                                  :{WHITE}... לתחנות "על הדרך" לא יכולות להיות פינות
 STR_ERROR_DRIVE_THROUGH_JUNCTION                                :{WHITE}... לתחנות "על הדרך" לא יכולות להיות צמתים
+STR_ERROR_DRIVE_THROUGH_ON_ONEWAY_ROAD                          :{WHITE}... הדרך חד כיוונית או חסומה
 
 # Station destruction related errors
 STR_ERROR_CAN_T_REMOVE_PART_OF_STATION                          :{WHITE}... לא ניתן לבטל חלק מהתחנה
@@ -4482,6 +4527,8 @@ STR_BASESOUNDS_DOS_DESCRIPTION                                  :צלילי Tran
 STR_BASESOUNDS_WIN_DESCRIPTION                                  :צלילי Transport Tycoon Deluxe המקורי בגרסת Windows.
 STR_BASESOUNDS_NONE_DESCRIPTION                                 :אוסף צלילים ללא צלילים.
 STR_BASEMUSIC_WIN_DESCRIPTION                                   :מנגינות Transport Tycoon Deluxe המקורי בגרסת Windows.
+STR_BASEMUSIC_DOS_DESCRIPTION                                   :מנגינות Transport Tycoon Deluxe המקורי בגרסת DOS.
+STR_BASEMUSIC_TTO_DESCRIPTION                                   :מנגינות Transport Tycoon Deluxe (Original/World Editor) המקורי בגרסת DOS.
 STR_BASEMUSIC_NONE_DESCRIPTION                                  :אוסף מנגינות ללא מנגינות.
 
 ##id 0x2000

@@ -416,7 +416,7 @@ struct RefitWindow : public Window {
 		do {
 			if (v->type == VEH_TRAIN && !vehicles_to_refit.Contains(v->index)) continue;
 			const Engine *e = v->GetEngine();
-			uint32 cmask = e->info.refit_mask;
+			CargoTypes cmask = e->info.refit_mask;
 			byte callback_mask = e->info.callback_mask;
 
 			/* Skip this engine if it does not carry anything */
@@ -681,7 +681,7 @@ struct RefitWindow : public Window {
 
 	/**
 	 * Gets the #StringID to use for displaying capacity.
-	 * @param Cargo and cargo subtype to check for capacity.
+	 * @param option Cargo and cargo subtype to check for capacity.
 	 * @return INVALID_STRING_ID if there is no capacity. StringID to use in any other case.
 	 * @post String parameters have been set.
 	 */
@@ -689,8 +689,8 @@ struct RefitWindow : public Window {
 	{
 		assert(_current_company == _local_company);
 		Vehicle *v = Vehicle::Get(this->window_number);
-		CommandCost cost = DoCommand(v->tile, this->selected_vehicle, option->cargo | (int)this->auto_refit << 6 | option->subtype << 8 |
-				this->num_vehicles << 16, DC_QUERY_COST, GetCmdRefitVeh(v->type));
+		CommandCost cost = DoCommand(v->tile, this->selected_vehicle, option->cargo | option->subtype << 8 | this->num_vehicles << 16 |
+				(int)this->auto_refit << 24, DC_QUERY_COST, GetCmdRefitVeh(v->type));
 
 		if (cost.Failed()) return INVALID_STRING_ID;
 
@@ -817,7 +817,7 @@ struct RefitWindow : public Window {
 				Vehicle *v = Vehicle::Get(this->window_number);
 				this->selected_vehicle = v->index;
 				this->num_vehicles = UINT8_MAX;
-				/* FALL THROUGH */
+				FALLTHROUGH;
 			}
 
 			case 2: { // The vehicle selection has changed; rebuild the entire list.
@@ -843,7 +843,7 @@ struct RefitWindow : public Window {
 					this->information_width = max_width;
 					this->ReInit();
 				}
-				/* FALL THROUGH */
+				FALLTHROUGH;
 			}
 
 			case 1: // A new cargo has been selected.
@@ -905,7 +905,7 @@ struct RefitWindow : public Window {
 					if (_ctrl_pressed) this->num_vehicles = UINT8_MAX;
 					break;
 				}
-				/* FALL THROUGH */
+				FALLTHROUGH;
 			}
 
 			default:
@@ -940,7 +940,7 @@ struct RefitWindow : public Window {
 				this->InvalidateData(1);
 
 				if (click_count == 1) break;
-				/* FALL THROUGH */
+				FALLTHROUGH;
 			}
 
 			case WID_VR_REFIT: // refit button
@@ -1043,9 +1043,9 @@ void ShowVehicleRefitWindow(const Vehicle *v, VehicleOrderID order, Window *pare
 uint ShowRefitOptionsList(int left, int right, int y, EngineID engine)
 {
 	/* List of cargo types of this engine */
-	uint32 cmask = GetUnionOfArticulatedRefitMasks(engine, false);
+	CargoTypes cmask = GetUnionOfArticulatedRefitMasks(engine, false);
 	/* List of cargo types available in this climate */
-	uint32 lmask = _cargo_mask;
+	CargoTypes lmask = _cargo_mask;
 
 	/* Draw nothing if the engine is not refittable */
 	if (HasAtMostOneBit(cmask)) return y;
@@ -1676,9 +1676,8 @@ public:
 		this->SetDirty();
 	}
 
-	virtual void OnTick()
+	virtual void OnGameTick()
 	{
-		if (_pause_mode != PM_UNPAUSED) return;
 		if (this->vehicles.NeedResort()) {
 			StationID station = (this->vli.type == VL_STATION_LIST) ? this->vli.index : INVALID_STATION;
 
@@ -1830,7 +1829,7 @@ static const NWidgetPart _nested_train_vehicle_details_widgets[] = {
 		NWidget(WWT_PUSHARROWBTN, COLOUR_GREY, WID_VD_DECREASE_SERVICING_INTERVAL), SetFill(0, 1),
 				SetDataTip(AWV_DECREASE, STR_VEHICLE_DETAILS_DECREASE_SERVICING_INTERVAL_TOOLTIP),
 		NWidget(WWT_PUSHARROWBTN, COLOUR_GREY, WID_VD_INCREASE_SERVICING_INTERVAL), SetFill(0, 1),
-				SetDataTip(AWV_INCREASE, STR_VEHICLE_DETAILS_DECREASE_SERVICING_INTERVAL_TOOLTIP),
+				SetDataTip(AWV_INCREASE, STR_VEHICLE_DETAILS_INCREASE_SERVICING_INTERVAL_TOOLTIP),
 		NWidget(WWT_DROPDOWN, COLOUR_GREY, WID_VD_SERVICE_INTERVAL_DROPDOWN), SetFill(0, 1),
 				SetDataTip(STR_EMPTY, STR_SERVICE_INTERVAL_DROPDOWN_TOOLTIP),
 		NWidget(WWT_PANEL, COLOUR_GREY, WID_VD_SERVICING_INTERVAL), SetFill(1, 1), SetResize(1, 0), EndContainer(),
@@ -2069,9 +2068,14 @@ struct VehicleDetailsWindow : Window {
 					}
 				} else {
 					SetDParam(0, v->GetDisplayMaxSpeed());
-					if (v->type == VEH_AIRCRAFT && Aircraft::From(v)->GetRange() > 0) {
-						SetDParam(1, Aircraft::From(v)->GetRange());
-						string = STR_VEHICLE_INFO_MAX_SPEED_RANGE;
+					if (v->type == VEH_AIRCRAFT) {
+						SetDParam(1, v->GetEngine()->GetAircraftTypeText());
+						if (Aircraft::From(v)->GetRange() > 0) {
+							SetDParam(2, Aircraft::From(v)->GetRange());
+							string = STR_VEHICLE_INFO_MAX_SPEED_TYPE_RANGE;
+						} else {
+							string = STR_VEHICLE_INFO_MAX_SPEED_TYPE;
+						}
 					} else {
 						string = STR_VEHICLE_INFO_MAX_SPEED;
 					}
@@ -2365,7 +2369,7 @@ static const uint32 _vehicle_command_translation_table[][4] = {
 		CMD_REVERSE_TRAIN_DIRECTION | CMD_MSG(STR_ERROR_CAN_T_REVERSE_DIRECTION_TRAIN),
 		CMD_TURN_ROADVEH            | CMD_MSG(STR_ERROR_CAN_T_MAKE_ROAD_VEHICLE_TURN),
 		0xffffffff, // invalid for ships
-		0xffffffff  // invalid for aircrafts
+		0xffffffff  // invalid for aircraft
 	},
 };
 
@@ -2465,6 +2469,7 @@ private:
 public:
 	VehicleViewWindow(WindowDesc *desc, WindowNumber window_number) : Window(desc)
 	{
+		this->flags |= WF_DISABLE_VP_SCROLL;
 		this->CreateNestedTree();
 
 		/* Sprites for the 'send to depot' button indexed by vehicle type. */
@@ -2646,8 +2651,7 @@ public:
 						str = STR_VEHICLE_STATUS_LEAVING;
 						break;
 					}
-					/* FALL THROUGH, if aircraft. Does this even happen? */
-
+					FALLTHROUGH;
 				default:
 					if (v->GetNumManualOrders() == 0) {
 						str = STR_VEHICLE_STATUS_NO_ORDERS_VEL;
@@ -2742,7 +2746,7 @@ public:
 		}
 	}
 
-	virtual void OnTick()
+	virtual void OnGameTick()
 	{
 		const Vehicle *v = Vehicle::Get(this->window_number);
 		bool veh_stopped = v->IsStoppedInDepot();
