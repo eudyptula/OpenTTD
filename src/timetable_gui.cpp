@@ -156,6 +156,7 @@ static void ChangeTimetableStartCallback(const Window *w, DateTicks date)
 
 
 struct TimetableWindow : Window {
+	static TimetableWindow *last_sel; ///< Window of last select (used in onKeyPress)
 	int sel_index;
 	const Vehicle *vehicle; ///< Vehicle monitored by the window.
 	bool show_expected;     ///< Whether we show expected arrival or scheduled
@@ -530,6 +531,35 @@ struct TimetableWindow : Window {
 		return v->index | (order_number << 20) | (mtf << 28);
 	}
 
+	void ChangeTime(WChar key) {
+		const Vehicle *v = this->vehicle;
+		int selected = this->sel_index;
+		VehicleOrderID real = (selected + 1) / 2;
+
+		if (real >= v->GetNumOrders()) real = 0;
+
+		const Order *order = v->GetOrder(real);
+		StringID current = STR_EMPTY;
+
+		if (order != NULL) {
+			uint time = 0;
+			if (key >= '0' && key <= '9') {
+				time = key-'0';
+			} else {
+				time = (selected % 2 == 1) ? order->GetTravelTime() : order->GetWaitTime();
+				if (!_settings_client.gui.timetable_in_ticks) time /= DAY_TICKS;
+			}
+
+			if (time != 0) {
+				SetDParam(0, time);
+				current = STR_JUST_INT;
+			}
+		}
+
+		this->query_is_speed_query = false;
+		ShowQueryString(current, STR_TIMETABLE_CHANGE_TIME, 31, this, CS_NUMERAL, QSF_ACCEPT_UNCHANGED);
+	}
+
 	virtual void OnClick(Point pt, int widget, int click_count)
 	{
 		const Vehicle *v = this->vehicle;
@@ -546,6 +576,7 @@ struct TimetableWindow : Window {
 
 				this->DeleteChildWindows();
 				this->sel_index = (selected == INVALID_ORDER || selected == this->sel_index) ? -1 : selected;
+				this->last_sel = this;
 				break;
 			}
 
@@ -565,26 +596,7 @@ struct TimetableWindow : Window {
 				break;
 
 			case WID_VT_CHANGE_TIME: { // "Wait For" button.
-				int selected = this->sel_index;
-				VehicleOrderID real = (selected + 1) / 2;
-
-				if (real >= v->GetNumOrders()) real = 0;
-
-				const Order *order = v->GetOrder(real);
-				StringID current = STR_EMPTY;
-
-				if (order != NULL) {
-					uint time = (selected % 2 == 1) ? order->GetTravelTime() : order->GetWaitTime();
-					if (!_settings_client.gui.timetable_in_ticks) time /= DATE_UNIT_SIZE;
-
-					if (time != 0) {
-						SetDParam(0, time);
-						current = STR_JUST_INT;
-					}
-				}
-
-				this->query_is_speed_query = false;
-				ShowQueryString(current, STR_TIMETABLE_CHANGE_TIME, 31, this, CS_NUMERAL, QSF_ACCEPT_UNCHANGED);
+				ChangeTime(0);
 				break;
 			}
 
@@ -651,6 +663,15 @@ struct TimetableWindow : Window {
 		this->SetDirty();
 	}
 
+	virtual EventState OnKeyPress(WChar key, uint16 keycode) {
+		if (this->last_sel == this && key >= '0' && key <= '9') {
+			this->clicked_widget = WID_VT_CHANGE_TIME;
+			ChangeTime(key);
+			return ES_HANDLED;
+		}
+		return ES_NOT_HANDLED;
+	}
+
 	virtual void OnQueryTextFinished(char *str)
 	{
 		if (str == NULL) return;
@@ -710,6 +731,8 @@ struct TimetableWindow : Window {
 		this->GetWidget<NWidgetStacked>(WID_VT_EXPECTED_SELECTION)->SetDisplayedPlane(_settings_client.gui.timetable_arrival_departure ? 0 : 1);
 	}
 };
+
+TimetableWindow *TimetableWindow::last_sel = NULL;
 
 static const NWidgetPart _nested_timetable_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
