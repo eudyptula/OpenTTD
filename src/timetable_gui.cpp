@@ -415,12 +415,21 @@ struct TimetableWindow : Window {
 										STR_TIMETABLE_TRAVEL_NOT_TIMETABLED_SPEED :
 										STR_TIMETABLE_TRAVEL_NOT_TIMETABLED;
 							}
+							SetDParam(2, order->GetMaxSpeed());
 						} else {
 							SetTimetableParams(0, 1, order->GetTimetabledTravel());
-							string = order->GetMaxSpeed() != UINT16_MAX ?
-									STR_TIMETABLE_TRAVEL_FOR_SPEED : STR_TIMETABLE_TRAVEL_FOR;
+							if (order->GetLastTravelTime() > 0) {
+								SetTimetableParams(2, 3, order->GetLastTravelTime());
+								SetDParam(4, order->GetMaxSpeed());
+								string = order->GetMaxSpeed() != UINT16_MAX ?
+										 STR_TIMETABLE_TRAVEL_FOR_SPEED_TOOK :
+										 STR_TIMETABLE_TRAVEL_FOR_TOOK;
+							} else {
+								SetDParam(2, order->GetMaxSpeed());
+								string = order->GetMaxSpeed() != UINT16_MAX ?
+										 STR_TIMETABLE_TRAVEL_FOR_SPEED : STR_TIMETABLE_TRAVEL_FOR;
+							}
 						}
-						SetDParam(2, order->GetMaxSpeed());
 
 						DrawString(rtl ? r.left + WD_FRAMERECT_LEFT : middle, rtl ? middle : r.right - WD_FRAMERECT_LEFT, y, string, colour);
 
