@@ -285,6 +285,7 @@ static const SaveLoad _company_desc[] = {
 	/* yearly expenses was changed to 64-bit in savegame version 2. */
 	SLE_CONDARR(CompanyProperties, yearly_expenses,       SLE_FILE_I32 | SLE_VAR_I64, 3 * 13, SL_MIN_VERSION, SLV_2),
 	SLE_CONDARR(CompanyProperties, yearly_expenses,       SLE_INT64, 3 * 13,                  SLV_2, SL_MAX_VERSION),
+	SLE_CONDARR(CompanyProperties, yearly_expenses,       SLE_INT64, 3 * 15,                SLV_INFRASTRUCTURE_SHARING, SL_MAX_VERSION),
 
 	SLE_CONDVAR(CompanyProperties, is_ai,                 SLE_BOOL,                    SLV_2, SL_MAX_VERSION),
 	SLE_CONDNULL(1, SLV_107, SLV_112), ///< is_noai
@@ -313,6 +314,10 @@ static const SaveLoad _company_settings_desc[] = {
 	SLE_CONDVAR(Company, settings.vehicle.servint_aircraft,  SLE_UINT16,     SLV_120, SL_MAX_VERSION),
 	SLE_CONDVAR(Company, settings.vehicle.servint_ships,     SLE_UINT16,     SLV_120, SL_MAX_VERSION),
 
+	/* Infrastructure sharing settings */
+	SLE_CONDARR(Company, settings.infrastructure_sharing, SLE_BOOL, 4, SLV_INFRASTRUCTURE_SHARING, SL_MAX_VERSION),
+	SLE_CONDARR(Company, settings.sharing_fee,            SLE_UINT32, 4, SLV_INFRASTRUCTURE_SHARING, SL_MAX_VERSION),
+
 	SLE_CONDNULL(63, SLV_2, SLV_144), // old reserved space
 
 	SLE_END()
@@ -334,6 +339,10 @@ static const SaveLoad _company_settings_skip_desc[] = {
 	SLE_CONDNULL(2, SLV_120, SL_MAX_VERSION),    // settings.vehicle.servint_roadveh
 	SLE_CONDNULL(2, SLV_120, SL_MAX_VERSION),    // settings.vehicle.servint_aircraft
 	SLE_CONDNULL(2, SLV_120, SL_MAX_VERSION),    // settings.vehicle.servint_ships
+
+	/* Infrastructure sharing settings */
+	SLE_CONDNULL(4, SLV_INFRASTRUCTURE_SHARING, SL_MAX_VERSION),    // settings.infrastructure_sharing
+	SLE_CONDNULL(16, SLV_INFRASTRUCTURE_SHARING, SL_MAX_VERSION),    // settings.sharing_fee
 
 	SLE_CONDNULL(63, SLV_2, SLV_144), // old reserved space
 
