@@ -30,6 +30,9 @@ void UpdateAllStationVirtCoords();
 CargoArray GetProductionAroundTiles(TileIndex tile, int w, int h, int rad);
 CargoArray GetAcceptanceAroundTiles(TileIndex tile, int w, int h, int rad, CargoTypes *always_accepted = NULL);
 
+CargoArray GetProductionRateAroundTiles(TileIndex tile, int w, int h, int rad);
+CargoArray GetAcceptanceRateAroundTiles(TileIndex tile, int w, int h, int rad);
+
 void UpdateStationAcceptance(Station *st, bool show_msg);
 
 const DrawTileSprites *GetStationTileLayout(StationType st, byte gfx);
