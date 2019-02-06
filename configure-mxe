@@ -21,5 +21,6 @@ export PATH="$PATH:/home/panic/Checkouts/mxe.git/usr/bin"
    --without-icu \
    --without-liblzo2 \
    --with-png=x86_64-w64-mingw32.static-libpng-config \
-   --with-freetype="x86_64-w64-mingw32.static-pkg-config freetype2"
+   --with-freetype="x86_64-w64-mingw32.static-pkg-config freetype2" \
+   --disable-network
 #   --with-lzo2=/home/panic/Checkouts/mxe.git/usr/x86_64-w64-mingw32.static/lib/liblzo2.a
