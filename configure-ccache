@@ -1,0 +1,3 @@
+#!/bin/sh
+
+./configure CC="ccache gcc" CXX="ccache g++" $@
