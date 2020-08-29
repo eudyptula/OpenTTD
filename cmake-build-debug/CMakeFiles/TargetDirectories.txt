@@ -1,3 +1,0 @@
-/home/panic/Checkouts/openttd.git/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/panic/Checkouts/openttd.git/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/panic/Checkouts/openttd.git/cmake-build-debug/CMakeFiles/openttd_git.dir
