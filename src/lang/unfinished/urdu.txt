@@ -11,8 +11,6 @@
 ##gender m f
 
 
-# $Id$
-
 # This file is part of OpenTTD.
 # OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
 # OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -382,7 +380,7 @@ STR_FILE_MENU_EXIT                                              :باہر نکل
 
 # map menu
 STR_MAP_MENU_MAP_OF_WORLD                                       :دنیا کا نقشھ
-STR_MAP_MENU_EXTRA_VIEW_PORT                                    :اضافی منظر
+STR_MAP_MENU_EXTRA_VIEWPORT                                     :اضافی منظر
 STR_MAP_MENU_SIGN_LIST                                          :اشاروں کی فھرست
 
 ############ range for town menu starts
@@ -454,9 +452,6 @@ STR_ABOUT_MENU_SEPARATOR                                        :
 STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :حائطھ تدویم
 STR_ABOUT_MENU_AI_DEBUG                                         :AI debug
 STR_ABOUT_MENU_SCREENSHOT                                       :اسکرین کی تصویر
-STR_ABOUT_MENU_ZOOMIN_SCREENSHOT                                :مکمل قریب سے اسکرین کی تصویر
-STR_ABOUT_MENU_DEFAULTZOOM_SCREENSHOT                           :پہلے سے طے شدہ قربت سے اسکرین کی تصویر
-STR_ABOUT_MENU_GIANT_SCREENSHOT                                 :پورے نقشے کی اسکرین کی تصویر
 STR_ABOUT_MENU_ABOUT_OPENTTD                                    :Open TTD کے بارے میں
 STR_ABOUT_MENU_SPRITE_ALIGNER                                   :sprite صف بندھ
 STR_ABOUT_MENU_TOGGLE_BOUNDING_BOXES                            :احاطہ کرنے والے ڈبوں کی تدویم کیجئیے
@@ -624,9 +619,6 @@ STR_MUSIC_PLAYLIST_CUSTOM_1                                     :{TINY_FONT}{BLA
 STR_MUSIC_PLAYLIST_CUSTOM_2                                     :{TINY_FONT}{BLACK}اپنی مرضی کے مطابق 2
 STR_MUSIC_MUSIC_VOLUME                                          :{TINY_FONT}{BLACK}موسیقی کی آواز
 STR_MUSIC_EFFECTS_VOLUME                                        :{TINY_FONT}{BLACK}اثرات کی آواز
-STR_MUSIC_RULER_MIN                                             :{TINY_FONT}{BLACK}کم
-STR_MUSIC_RULER_MAX                                             :{TINY_FONT}{BLACK}زیادہ
-STR_MUSIC_RULER_MARKER                                          :{TINY_FONT}{BLACK}'
 STR_MUSIC_TRACK_NONE                                            :{TINY_FONT}{DKGREEN}--
 STR_MUSIC_TRACK_DIGIT                                           :{TINY_FONT}{DKGREEN}{ZEROFILL_NUM}
 STR_MUSIC_TITLE_NONE                                            :{TINY_FONT}{DKGREEN}------
@@ -829,6 +821,7 @@ STR_NEWS_NEW_VEHICLE_NOW_AVAILABLE                              :{BIG_FONT}{BLAC
 STR_NEWS_NEW_VEHICLE_TYPE                                       :{BIG_FONT}{BLACK}{ENGINE}
 STR_NEWS_NEW_VEHICLE_NOW_AVAILABLE_WITH_TYPE                    :{BLACK}نئی {STRING} اب دستیاب ہے! - {ENGINE}
 
+
 STR_NEWS_STATION_NO_LONGER_ACCEPTS_CARGO                        :{WHITE}{STATION} مزید {STRING} قبول نہیں کرتا
 STR_NEWS_STATION_NO_LONGER_ACCEPTS_CARGO_OR_CARGO               :{WHITE}{STATION} مزید {STRING} یا {STRING} قبول نہیں کرتا
 STR_NEWS_STATION_NOW_ACCEPTS_CARGO                              :{WHITE}{STATION} اب قبول کرتا ہے {STRING}
@@ -845,7 +838,7 @@ STR_NEWS_SERVICE_SUBSIDY_AWARDED_QUADRUPLE                      :{BIG_FONT}{BLAC
 STR_NEWS_ROAD_REBUILDING                                        :{BIG_FONT}{BLACK}{TOWN} میں ٹریفک کا بُرا حال!{}{}سڑکیں دوبارہ بنوانے کے پیسے {STRING} نے دئیے۔ اس کی وجہ سے اگلے 6 ماہ مشکل رہے گی
 
 # Extra view window
-STR_EXTRA_VIEW_PORT_TITLE                                       :{WHITE}دہکھنے والی کھڑکی {COMMA}
+STR_EXTRA_VIEWPORT_TITLE                                        :{WHITE}دہکھنے والی کھڑکی {COMMA}
 STR_EXTRA_VIEW_MOVE_VIEW_TO_MAIN                                :{BLACK}دہکھنے والی کھڑکی کی نقل
 STR_EXTRA_VIEW_MOVE_VIEW_TO_MAIN_TT                             :{BLACK}بنیادی منظر میں نظر آنے والی جگہ کو دیکھنے والی کھڑکی میں نقل کریں
 STR_EXTRA_VIEW_MOVE_MAIN_TO_VIEW                                :{BLACK}دہکھنے والی کھڑکی سے نقل کریں
@@ -943,6 +936,8 @@ STR_GAME_OPTIONS_FULLSCREEN_TOOLTIP                             :{BLACK}مُکم
 STR_GAME_OPTIONS_RESOLUTION                                     :{BLACK}اسکرین کی resolution
 STR_GAME_OPTIONS_RESOLUTION_TOOLTIP                             :{BLACK}اسکرین کی resolution اختیار کریں
 STR_GAME_OPTIONS_RESOLUTION_OTHER                               :دیگر
+
+
 
 
 
@@ -1309,7 +1304,6 @@ STR_CONFIG_SETTING_ENVIRONMENT_INDUSTRIES                       :{ORANGE}صنع�
 STR_CONFIG_SETTING_AI                                           :{ORANGE}مد مقابل
 STR_CONFIG_SETTING_AI_NPC                                       :{ORANGE}کمپیوٹر کے کھلاڑی
 
-STR_CONFIG_SETTING_PATHFINDER_OPF                               :اصلی
 STR_CONFIG_SETTING_PATHFINDER_NPF                               :NPF
 STR_CONFIG_SETTING_PATHFINDER_YAPF_RECOMMENDED                  :YAPF {BLUE}(Recommended)
 
@@ -1379,13 +1373,9 @@ STR_QUIT_NO                                                     :{BLACK}نہیں
 
 # Supported OSes
 STR_OSNAME_WINDOWS                                              :ونڈوز
-STR_OSNAME_DOS                                                  :DOS
 STR_OSNAME_UNIX                                                 :یونیکس
 STR_OSNAME_OSX                                                  :OS{NBSP}X
-STR_OSNAME_BEOS                                                 :BeOS
 STR_OSNAME_HAIKU                                                :Haiku
-STR_OSNAME_MORPHOS                                              :MorphOS
-STR_OSNAME_AMIGAOS                                              :AmigaOS
 STR_OSNAME_OS2                                                  :OS/2
 STR_OSNAME_SUNOS                                                :SunOS
 
@@ -1412,7 +1402,6 @@ STR_CHEAT_CHANGE_DATE_QUERY_CAPT                                :{WHITE}موجو
 STR_CHEAT_SETUP_PROD                                            :{LTBLUE}پیداوار میں تبدیلی کو فعال کریں: {ORANGE}{STRING}
 
 # Livery window
-STR_LIVERY_CAPTION                                              :{WHITE}نئے رنگوں کا انتخاب
 
 STR_LIVERY_GENERAL_TOOLTIP                                      :{BLACK}رنگوں کا عام انتخاب دکھائیں
 STR_LIVERY_TRAIN_TOOLTIP                                        :{BLACK}ریل گاڑیوں کے رنگوں کا انتخاب دکھائیں
@@ -1979,6 +1968,7 @@ STR_ROAD_TOOLBAR_TOOLTIP_BUILD_TRAMWAY_TUNNEL                   :{BLACK}ٹرام
 STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_ROAD           :{BLACK}سڑک کی تعمیر / خاتمے میں تدویم کریں
 STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_TRAMWAYS       :{BLACK}ٹرام وے کی تعمیر / خاتمے میں تدویم کریں
 
+
 # Road depot construction window
 STR_BUILD_DEPOT_ROAD_ORIENTATION_CAPTION                        :{WHITE}گاڑیوں کے ڈپو کا رخ
 STR_BUILD_DEPOT_ROAD_ORIENTATION_SELECT_TOOLTIP                 :{BLACK}گاڑیوں کے ڈپو کا رخ منتخب کریں
@@ -2125,7 +2115,6 @@ STR_FOUND_TOWN_SELECT_LAYOUT_RANDOM                             :{G=f}{BLACK}ک�
 
 # About OpenTTD window
 STR_ABOUT_OPENTTD                                               :{WHITE}اوپن ٹی ٹی ڈی کے متعلق
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} ٢٠٠٢ - ٢٠١٦ OpenTTD ٹیم
 
 # Framerate display window
 ############ Leave those lines in this order!!
@@ -2292,9 +2281,6 @@ STR_FINANCES_POSITIVE_INCOME                                    :{BLACK}+{CURREN
 
 # Company view
 
-STR_COMPANY_VIEW_INFRASTRUCTURE_RAIL                            :{WHITE}{COMMA}پٹڑی { "کا" "کے" P} { "ٹکڑا" "ٹکڑے" P}
-STR_COMPANY_VIEW_INFRASTRUCTURE_ROAD                            :{WHITE}{COMMA} سڑک { "کا" "کے" P} { "ٹکڑا" "ٹکڑے" P}
-STR_COMPANY_VIEW_INFRASTRUCTURE_WATER                           :{WHITE}{COMMA} پانی { "کا" "کے" P} { "ٹکڑا" "ٹکڑے" P}
 STR_COMPANY_VIEW_INFRASTRUCTURE_STATION                         :{WHITE}{COMMA} اسٹیشن کی ٹائلیں
 STR_COMPANY_VIEW_INFRASTRUCTURE_AIRPORT                         :{COMMA}{WHITE} ہوائی اڈے
 STR_COMPANY_VIEW_INFRASTRUCTURE_NONE                            :{WHITE}کوئی نہیں
@@ -2309,8 +2295,6 @@ STR_COMPANY_VIEW_INFRASTRUCTURE_BUTTON                          :{BLACK}تفصی
 STR_COMPANY_INFRASTRUCTURE_VIEW_RAIL_SECT                       :{GOLD}ریل کے ٹکڑے
 STR_COMPANY_INFRASTRUCTURE_VIEW_SIGNALS                         :{WHITE}اشارے
 STR_COMPANY_INFRASTRUCTURE_VIEW_ROAD_SECT                       :{GOLD}سڑک کے ٹکرے
-STR_COMPANY_INFRASTRUCTURE_VIEW_ROAD                            :{WHITE}سڑک
-STR_COMPANY_INFRASTRUCTURE_VIEW_TRAMWAY                         :{WHITE}ٹرام وے
 STR_COMPANY_INFRASTRUCTURE_VIEW_WATER_SECT                      :{GOLD}پانی کی ٹائل
 STR_COMPANY_INFRASTRUCTURE_VIEW_CANALS                          :{WHITE}نہریں
 STR_COMPANY_INFRASTRUCTURE_VIEW_STATION_SECT                    :{GOLD} اسٹیشن:
@@ -2344,6 +2328,7 @@ STR_VEHICLE_LIST_MANAGE_LIST                                    :{BLACK}فہرس
 # Group window
 
 
+
 STR_GROUPS_CLICK_ON_GROUP_FOR_TOOLTIP                           :{BLACK}گروپ ۔ اس گروپ ک تمام گاڑیاں دیکھنے کے لیے اسے دبایں۔ پکڑ کے اوپر نیچے بھی کر سکتے ہیں۔
 
 
@@ -2352,9 +2337,14 @@ STR_GROUPS_CLICK_ON_GROUP_FOR_TOOLTIP                           :{BLACK}گروپ
 
 # Build vehicle window
 
+
+############ range for vehicle availability starts
 STR_BUY_VEHICLE_AIRCRAFT_CAPTION                                :نیا طیارہ
+############ range for vehicle availability ends
 
 STR_PURCHASE_INFO_AIRCRAFT_RANGE                                :{BLACK}پہنچ: {GOLD}{COMMA} ٹائلیں
+
+
 
 
 
@@ -2407,10 +2397,14 @@ STR_DEPOT_VEHICLE_TOOLTIP_CARGO                                 :{}{CARGO_LONG} 
 # Engine preview window
 
 
+
+
+
 # Autoreplace window
 
 STR_REPLACE_VEHICLE_VEHICLES_IN_USE                             :{YELLOW}استعمالکردہ گاڑیاں
 STR_REPLACE_VEHICLE_AVAILABLE_VEHICLES                          :{YELLOW}میسر گاڑیاں
+
 
 
 
@@ -2542,6 +2536,7 @@ STR_AI_CONFIG_GAMESCRIPT                                        :{SILVER}کھی�
 STR_AI_CONFIG_CHANGE_NONE                                       :
 
 # Available AIs window
+
 
 
 

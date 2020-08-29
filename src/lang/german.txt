@@ -11,8 +11,6 @@
 ##gender m w n p
 
 
-# $Id$
-
 # This file is part of OpenTTD.
 # OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
 # OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -400,7 +398,7 @@ STR_FILE_MENU_EXIT                                              :OpenTTD beenden
 
 # map menu
 STR_MAP_MENU_MAP_OF_WORLD                                       :Weltkarte
-STR_MAP_MENU_EXTRA_VIEW_PORT                                    :Zusatzansicht
+STR_MAP_MENU_EXTRA_VIEWPORT                                     :Zusatzansicht
 STR_MAP_MENU_LINGRAPH_LEGEND                                    :Frachtverbindungen
 STR_MAP_MENU_SIGN_LIST                                          :Schilderliste
 
@@ -475,9 +473,6 @@ STR_ABOUT_MENU_SEPARATOR                                        :
 STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Konsole öffnen/schließen
 STR_ABOUT_MENU_AI_DEBUG                                         :KI / Skript-Debug
 STR_ABOUT_MENU_SCREENSHOT                                       :Screenshot (Standard: Strg+S)
-STR_ABOUT_MENU_ZOOMIN_SCREENSHOT                                :Screenshot in Nahaufnahme
-STR_ABOUT_MENU_DEFAULTZOOM_SCREENSHOT                           :Screenshot mit normalem Zoom
-STR_ABOUT_MENU_GIANT_SCREENSHOT                                 :Riesiger Screenshot (Standard: Strg+G)
 STR_ABOUT_MENU_SHOW_FRAMERATE                                   :Bildwiederholrate anzeigen
 STR_ABOUT_MENU_ABOUT_OPENTTD                                    :Über OpenTTD
 STR_ABOUT_MENU_SPRITE_ALIGNER                                   :Sprite-Ausrichtung
@@ -648,9 +643,6 @@ STR_MUSIC_PLAYLIST_CUSTOM_1                                     :{TINY_FONT}{BLA
 STR_MUSIC_PLAYLIST_CUSTOM_2                                     :{TINY_FONT}{BLACK}Benutzerdef. 2
 STR_MUSIC_MUSIC_VOLUME                                          :{TINY_FONT}{BLACK}Musiklautstärke
 STR_MUSIC_EFFECTS_VOLUME                                        :{TINY_FONT}{BLACK}Soundlautstärke
-STR_MUSIC_RULER_MIN                                             :{TINY_FONT}{BLACK}MIN
-STR_MUSIC_RULER_MAX                                             :{TINY_FONT}{BLACK}MAX
-STR_MUSIC_RULER_MARKER                                          :{TINY_FONT}{BLACK}'
 STR_MUSIC_TRACK_NONE                                            :{TINY_FONT}{DKGREEN}--
 STR_MUSIC_TRACK_DIGIT                                           :{TINY_FONT}{DKGREEN}{ZEROFILL_NUM}
 STR_MUSIC_TITLE_NONE                                            :{TINY_FONT}{DKGREEN}------
@@ -675,10 +667,12 @@ STR_MUSIC_TOOLTIP_TOGGLE_PROGRAM_SHUFFLE                        :{BLACK}Zufälli
 STR_MUSIC_TOOLTIP_SHOW_MUSIC_TRACK_SELECTION                    :{BLACK}Zeige Musiktitelauswahl
 
 # Playlist window
+STR_PLAYLIST_MUSIC_SELECTION_SETNAME                            :{WHITE}Musikprogramm - '{STRING}'
 STR_PLAYLIST_TRACK_NAME                                         :{TINY_FONT}{LTBLUE}{ZEROFILL_NUM} "{STRING}"
 STR_PLAYLIST_TRACK_INDEX                                        :{TINY_FONT}{BLACK}Track Inhalt
 STR_PLAYLIST_PROGRAM                                            :{TINY_FONT}{BLACK}Programm - '{STRING}'
 STR_PLAYLIST_CLEAR                                              :{TINY_FONT}{BLACK}Bereinigen
+STR_PLAYLIST_CHANGE_SET                                         :{BLACK}Set ändern
 STR_PLAYLIST_TOOLTIP_CLEAR_CURRENT_PROGRAM_CUSTOM1              :{BLACK}Lösche laufendes Programm (nur für Benutzerdefiniert 1 und 2)
 STR_PLAYLIST_TOOLTIP_CHANGE_SET                                 :{BLACK}Ein anderes Musik-Set auswählen)
 STR_PLAYLIST_TOOLTIP_CLICK_TO_ADD_TRACK                         :{BLACK}Klicke auf einen Musiktitel, um ihn in das laufende Programm zu übernehmen (nur für Benutzerdefiniert 1 und 2)
@@ -865,6 +859,7 @@ STR_NEWS_NEW_VEHICLE_NOW_AVAILABLE                              :{BIG_FONT}{BLAC
 STR_NEWS_NEW_VEHICLE_TYPE                                       :{BIG_FONT}{BLACK}{ENGINE}
 STR_NEWS_NEW_VEHICLE_NOW_AVAILABLE_WITH_TYPE                    :{BLACK}Neue{G r "" s ""} {STRING} jetzt erhältlich!  -  {ENGINE}
 
+
 STR_NEWS_STATION_NO_LONGER_ACCEPTS_CARGO                        :{WHITE}{STATION} nimmt kein{G "en" "e" "" "e"} {STRING} mehr an
 STR_NEWS_STATION_NO_LONGER_ACCEPTS_CARGO_OR_CARGO               :{WHITE}{STATION} nimmt kein{G "en" "e" "" "e"} {STRING} und kein{G "en" "e" "" "e"} {STRING} mehr an
 STR_NEWS_STATION_NOW_ACCEPTS_CARGO                              :{WHITE}{STATION} nimmt jetzt auch {STRING} an
@@ -883,7 +878,7 @@ STR_NEWS_EXCLUSIVE_RIGHTS_TITLE                                 :{BIG_FONT}{BLAC
 STR_NEWS_EXCLUSIVE_RIGHTS_DESCRIPTION                           :{BIG_FONT}{BLACK}Stadtverwaltung von {TOWN} unterzeichnet Vertrag mit {STRING} über ein Jahr währende exklusive Transportrechte!
 
 # Extra view window
-STR_EXTRA_VIEW_PORT_TITLE                                       :{WHITE}Ansicht {COMMA}
+STR_EXTRA_VIEWPORT_TITLE                                        :{WHITE}Ansicht {COMMA}
 STR_EXTRA_VIEW_MOVE_VIEW_TO_MAIN                                :{BLACK}Zusatzansicht ändern
 STR_EXTRA_VIEW_MOVE_VIEW_TO_MAIN_TT                             :{BLACK}Aktuelle Position der Hauptansicht in diese Zusatzansicht kopieren
 STR_EXTRA_VIEW_MOVE_MAIN_TO_VIEW                                :{BLACK}Hauptansicht ändern
@@ -916,7 +911,7 @@ STR_GAME_OPTIONS_CURRENCY_NLG                                   :Niederländisch
 STR_GAME_OPTIONS_CURRENCY_NOK                                   :Norwegische Kronen (NOK)
 STR_GAME_OPTIONS_CURRENCY_PLN                                   :Polnische Zloty (PLN)
 STR_GAME_OPTIONS_CURRENCY_RON                                   :Rumänische Lei (RON)
-STR_GAME_OPTIONS_CURRENCY_RUR                                   :Russische Rubel (RUR)
+STR_GAME_OPTIONS_CURRENCY_RUR                                   :Alte Russische Rubel (RUR)
 STR_GAME_OPTIONS_CURRENCY_SIT                                   :Slovenische Taler (SIT)
 STR_GAME_OPTIONS_CURRENCY_SEK                                   :Schwedische Kronen (SEK)
 STR_GAME_OPTIONS_CURRENCY_TRY                                   :Türkische Lire (TRY)
@@ -929,6 +924,8 @@ STR_GAME_OPTIONS_CURRENCY_ZAR                                   :Südafrikanisch
 STR_GAME_OPTIONS_CURRENCY_CUSTOM                                :Eigene...
 STR_GAME_OPTIONS_CURRENCY_GEL                                   :Georgischer Lari (GEL)
 STR_GAME_OPTIONS_CURRENCY_IRR                                   :Iranischer Rial (IRR)
+STR_GAME_OPTIONS_CURRENCY_RUB                                   :Russische Rubel (RUB)
+STR_GAME_OPTIONS_CURRENCY_MXN                                   :Mexikanischer Peso (MXN)
 ############ end of currency region
 
 STR_GAME_OPTIONS_ROAD_VEHICLES_FRAME                            :{BLACK}Fahrzeuge
@@ -990,6 +987,9 @@ STR_GAME_OPTIONS_GUI_ZOOM_DROPDOWN_TOOLTIP                      :{BLACK}Wähle d
 STR_GAME_OPTIONS_GUI_ZOOM_DROPDOWN_NORMAL                       :Normal
 STR_GAME_OPTIONS_GUI_ZOOM_DROPDOWN_2X_ZOOM                      :Doppelt
 STR_GAME_OPTIONS_GUI_ZOOM_DROPDOWN_4X_ZOOM                      :Vierfach
+
+
+STR_GAME_OPTIONS_FONT_ZOOM_DROPDOWN_2X_ZOOM                     :Doppelt
 
 STR_GAME_OPTIONS_BASE_GRF                                       :{BLACK}Basisgrafiken
 STR_GAME_OPTIONS_BASE_GRF_TOOLTIP                               :{BLACK}Zu benutzendes Set an Basisgrafiken auswählen
@@ -1173,6 +1173,7 @@ STR_CONFIG_SETTING_AUTOSLOPE                                    :Landschaftsbau 
 STR_CONFIG_SETTING_AUTOSLOPE_HELPTEXT                           :Erlaube Erdbauarbeiten unter Gebäuden oder Infrastruktur ohne sie zu entfernen
 STR_CONFIG_SETTING_CATCHMENT                                    :Verschiedene Stationstypen haben unterschiedlich große Einzugsgebiete: {STRING}
 STR_CONFIG_SETTING_CATCHMENT_HELPTEXT                           :Wird diese Option eingeschaltet, besitzen unterschiedliche Stationsarten bzw. Flughäfen unterschiedlich große Einzugsgebiete
+STR_CONFIG_SETTING_SERVE_NEUTRAL_INDUSTRIES_HELPTEXT            :Falls aktiv, können Industrien mit integrierter Haltestelle (wie Ölbohrtürme) auch von nahegelegenen Stationen der Spieler bedient werden. Falls inaktive, können diese Industrien ausschließlich mittels ihrer eigenen Stationen bedient werden. Die integrierten Stationen bedienen dabei keine anderen Industrien in der Nähe
 STR_CONFIG_SETTING_EXTRADYNAMITE                                :Entfernung von weiteren Straßen, Brücken usw. erlauben: {STRING}
 STR_CONFIG_SETTING_EXTRADYNAMITE_HELPTEXT                       :Erlaubt einfacheres Entfernen von städtischer Infrastruktur und Gebäuden
 STR_CONFIG_SETTING_TRAIN_LENGTH                                 :Maximale Zuglänge: {STRING}
@@ -1225,7 +1226,7 @@ STR_CONFIG_SETTING_STOP_LOCATION_NEAR_END                       :am Anfang
 STR_CONFIG_SETTING_STOP_LOCATION_MIDDLE                         :in der Mitte
 STR_CONFIG_SETTING_STOP_LOCATION_FAR_END                        :am Ende
 STR_CONFIG_SETTING_AUTOSCROLL                                   :Spielfeld scrollen, wenn die Maus am Bildrand anstößt: {STRING}
-STR_CONFIG_SETTING_AUTOSCROLL_HELPTEXT                          :Falls aktiv wird der Kartenausschnit scrollen, wenn die Maus nahe dem Fensterrand ist
+STR_CONFIG_SETTING_AUTOSCROLL_HELPTEXT                          :Falls aktiv, wird der Kartenausschnitt scrollen, wenn die Maus nahe dem Fensterrand ist
 STR_CONFIG_SETTING_AUTOSCROLL_DISABLED                          :Ausgeschaltet
 STR_CONFIG_SETTING_AUTOSCROLL_MAIN_VIEWPORT_FULLSCREEN          :Hauptfenster, nur bei Vollbildschirm
 STR_CONFIG_SETTING_AUTOSCROLL_MAIN_VIEWPORT                     :Hauptfenster
@@ -1258,6 +1259,7 @@ STR_CONFIG_SETTING_DYNAMIC_ENGINES_EXISTING_VEHICLES            :{WHITE}Diese Ei
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE                   :Instandhaltung der Infrastruktur: {STRING}
 STR_CONFIG_SETTING_INFRASTRUCTURE_MAINTENANCE_HELPTEXT          :Unterhaltskosten für Infrastruktur einschalten. Die Unterhaltskosten wachsen mit zunehmender Netzwerkgröße überproportional an, so dass sie größere Firmen stärker belasten als kleinere
 
+STR_CONFIG_SETTING_COMPANY_STARTING_COLOUR                      :Firmenfarbe zu Spielbeginn: {STRING}
 STR_CONFIG_SETTING_COMPANY_STARTING_COLOUR_HELPTEXT             :Wähle die Firmenfarbe zu Spielbeginn
 
 STR_CONFIG_SETTING_NEVER_EXPIRE_AIRPORTS                        :Flughäfen veralten nie: {STRING}
@@ -1343,6 +1345,10 @@ STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_HELPTEXT                :Farbe von Landf
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_GREEN                   :Grün
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_DARK_GREEN              :Dunkelgrün
 STR_CONFIG_SETTING_SMALLMAP_LAND_COLOUR_VIOLET                  :Lila
+STR_CONFIG_SETTING_SCROLLMODE                                   :Verhalten beim Verschieben der Zusatzansicht: {STRING}
+STR_CONFIG_SETTING_SCROLLMODE_HELPTEXT                          :Verhalten beim Verschieben der Karte
+STR_CONFIG_SETTING_SCROLLMODE_DEFAULT                           :Bewege Zusatzansicht mit rechter Maustaste, Mausposition fixiert
+STR_CONFIG_SETTING_SCROLLMODE_RMB_LOCKED                        :Bewege die Karte mit rechter Maustaste, Mausposition fixiert
 STR_CONFIG_SETTING_SCROLLMODE_RMB                               :Bewege die Karte mit rechter Maustaste
 STR_CONFIG_SETTING_SCROLLMODE_LMB                               :Bewege die Karte mit linker Maustaste
 STR_CONFIG_SETTING_SMOOTH_SCROLLING                             :Weicher Bildlauf beim Springen zu einer Position: {STRING}
@@ -1465,6 +1471,8 @@ STR_CONFIG_SETTING_AI_IN_MULTIPLAYER                            :KI im Mehrspiel
 STR_CONFIG_SETTING_AI_IN_MULTIPLAYER_HELPTEXT                   :Erlaube die Teilnahme von Computerspielern im Mehrspielermodus
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES                           :Rechenoperationen, bevor das Skript angehalten wird: {STRING}
 STR_CONFIG_SETTING_SCRIPT_MAX_OPCODES_HELPTEXT                  :Maximale Anzahl Rechenschritte, die ein Skript in einer Runde zur Verfügung hat
+STR_CONFIG_SETTING_SCRIPT_MAX_MEMORY                            :Maximaler Arbeitsspeicher pro Script: {STRING}
+STR_CONFIG_SETTING_SCRIPT_MAX_MEMORY_HELPTEXT                   :Wie viel Arbeitsspeicher ein Script maximal benutzen darf bevor es terminiert wird. Diese Wert muss eventuell vergrößert werden für größere Maps.
 
 STR_CONFIG_SETTING_SERVINT_ISPERCENT                            :Wartungsintervalle in Prozent: {STRING}
 STR_CONFIG_SETTING_SERVINT_ISPERCENT_HELPTEXT                   :Lege fest, ob Fahrzeuge zur Wartung geschickt werden basierend auf der verstrichenen Zeit seit der letzten Wartung oder dem Absinken der Zuverlässigkeit auf einen gewissen Prozentsatz der maximalen Zuverlässigkeit des Fahrzeugtyps
@@ -1567,6 +1575,8 @@ STR_CONFIG_SETTING_TOWN_FOUNDING_HELPTEXT                       :Erlaube Spieler
 STR_CONFIG_SETTING_TOWN_FOUNDING_FORBIDDEN                      :Verboten
 STR_CONFIG_SETTING_TOWN_FOUNDING_ALLOWED                        :Erlaubt
 STR_CONFIG_SETTING_TOWN_FOUNDING_ALLOWED_CUSTOM_LAYOUT          :Erlaubt, mit wählbarem Straßenbauplan
+STR_CONFIG_SETTING_TOWN_CARGOGENMODE_ORIGINAL                   :Quadratisch (orginal)
+STR_CONFIG_SETTING_TOWN_CARGOGENMODE_BITCOUNT                   :Linear
 
 STR_CONFIG_SETTING_EXTRA_TREE_PLACEMENT                         :Platzierung von Bäumen während des Spiels: {STRING}
 STR_CONFIG_SETTING_EXTRA_TREE_PLACEMENT_HELPTEXT                :Lege das Ausmaß des zufälligen Baumwachstums während des Spiels fest. Dies kann Industrien wie die Sägemühle beeinflussen, welche auf nachwachsende Bäume angewiesen sind
@@ -1694,7 +1704,6 @@ STR_CONFIG_SETTING_ENVIRONMENT_CARGODIST                        :{ORANGE}Warenve
 STR_CONFIG_SETTING_AI                                           :{ORANGE}Mitbewerber
 STR_CONFIG_SETTING_AI_NPC                                       :{ORANGE}Computerspieler
 
-STR_CONFIG_SETTING_PATHFINDER_OPF                               :Original
 STR_CONFIG_SETTING_PATHFINDER_NPF                               :NPF
 STR_CONFIG_SETTING_PATHFINDER_YAPF_RECOMMENDED                  :YAPF {BLUE}(empfohlen)
 
@@ -1767,7 +1776,7 @@ STR_INTRO_TOOLTIP_ONLINE_CONTENT                                :{BLACK}Prüfe, 
 STR_INTRO_TOOLTIP_SCRIPT_SETTINGS                               :{BLACK}Zeige KI- und Skripteinstellungen
 STR_INTRO_TOOLTIP_QUIT                                          :{BLACK}OpenTTD beenden
 
-STR_INTRO_BASESET                                               :{BLACK}Dem momentan ausgewählten Basisgrafiken fehl{P 0 "t" "en"} {NUM} Sprite{P 0 "" s}. Bitte überprüfe, ob es Updates für die Basisgrafiken gibt.
+STR_INTRO_BASESET                                               :{BLACK}Den momentan ausgewählten Basisgrafiken fehl{P 0 "t" "en"} {NUM} Sprite{P 0 "" "s"}. Bitte überprüfe, ob es Updates für die Basisgrafiken gibt.
 STR_INTRO_TRANSLATION                                           :{BLACK}Dieser Übersetzung fehl{P 0 t en} {NUM} String{P "" s}. Bitte hilf, OpenTTD zu verbessern und melde Dich als Übersetzer an. Siehe readme.txt für weitere Details.
 
 # Quit window
@@ -1778,13 +1787,9 @@ STR_QUIT_NO                                                     :{BLACK}Nein
 
 # Supported OSes
 STR_OSNAME_WINDOWS                                              :Windows
-STR_OSNAME_DOS                                                  :DOS
 STR_OSNAME_UNIX                                                 :Unix
 STR_OSNAME_OSX                                                  :OS{NBSP}X
-STR_OSNAME_BEOS                                                 :BeOS
 STR_OSNAME_HAIKU                                                :Haiku
-STR_OSNAME_MORPHOS                                              :MorphOS
-STR_OSNAME_AMIGAOS                                              :AmigaOS
 STR_OSNAME_OS2                                                  :OS/2
 STR_OSNAME_SUNOS                                                :SunOS
 
@@ -2073,11 +2078,12 @@ STR_NETWORK_CONNECTION_DISCONNECT                               :{BLACK}Trennen
 
 STR_NETWORK_NEED_GAME_PASSWORD_CAPTION                          :{WHITE}Server ist geschützt. Passwort eingeben:
 STR_NETWORK_NEED_COMPANY_PASSWORD_CAPTION                       :{WHITE}Firma ist geschützt. Passwort eingeben:
+STR_NETWORK_COMPANY_LIST_CLIENT_LIST_CAPTION                    :{WHITE}Teilnehmerliste
 
 # Network company list added strings
-STR_NETWORK_COMPANY_LIST_CLIENT_LIST                            :{WHITE}Teilnehmerliste
-STR_NETWORK_COMPANY_LIST_SPECTATE                               :{WHITE}Zuschauen
-STR_NETWORK_COMPANY_LIST_NEW_COMPANY                            :{WHITE}Neue Firma
+STR_NETWORK_COMPANY_LIST_CLIENT_LIST                            :Teilnehmerliste
+STR_NETWORK_COMPANY_LIST_SPECTATE                               :Zuschauen
+STR_NETWORK_COMPANY_LIST_NEW_COMPANY                            :Neue Firma
 
 # Network client list
 STR_NETWORK_CLIENTLIST_KICK                                     :Hinauswerfen
@@ -2092,7 +2098,6 @@ STR_NETWORK_CLIENT                                              :Teilnehmer
 STR_NETWORK_SPECTATORS                                          :Zuschauer
 
 STR_NETWORK_GIVE_MONEY_CAPTION                                  :{WHITE}Wieviel Geld soll übergeben werden?
-STR_NETWORK_TOOLBAR_LIST_SPECTATOR                              :{BLACK}Zuschauer
 
 # Network set password
 STR_COMPANY_PASSWORD_CANCEL                                     :{BLACK}Eingegebenes Passwort nicht speichern
@@ -2415,6 +2420,9 @@ STR_ROAD_TOOLBAR_TOOLTIP_BUILD_TRAMWAY_TUNNEL                   :{BLACK}Straßen
 STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_ROAD           :{BLACK}Zwischen Bau und Abriss der Straße umschalten
 STR_ROAD_TOOLBAR_TOOLTIP_TOGGLE_BUILD_REMOVE_FOR_TRAMWAYS       :{BLACK}Zwischen Bau und Abriss von Straßenbahngleisen umschalten
 
+STR_ROAD_NAME_ROAD                                              :Straße
+STR_ROAD_NAME_TRAM                                              :Straßenbahngleis
+
 # Road depot construction window
 STR_BUILD_DEPOT_ROAD_ORIENTATION_CAPTION                        :{WHITE}Ausrichtung Depot
 STR_BUILD_DEPOT_ROAD_ORIENTATION_SELECT_TOOLTIP                 :{BLACK}Ausrichtung des Fahrzeugdepots wählen
@@ -2600,6 +2608,7 @@ STR_LAND_AREA_INFORMATION_CARGO_EIGHTS                          :({COMMA}/8 {STR
 STR_LANG_AREA_INFORMATION_RAIL_TYPE                             :{BLACK}Gleistyp: {LTBLUE}{STRING}
 STR_LANG_AREA_INFORMATION_RAIL_SPEED_LIMIT                      :{BLACK}Höchstgeschwindigkeit Schiene: {LTBLUE}{VELOCITY}
 STR_LANG_AREA_INFORMATION_ROAD_SPEED_LIMIT                      :{BLACK}Höchstgeschwindigkeit Straße: {LTBLUE}{VELOCITY}
+STR_LANG_AREA_INFORMATION_TRAM_SPEED_LIMIT                      :{BLACK}Höchstgeschwindigkeit Straßenbahn: {LTBLUE}{VELOCITY}
 
 # Description of land area of different tiles
 STR_LAI_CLEAR_DESCRIPTION_ROCKS                                 :Felsen
@@ -2696,24 +2705,57 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Firmeneigenes G
 STR_ABOUT_OPENTTD                                               :{WHITE}OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Transport Tycoon-Urheberrecht {COPYRIGHT} 1995 Chris Sawyer, alle Rechte vorbehalten
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD-Version {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2019 OpenTTD-Team
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-{STRING} OpenTTD-Team
 
 # Framerate display window
 STR_FRAMERATE_CAPTION                                           :{WHITE}Bildwiederholrate
+STR_FRAMERATE_CAPTION_SMALL                                     :{STRING}{WHITE} ({DECIMAL}x)
+STR_FRAMERATE_RATE_GAMELOOP                                     :{BLACK}Simulationsrate: {STRING}
+STR_FRAMERATE_RATE_GAMELOOP_TOOLTIP                             :{BLACK}Anzahl an simulierten Ticks pro Sekunde.
+STR_FRAMERATE_RATE_BLITTER                                      :{BLACK}Bildwiederholrate: {STRING}
+STR_FRAMERATE_RATE_BLITTER_TOOLTIP                              :{BLACK}Anzahl an Einzelbildern, die pro Sekunde gerendert werden.
+STR_FRAMERATE_SPEED_FACTOR                                      :{BLACK}Aktueller Geschwindigkeitsfaktor des Spiels: {DECIMAL}x
+STR_FRAMERATE_SPEED_FACTOR_TOOLTIP                              :{BLACK}Wie schnell das Spiel aktuell läuft, verglichen mit der erwarteten Geschwindigkeit bei normaler Simulationsrate.
+STR_FRAMERATE_CURRENT                                           :{WHITE}Momentan
+STR_FRAMERATE_AVERAGE                                           :{WHITE}Durchschnitt
+STR_FRAMERATE_DATA_POINTS                                       :{BLACK}Daten basierend auf {COMMA} Messungen
 STR_FRAMERATE_MS_GOOD                                           :{LTBLUE}{DECIMAL} ms
+STR_FRAMERATE_MS_WARN                                           :{YELLOW}{DECIMAL} ms
+STR_FRAMERATE_MS_BAD                                            :{RED}{DECIMAL} ms
 STR_FRAMERATE_FPS_GOOD                                          :{LTBLUE}{DECIMAL} Bilder/s
+STR_FRAMERATE_FPS_WARN                                          :{YELLOW}{DECIMAL} Bilder/s
 STR_FRAMERATE_FPS_BAD                                           :{RED}{DECIMAL} Bilder/s
+STR_FRAMERATE_BYTES_BAD                                         :{RED}{BYTES}
+STR_FRAMERATE_GRAPH_MILLISECONDS                                :{TINY_FONT}{COMMA} ms
 STR_FRAMERATE_GRAPH_SECONDS                                     :{TINY_FONT}{COMMA} s
 ############ Leave those lines in this order!!
-STR_FRAMERATE_GL_SHIPS                                          :{BLACK}  Ticks (Schiffe):
-STR_FRAMERATE_GL_AIRCRAFT                                       :{BLACK}  Ticks (Luftfahrzeuge)
+STR_FRAMERATE_GAMELOOP                                          :{BLACK}Spielschleifen insgesamt:
+STR_FRAMERATE_GL_ECONOMY                                        :{BLACK}Warenumschlag:
+STR_FRAMERATE_GL_TRAINS                                         :{BLACK}Ticks (Züge):
+STR_FRAMERATE_GL_ROADVEHS                                       :{BLACK}Ticks (Straßenfahrzeuge):
+STR_FRAMERATE_GL_SHIPS                                          :{BLACK}Ticks (Schiffe):
+STR_FRAMERATE_GL_AIRCRAFT                                       :{BLACK}Ticks (Luftfahrzeuge)
+STR_FRAMERATE_GL_LANDSCAPE                                      :{BLACK}Welt-Ticks:
+STR_FRAMERATE_GL_LINKGRAPH                                      :{BLACK}Intervall für Neuberechnung des Verteilungsgraphen:
 STR_FRAMERATE_DRAWING                                           :{BLACK}Grafik-Rendering:
+STR_FRAMERATE_DRAWING_VIEWPORTS                                 :{BLACK}Kartenansichten:
+STR_FRAMERATE_VIDEO                                             :{BLACK}Videoausgabe:
+STR_FRAMERATE_SOUND                                             :{BLACK}Sound-Abmischung:
+STR_FRAMERATE_GAMESCRIPT                                        :{BLACK}   Script:
 ############ End of leave-in-this-order
 ############ Leave those lines in this order!!
-STR_FRAMETIME_CAPTION_GAMELOOP                                  :Spiel-Schleife
+STR_FRAMETIME_CAPTION_GAMELOOP                                  :Spielschleife
+STR_FRAMETIME_CAPTION_GL_ECONOMY                                :Warenumschlag
 STR_FRAMETIME_CAPTION_GL_TRAINS                                 :Ticks (Züge)
+STR_FRAMETIME_CAPTION_GL_ROADVEHS                               :Ticks (Straßenfahrzeuge)
+STR_FRAMETIME_CAPTION_GL_SHIPS                                  :Ticks (Schiffe)
+STR_FRAMETIME_CAPTION_GL_AIRCRAFT                               :Ticks (Luftfahrzeuge)
+STR_FRAMETIME_CAPTION_GL_LANDSCAPE                              :Welt-Ticks
+STR_FRAMETIME_CAPTION_GL_LINKGRAPH                              :Intervall für Neuberechnung des Verteilungsgraphen
 STR_FRAMETIME_CAPTION_DRAWING                                   :Grafik-Rendering
-STR_FRAMETIME_CAPTION_SOUND                                     :Sound mixing
+STR_FRAMETIME_CAPTION_DRAWING_VIEWPORTS                         :Karten-Rendering
+STR_FRAMETIME_CAPTION_VIDEO                                     :Videoausgabe
+STR_FRAMETIME_CAPTION_SOUND                                     :Sound-Abmischung
 ############ End of leave-in-this-order
 
 
@@ -2739,6 +2781,9 @@ STR_SAVELOAD_DETAIL_CAPTION                                     :{BLACK}Spielsta
 STR_SAVELOAD_DETAIL_NOT_AVAILABLE                               :{BLACK}Keine Informationen verfügbar
 STR_SAVELOAD_DETAIL_COMPANY_INDEX                               :{SILVER}{COMMA}: {WHITE}{STRING}
 STR_SAVELOAD_DETAIL_GRFSTATUS                                   :{SILVER}NewGRF: {WHITE}{STRING}
+STR_SAVELOAD_FILTER_TITLE                                       :{BLACK}Suchtext:
+STR_SAVELOAD_OVERWRITE_TITLE                                    :{WHITE}Datei überschreiben
+STR_SAVELOAD_OVERWRITE_WARNING                                  :{YELLOW}Existierende Datei wirklich überschreiben?
 
 STR_SAVELOAD_OSKTITLE                                           :{BLACK}Namen für den Spielstand eingeben
 
@@ -2856,8 +2901,12 @@ STR_NEWGRF_SETTINGS_VERSION                                     :{BLACK}Version:
 STR_NEWGRF_SETTINGS_MIN_VERSION                                 :{BLACK}Min. kompatible Version: {SILVER}{NUM}
 STR_NEWGRF_SETTINGS_MD5SUM                                      :{BLACK}MD5-Summe: {SILVER}{STRING}
 STR_NEWGRF_SETTINGS_PALETTE                                     :{BLACK}Farbpalette: {SILVER}{STRING}
+STR_NEWGRF_SETTINGS_PALETTE_DEFAULT                             :Standard (D)
+STR_NEWGRF_SETTINGS_PALETTE_DEFAULT_32BPP                       :Standard (D) / 32 bpp
 STR_NEWGRF_SETTINGS_PALETTE_LEGACY                              :veraltet (W)
+STR_NEWGRF_SETTINGS_PALETTE_LEGACY_32BPP                        :veraltet (W) / 32 bpp
 STR_NEWGRF_SETTINGS_PARAMETER                                   :{BLACK}Parameter: {SILVER}{STRING}
+STR_NEWGRF_SETTINGS_PARAMETER_NONE                              :Keine
 
 STR_NEWGRF_SETTINGS_NO_INFO                                     :{BLACK}Keine Informationen verfügbar
 STR_NEWGRF_SETTINGS_NOT_FOUND                                   :{RED}Zugehörige Datei nicht gefunden
@@ -2930,7 +2979,7 @@ STR_NEWGRF_ERROR_AFTER_TRANSLATED_FILE                          :der NewGRF-Date
 STR_NEWGRF_ERROR_TOO_MANY_NEWGRFS_LOADED                        :Zu viele NewGRFs geladen
 STR_NEWGRF_ERROR_STATIC_GRF_CAUSES_DESYNC                       :Das Laden von {1:STRING} als statisches NewGRF mit {STRING} könnte Synchronisationsfehler hervorrufen
 STR_NEWGRF_ERROR_UNEXPECTED_SPRITE                              :Unerwartetes Sprite (Sprite {3:NUM})
-STR_NEWGRF_ERROR_UNKNOWN_PROPERTY                               :Unbekannte Action 0 - Property {4:HEX} (Sprite {3:NUM})
+STR_NEWGRF_ERROR_UNKNOWN_PROPERTY                               :Unbekannte Action 0 - Eigenschaft {4:HEX} (Sprite {3:NUM})
 STR_NEWGRF_ERROR_INVALID_ID                                     :Zugriff auf eine ungültige ID (Sprite {3:NUM})
 STR_NEWGRF_ERROR_CORRUPT_SPRITE                                 :{YELLOW}{STRING} enthält fehlerhafte Grafiken. Diese werden als Fragezeichen (?) dargestellt
 STR_NEWGRF_ERROR_MULTIPLE_ACTION_8                              :Enthält mehrere Action 8 - Einträge (Sprite {3:NUM})
@@ -2938,6 +2987,8 @@ STR_NEWGRF_ERROR_READ_BOUNDS                                    :Lesezugriff üb
 STR_NEWGRF_ERROR_GRM_FAILED                                     :Die angeforderte GRF-Ressource ist nicht verfügbar (Sprite {3:NUM})
 STR_NEWGRF_ERROR_FORCEFULLY_DISABLED                            :{1:STRING} wurde von {STRING} deaktiviert
 STR_NEWGRF_ERROR_INVALID_SPRITE_LAYOUT                          :Ungültiges oder unbekanntes Format für Spritelayout (Sprite {3:NUM})
+STR_NEWGRF_ERROR_LIST_PROPERTY_TOO_LONG                         :Zu viele Elemente in Eigenschaftswert-Liste (Sprite {3:NUM}, Eigenschaft {4:HEX})
+STR_NEWGRF_ERROR_INDPROD_CALLBACK                               :Ungültige Produktions-Rückruffunktion (Sprite {3:NUM}, "{2:STRING}")
 
 # NewGRF related 'general' warnings
 STR_NEWGRF_POPUP_CAUTION_CAPTION                                :{WHITE}Achtung!
@@ -2967,13 +3018,13 @@ STR_BROKEN_VEHICLE_LENGTH                                       :{WHITE}Zug '{VE
 
 STR_NEWGRF_BUGGY                                                :{WHITE}NewGRF '{0:STRING}' liefert falsche Informationen
 STR_NEWGRF_BUGGY_ARTICULATED_CARGO                              :{WHITE}Fracht / Ersetzungs - Informationen für '{1:ENGINE}' weichen von der Einkaufsliste nach dem Kauf ab. Das kann dazu führen, dass das Umrüsten beim autmatisches Ersetzen oder Erneuern nicht korrekt funktioniert
-STR_NEWGRF_BUGGY_ENDLESS_PRODUCTION_CALLBACK                    :{WHITE}'{1:STRING}' verursachte eine Endlosschleife im 'Production callback'
+STR_NEWGRF_BUGGY_ENDLESS_PRODUCTION_CALLBACK                    :{WHITE}'{1:STRING}' verursachte eine Endlosschleife in Produktions-Rückruffunktion
 STR_NEWGRF_BUGGY_UNKNOWN_CALLBACK_RESULT                        :{WHITE}Callback {1:HEX} lieferte des unbekannte und ungülte Resultat {2:HEX}
 
 # 'User removed essential NewGRFs'-placeholders for stuff without specs
 STR_NEWGRF_INVALID_CARGO                                        :<ungültige Frachtart>
 STR_NEWGRF_INVALID_CARGO_ABBREV                                 :??
-STR_NEWGRF_INVALID_CARGO_QUANTITY                               :{COMMA} of <ungültige Frachtart>
+STR_NEWGRF_INVALID_CARGO_QUANTITY                               :{COMMA} Einheiten <ungültige Frachtart>
 STR_NEWGRF_INVALID_ENGINE                                       :<ungültiger Fahrzeugtyp>
 STR_NEWGRF_INVALID_INDUSTRYTYPE                                 :<ungültige Industrie>
 
@@ -3010,6 +3061,7 @@ STR_TOWN_POPULATION                                             :{BLACK}Weltbev�
 STR_TOWN_VIEW_TOWN_CAPTION                                      :{WHITE}{TOWN}
 STR_TOWN_VIEW_CITY_CAPTION                                      :{WHITE}{TOWN} (Großstadt)
 STR_TOWN_VIEW_POPULATION_HOUSES                                 :{BLACK}Einwohner: {ORANGE}{COMMA}{BLACK}  Häuser: {ORANGE}{COMMA}
+STR_TOWN_VIEW_CARGO_LAST_MONTH_MAX                              :{BLACK}{CARGO_LIST} im letzten Monat: {ORANGE}{COMMA}{BLACK} Max.: {ORANGE}{COMMA}
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH                              :{BLACK}Für Stadtwachstum benötigte Fracht:
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_REQUIRED_GENERAL             :{ORANGE}{STRING}{RED} benötigt
 STR_TOWN_VIEW_CARGO_FOR_TOWNGROWTH_REQUIRED_WINTER              :{ORANGE}{STRING}{BLACK} im Winter benötigt
@@ -3034,6 +3086,8 @@ STR_TOWN_VIEW_RENAME_TOWN_BUTTON                                :Stadt umbenenne
 
 # Town local authority window
 STR_LOCAL_AUTHORITY_CAPTION                                     :{WHITE}Stadtverwaltung {TOWN}
+STR_LOCAL_AUTHORITY_ZONE                                        :{BLACK}Zone
+STR_LOCAL_AUTHORITY_ZONE_TOOLTIP                                :{BLACK}Zeige Zone der Stadtverwaltung
 STR_LOCAL_AUTHORITY_COMPANY_RATINGS                             :{BLACK}Bewertung der Transportfirma:
 STR_LOCAL_AUTHORITY_COMPANY_RATING                              :{YELLOW}{COMPANY} {COMPANY_NUM}: {ORANGE}{STRING}
 STR_LOCAL_AUTHORITY_ACTIONS_TITLE                               :{BLACK}Verfügbare Maßnahmen:
@@ -3289,8 +3343,6 @@ STR_COMPANY_INFRASTRUCTURE_VIEW_CAPTION                         :{WHITE}Infrastr
 STR_COMPANY_INFRASTRUCTURE_VIEW_RAIL_SECT                       :{GOLD}Schienenfelder:
 STR_COMPANY_INFRASTRUCTURE_VIEW_SIGNALS                         :{WHITE}Signale
 STR_COMPANY_INFRASTRUCTURE_VIEW_ROAD_SECT                       :{GOLD}Straßenfelder:
-STR_COMPANY_INFRASTRUCTURE_VIEW_ROAD                            :{WHITE}Straße
-STR_COMPANY_INFRASTRUCTURE_VIEW_TRAMWAY                         :{WHITE}Straßenbahnfelder
 STR_COMPANY_INFRASTRUCTURE_VIEW_WATER_SECT                      :{GOLD}Wasserfelder:
 STR_COMPANY_INFRASTRUCTURE_VIEW_CANALS                          :{WHITE}Kanäle
 STR_COMPANY_INFRASTRUCTURE_VIEW_STATION_SECT                    :{GOLD}Stationen:
@@ -3301,9 +3353,8 @@ STR_COMPANY_INFRASTRUCTURE_VIEW_TOTAL                           :{WHITE}{CURRENC
 # Industry directory
 STR_INDUSTRY_DIRECTORY_CAPTION                                  :{WHITE}Industrien
 STR_INDUSTRY_DIRECTORY_NONE                                     :{ORANGE}- Keine -
-STR_INDUSTRY_DIRECTORY_ITEM                                     :{ORANGE}{INDUSTRY}{BLACK} ({CARGO_LONG}{STRING}){YELLOW} ({COMMA}% transportiert)
-STR_INDUSTRY_DIRECTORY_ITEM_TWO                                 :{ORANGE}{INDUSTRY}{BLACK} ({CARGO_LONG}{STRING}/{CARGO_LONG}{STRING}){YELLOW} ({COMMA}%/{COMMA}% transportiert)
 STR_INDUSTRY_DIRECTORY_ITEM_NOPROD                              :{ORANGE}{INDUSTRY}
+STR_INDUSTRY_DIRECTORY_ITEM_PROD2                               :{ORANGE}{INDUSTRY} {STRING}, {STRING}
 STR_INDUSTRY_DIRECTORY_LIST_CAPTION                             :{BLACK}Industrienamen - Klick auf den Namen zentriert Hauptansicht auf die Industrie. Strg+Klick öffnet neue Zusatzansicht zentriert auf die Industrie
 
 # Industry view
@@ -3316,6 +3367,7 @@ STR_INDUSTRY_VIEW_INDUSTRY_ANNOUNCED_CLOSURE                    :{YELLOW}Diese I
 
 STR_INDUSTRY_VIEW_REQUIRES_N_CARGO                              :{BLACK}Benötigt: {YELLOW}{STRING}{STRING}
 STR_INDUSTRY_VIEW_PRODUCES_N_CARGO                              :{BLACK}Produziert: {YELLOW}{STRING}{STRING}
+STR_INDUSTRY_VIEW_CARGO_LIST_EXTENSION                          :, {STRING}{STRING}
 
 STR_INDUSTRY_VIEW_REQUIRES                                      :{BLACK}benötigt:
 STR_INDUSTRY_VIEW_ACCEPT_CARGO                                  :{YELLOW}{STRING}{BLACK}{3:STRING}
@@ -3369,10 +3421,13 @@ STR_GROUP_DEFAULT_ROAD_VEHICLES                                 :Ungruppierte St
 STR_GROUP_DEFAULT_SHIPS                                         :Ungruppierte Schiffe
 STR_GROUP_DEFAULT_AIRCRAFTS                                     :Ungruppierte Flugzeuge
 
+STR_GROUP_COUNT_WITH_SUBGROUP                                   :{TINY_FONT}{COMMA} (+{COMMA})
+
 STR_GROUPS_CLICK_ON_GROUP_FOR_TOOLTIP                           :{BLACK}Gruppen - Klick auf eine Gruppe zeigt Liste aller Fahrzeuge der Gruppe an
 STR_GROUP_CREATE_TOOLTIP                                        :{BLACK}Neue Gruppe erstellen
 STR_GROUP_DELETE_TOOLTIP                                        :{BLACK}Ausgewählte Gruppe löschen
 STR_GROUP_RENAME_TOOLTIP                                        :{BLACK}Ausgewählte Gruppe umbenennen
+STR_GROUP_LIVERY_TOOLTIP                                        :{BLACK}Farbschema der ausgewählten Gruppe ändern
 STR_GROUP_REPLACE_PROTECTION_TOOLTIP                            :{BLACK}Diese Gruppe von der automatischen Fahrzeugersetzung ausschließen
 
 STR_QUERY_GROUP_DELETE_CAPTION                                  :{WHITE}Gruppe löschen
@@ -3394,10 +3449,13 @@ STR_BUY_VEHICLE_TRAIN_ELRAIL_CAPTION                            :Neue elektrisch
 STR_BUY_VEHICLE_TRAIN_MONORAIL_CAPTION                          :Neue Einschienenbahnfahrzeuge
 STR_BUY_VEHICLE_TRAIN_MAGLEV_CAPTION                            :Neue Magnetbahnfahrzeuge
 
-STR_BUY_VEHICLE_TRAIN_ALL_CAPTION                               :Neue Schienenfahrzeuge
 STR_BUY_VEHICLE_ROAD_VEHICLE_CAPTION                            :Neue Fahrzeuge
+
+############ range for vehicle availability starts
+STR_BUY_VEHICLE_TRAIN_ALL_CAPTION                               :Neue Schienenfahrzeuge
 STR_BUY_VEHICLE_SHIP_CAPTION                                    :Neue Schiffe
 STR_BUY_VEHICLE_AIRCRAFT_CAPTION                                :Neue Flugzeuge
+############ range for vehicle availability ends
 
 STR_PURCHASE_INFO_COST_WEIGHT                                   :{BLACK}Kosten: {GOLD}{CURRENCY_LONG}{BLACK} Gewicht: {GOLD}{WEIGHT_SHORT}
 STR_PURCHASE_INFO_SPEED_POWER                                   :{BLACK}Geschw.: {GOLD}{VELOCITY}{BLACK} Leistung: {GOLD}{POWER}
@@ -3412,10 +3470,12 @@ STR_PURCHASE_INFO_RELIABILITY                                   :{BLACK}Max. Zuv
 STR_PURCHASE_INFO_COST                                          :{BLACK}Kosten: {GOLD}{CURRENCY_LONG}
 STR_PURCHASE_INFO_WEIGHT_CWEIGHT                                :{BLACK}Gewicht: {GOLD}{WEIGHT_SHORT} ({WEIGHT_SHORT})
 STR_PURCHASE_INFO_COST_SPEED                                    :{BLACK}Kosten: {GOLD}{CURRENCY_LONG}{BLACK} Geschw.: {GOLD}{VELOCITY}
+STR_PURCHASE_INFO_COST_REFIT_SPEED                              :{BLACK}Kosten: {GOLD}{CURRENCY_LONG}{BLACK} (Kosten der Umrüstung: {GOLD}{CURRENCY_LONG}{BLACK}) Geschwindigkeit: {GOLD}{VELOCITY}
 STR_PURCHASE_INFO_AIRCRAFT_CAPACITY                             :{BLACK}Kapazität: {GOLD}{CARGO_LONG}, {CARGO_LONG}
 STR_PURCHASE_INFO_PWAGPOWER_PWAGWEIGHT                          :{BLACK}Angetriebene Waggons: {GOLD}+{POWER}{BLACK} Gewicht: {GOLD}+{WEIGHT_SHORT}
 STR_PURCHASE_INFO_REFITTABLE_TO                                 :{BLACK}Umrüstbar auf: {GOLD}{STRING}
 STR_PURCHASE_INFO_ALL_TYPES                                     :Alle Frachtarten
+STR_PURCHASE_INFO_NONE                                          :Keine
 STR_PURCHASE_INFO_ALL_BUT                                       :Alles außer {CARGO_LIST}
 STR_PURCHASE_INFO_MAX_TE                                        :{BLACK}Max. Zugkraft: {GOLD}{FORCE}
 STR_PURCHASE_INFO_AIRCRAFT_RANGE                                :{BLACK}Reichweite: {GOLD}{COMMA} Felder
@@ -3431,10 +3491,12 @@ STR_BUY_VEHICLE_ROAD_VEHICLE_BUY_VEHICLE_BUTTON                 :{BLACK}Fahrzeug
 STR_BUY_VEHICLE_SHIP_BUY_VEHICLE_BUTTON                         :{BLACK}Schiff kaufen
 STR_BUY_VEHICLE_AIRCRAFT_BUY_VEHICLE_BUTTON                     :{BLACK}Flugzeug kaufen
 
+
 STR_BUY_VEHICLE_TRAIN_BUY_VEHICLE_TOOLTIP                       :{BLACK}Angewähltes Fahrzeug kaufen. Shift+Klick zeigt einen Kostenvoranschlag
 STR_BUY_VEHICLE_ROAD_VEHICLE_BUY_VEHICLE_TOOLTIP                :{BLACK}Ausgewähltes Fahrzeug kaufen. Shift+Klick zeigt einen Kostenvoranschlag
 STR_BUY_VEHICLE_SHIP_BUY_VEHICLE_TOOLTIP                        :{BLACK}Ausgewähltes Schiff kaufen. Shift+Klick zeigt einen Kostenvoranschlag
 STR_BUY_VEHICLE_AIRCRAFT_BUY_VEHICLE_TOOLTIP                    :{BLACK}Augewähltes Flugzeug kaufen. Shift schaltet zwischen Bauen und Kostenvoranschlag um
+
 
 STR_BUY_VEHICLE_TRAIN_RENAME_BUTTON                             :{BLACK}Umbenennen
 STR_BUY_VEHICLE_ROAD_VEHICLE_RENAME_BUTTON                      :{BLACK}Umbenennen
@@ -3544,12 +3606,16 @@ STR_DEPOT_SELL_CONFIRMATION_TEXT                                :{YELLOW}Sollen 
 # Engine preview window
 STR_ENGINE_PREVIEW_CAPTION                                      :{WHITE}Nachricht vom Fahrzeughersteller
 STR_ENGINE_PREVIEW_MESSAGE                                      :{GOLD}Wir haben {G "einen" "eine" "ein" ""} neue{G n "" s ""} {0:STRING} entwickelt.{}Besteht Interesse, {G 0 den die das die} {0:STRING} ein Jahr lang exklusiv zu nutzen, so dass wir die Funktionen testen können, bevor {G 0 er sie es sie} allgemein zur Verfügung gestellt {G 0 wird wird wird werden}?
+
 STR_ENGINE_PREVIEW_RAILROAD_LOCOMOTIVE                          :{G=w}Lokomotive
-STR_ENGINE_PREVIEW_ROAD_VEHICLE                                 :{G=n}Straßenfahrzeug
-STR_ENGINE_PREVIEW_AIRCRAFT                                     :{G=n}Flugzeug
-STR_ENGINE_PREVIEW_SHIP                                         :{G=n}Schiff
+STR_ENGINE_PREVIEW_ELRAIL_LOCOMOTIVE                            :Elektrifizierte Lokomotive
 STR_ENGINE_PREVIEW_MONORAIL_LOCOMOTIVE                          :{G=w}Einschienenbahn
 STR_ENGINE_PREVIEW_MAGLEV_LOCOMOTIVE                            :{G=w}Magnetschwebebahn
+
+STR_ENGINE_PREVIEW_ROAD_VEHICLE                                 :{G=n}Straßenfahrzeug
+
+STR_ENGINE_PREVIEW_AIRCRAFT                                     :{G=n}Flugzeug
+STR_ENGINE_PREVIEW_SHIP                                         :{G=n}Schiff
 
 STR_ENGINE_PREVIEW_COST_WEIGHT_SPEED_POWER                      :{BLACK}Kosten: {CURRENCY_LONG}   Gewicht: {WEIGHT_SHORT}{}Geschwindigk.: {VELOCITY} Leistung: {POWER}{}Betriebskosten: {CURRENCY_LONG} pro Jahr{}Kapazität: {CARGO_LONG}
 STR_ENGINE_PREVIEW_COST_WEIGHT_SPEED_POWER_MAX_TE               :{BLACK}Preis: {CURRENCY_LONG} Gewicht: {WEIGHT_SHORT}{}Max. Geschwindigkeit: {VELOCITY}  Leistung: {POWER}  Max. Zugkraft: {6:FORCE}{}Betriebskosten: {4:CURRENCY_LONG}/yr{}Kapazität: {5:CARGO_LONG}
@@ -3595,6 +3661,8 @@ STR_REPLACE_RAIL_VEHICLES                                       :Schienenfahrzeu
 STR_REPLACE_ELRAIL_VEHICLES                                     :elektrische Schienenfahrzeuge
 STR_REPLACE_MONORAIL_VEHICLES                                   :Einschienenbahn
 STR_REPLACE_MAGLEV_VEHICLES                                     :Magnetschwebebahn
+
+STR_REPLACE_TRAM_VEHICLES                                       :Straßenbahnfahrzeuge
 
 STR_REPLACE_REMOVE_WAGON                                        :{BLACK}Waggon-Entfernung: {ORANGE}{STRING}
 STR_REPLACE_REMOVE_WAGON_HELP                                   :{BLACK}Ursprüngliche Länge des Zugs beibehalten, indem (vorne beginnend) Waggons entfernt werden, falls das Ersetzen der Lokomotive den Zug verlängern würde
@@ -3815,6 +3883,7 @@ STR_ORDER_CONDITIONAL_AGE                                       :Fahrzeugalter (
 STR_ORDER_CONDITIONAL_REQUIRES_SERVICE                          :Wartung erforderlich
 STR_ORDER_CONDITIONAL_UNCONDITIONALLY                           :Immer
 STR_ORDER_CONDITIONAL_REMAINING_LIFETIME                        :Verbleibende Laufzeit (Jahre)
+STR_ORDER_CONDITIONAL_MAX_RELIABILITY                           :Maximale Zuverlässigkeit
 
 STR_ORDER_CONDITIONAL_COMPARATOR_TOOLTIP                        :{BLACK}Die Bedingung, die erfüllt werden muss
 STR_ORDER_CONDITIONAL_COMPARATOR_EQUALS                         :gleich
@@ -3836,7 +3905,7 @@ STR_ORDERS_DELETE_BUTTON                                        :{BLACK}Löschen
 STR_ORDERS_DELETE_TOOLTIP                                       :{BLACK}Lösche den markierten Auftrag
 STR_ORDERS_DELETE_ALL_TOOLTIP                                   :{BLACK}Lösche alle Aufträge
 STR_ORDERS_STOP_SHARING_BUTTON                                  :{BLACK}Gemeinsame Aufträge aufheben
-STR_ORDERS_STOP_SHARING_TOOLTIP                                 :{BLACK}Gemeinsame Auftragliste aufheben. Ctrl+Klick löscht zusätzlich die Auftragliste für dieses Fahrzeug
+STR_ORDERS_STOP_SHARING_TOOLTIP                                 :{BLACK}Gemeinsame Auftragliste aufheben. Strg+Klick löscht zusätzlich die Auftragliste für dieses Fahrzeug
 
 STR_ORDERS_GO_TO_BUTTON                                         :{BLACK}Fahre zu
 STR_ORDER_GO_TO_NEAREST_DEPOT                                   :Nächstes Depot
@@ -4044,6 +4113,7 @@ STR_AI_LIST_ACCEPT                                              :{BLACK}Anwenden
 STR_AI_LIST_ACCEPT_TOOLTIP                                      :{BLACK}Ausgewähltes Skript verwenden
 STR_AI_LIST_CANCEL                                              :{BLACK}Abbrechen
 STR_AI_LIST_CANCEL_TOOLTIP                                      :{BLACK}Skript nicht wechseln
+
 
 # AI Parameters
 STR_AI_SETTINGS_CAPTION                                         :{WHITE}{STRING} Parameter
@@ -4316,7 +4386,7 @@ STR_ERROR_MUST_REMOVE_SIGNALS_FIRST                             :{WHITE}Signal m
 STR_ERROR_NO_SUITABLE_RAILROAD_TRACK                            :{WHITE}Keine geeigneten Gleise
 STR_ERROR_MUST_REMOVE_RAILROAD_TRACK                            :{WHITE}Gleise müssen erst abgerissen werden
 STR_ERROR_CROSSING_ON_ONEWAY_ROAD                               :{WHITE}Einbahnstraße oder blockierter Weg
-STR_ERROR_CROSSING_DISALLOWED                                   :{WHITE}Bahnübergänge sind für diesen Schienentyp nicht erlaubt
+STR_ERROR_CROSSING_DISALLOWED_RAIL                              :{WHITE}Bahnübergänge sind für diesen Schienentyp nicht erlaubt
 STR_ERROR_CAN_T_BUILD_SIGNALS_HERE                              :{WHITE}Signal kann hier nicht aufgestellt werden...
 STR_ERROR_CAN_T_BUILD_RAILROAD_TRACK                            :{WHITE}Gleise können hier nicht verlegt werden...
 STR_ERROR_CAN_T_REMOVE_RAILROAD_TRACK                           :{WHITE}Gleise können nicht abgerissen werden...
@@ -4336,6 +4406,7 @@ STR_ERROR_CAN_T_REMOVE_ROAD_FROM                                :{WHITE}Diese St
 STR_ERROR_CAN_T_REMOVE_TRAMWAY_FROM                             :{WHITE}Straßenbahngleise können hier nicht entfernt werden...
 STR_ERROR_THERE_IS_NO_ROAD                                      :{WHITE}...hier ist keine Straße
 STR_ERROR_THERE_IS_NO_TRAMWAY                                   :{WHITE}...hier ist kein Straßenbahngleis
+STR_ERROR_CAN_T_CONVERT_TRAMWAY                                 :{WHITE}Straßenbahngleistyp kann hier nicht geändert werden...
 
 # Waterway construction errors
 STR_ERROR_CAN_T_BUILD_CANALS                                    :{WHITE}Kanal kann hier nicht gebaut werden...

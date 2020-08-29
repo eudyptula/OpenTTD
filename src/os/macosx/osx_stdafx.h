@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -20,11 +18,15 @@
 #define HAVE_OSX_107_SDK
 #endif
 
+#ifdef MAC_OS_X_VERSION_10_9
+#define HAVE_OSX_109_SDK
+#endif
+
 #ifdef MAC_OS_X_VERSION_10_11
 #define HAVE_OSX_1011_SDK
 #endif
 
-/* It would seem that to ensure backward compability we have to ensure that we have defined MAC_OS_X_VERSION_10_x everywhere */
+/* It would seem that to ensure backward compatibility we have to ensure that we have defined MAC_OS_X_VERSION_10_x everywhere */
 #ifndef MAC_OS_X_VERSION_10_3
 #define MAC_OS_X_VERSION_10_3 1030
 #endif

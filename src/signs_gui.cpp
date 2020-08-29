@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -41,11 +39,11 @@ struct SignList {
 	 */
 	typedef GUIList<const Sign *, StringFilter &> GUISignList;
 
-	static const Sign *last_sign;
 	GUISignList signs;
 
 	StringFilter string_filter;                                       ///< The match string to be used when the GUIList is (re)-sorted.
 	static bool match_case;                                           ///< Should case sensitive matching be used?
+	static char default_name[64];                                     ///< Default sign name, used if Sign::name is nullptr.
 
 	/**
 	 * Creates a SignList with filtering disabled by default.
@@ -60,55 +58,44 @@ struct SignList {
 
 		DEBUG(misc, 3, "Building sign list");
 
-		this->signs.Clear();
+		this->signs.clear();
 
-		const Sign *si;
-		FOR_ALL_SIGNS(si) *this->signs.Append() = si;
+		for (const Sign *si : Sign::Iterate()) this->signs.push_back(si);
 
 		this->signs.SetFilterState(true);
 		this->FilterSignList();
-		this->signs.Compact();
+		this->signs.shrink_to_fit();
 		this->signs.RebuildDone();
 	}
 
 	/** Sort signs by their name */
-	static int CDECL SignNameSorter(const Sign * const *a, const Sign * const *b)
+	static bool SignNameSorter(const Sign * const &a, const Sign * const &b)
 	{
-		static char buf_cache[64];
-		char buf[64];
+		/* Signs are very very rarely using the default text, but there can also be
+		 * a lot of them. Therefore a worthwhile performance gain can be made by
+		 * directly comparing Sign::name instead of going through the string
+		 * system for each comparison. */
+		const char *a_name = a->name.empty() ? SignList::default_name : a->name.c_str();
+		const char *b_name = b->name.empty() ? SignList::default_name : b->name.c_str();
 
-		SetDParam(0, (*a)->index);
-		GetString(buf, STR_SIGN_NAME, lastof(buf));
+		int r = strnatcmp(a_name, b_name); // Sort by name (natural sorting).
 
-		if (*b != last_sign) {
-			last_sign = *b;
-			SetDParam(0, (*b)->index);
-			GetString(buf_cache, STR_SIGN_NAME, lastof(buf_cache));
-		}
-
-		int r = strnatcmp(buf, buf_cache); // Sort by name (natural sorting).
-
-		return r != 0 ? r : ((*a)->index - (*b)->index);
+		return r != 0 ? r < 0 : (a->index < b->index);
 	}
 
 	void SortSignsList()
 	{
 		if (!this->signs.Sort(&SignNameSorter)) return;
-
-		/* Reset the name sorter sort cache */
-		this->last_sign = NULL;
 	}
 
 	/** Filter sign list by sign name */
 	static bool CDECL SignNameFilter(const Sign * const *a, StringFilter &filter)
 	{
-		/* Get sign string */
-		char buf1[MAX_LENGTH_SIGN_NAME_CHARS * MAX_CHAR_LENGTH];
-		SetDParam(0, (*a)->index);
-		GetString(buf1, STR_SIGN_NAME, lastof(buf1));
+		/* Same performance benefit as above for sorting. */
+		const char *a_name = (*a)->name.empty() ? SignList::default_name : (*a)->name.c_str();
 
 		filter.ResetState();
-		filter.AddLine(buf1);
+		filter.AddLine(a_name);
 		return filter.GetState();
 	}
 
@@ -138,8 +125,8 @@ struct SignList {
 	}
 };
 
-const Sign *SignList::last_sign = NULL;
 bool SignList::match_case = false;
+char SignList::default_name[64];
 
 /** Enum referring to the Hotkeys in the sign list window */
 enum SignListHotkeys {
@@ -171,6 +158,15 @@ struct SignListWindow : Window, SignList {
 		this->BuildSortSignList();
 	}
 
+	void OnInit() override
+	{
+		/* Default sign name, used if Sign::name is nullptr. */
+		GetString(SignList::default_name, STR_DEFAULT_SIGN_NAME, lastof(SignList::default_name));
+		this->signs.ForceResort();
+		this->SortSignsList();
+		this->SetDirty();
+	}
+
 	/**
 	 * This function sets the filter string of the sign list. The contents of
 	 * the edit widget is not updated by this function. Depending on if the
@@ -186,13 +182,13 @@ struct SignListWindow : Window, SignList {
 		this->InvalidateData();
 	}
 
-	virtual void OnPaint()
+	void OnPaint() override
 	{
-		if (this->signs.NeedRebuild()) this->BuildSortSignList();
+		if (!this->IsShaded() && this->signs.NeedRebuild()) this->BuildSortSignList();
 		this->DrawWidgets();
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
 		switch (widget) {
 			case WID_SIL_LIST: {
@@ -224,12 +220,12 @@ struct SignListWindow : Window, SignList {
 		}
 	}
 
-	virtual void SetStringParameters(int widget) const
+	void SetStringParameters(int widget) const override
 	{
 		if (widget == WID_SIL_CAPTION) SetDParam(0, this->vscroll->GetCount());
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		switch (widget) {
 			case WID_SIL_LIST: {
@@ -242,7 +238,7 @@ struct SignListWindow : Window, SignList {
 			}
 
 			case WID_SIL_FILTER_ENTER_BTN:
-				if (this->signs.Length() >= 1) {
+				if (this->signs.size() >= 1) {
 					const Sign *si = this->signs[0];
 					ScrollMainWindowToTile(TileVirtXY(si->x, si->y));
 				}
@@ -256,12 +252,12 @@ struct SignListWindow : Window, SignList {
 		}
 	}
 
-	virtual void OnResize()
+	void OnResize() override
 	{
 		this->vscroll->SetCapacityFromWidget(this, WID_SIL_LIST, WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM);
 	}
 
-	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
 		switch (widget) {
 			case WID_SIL_LIST: {
@@ -282,7 +278,7 @@ struct SignListWindow : Window, SignList {
 		}
 	}
 
-	virtual EventState OnHotkey(int hotkey)
+	EventState OnHotkey(int hotkey) override
 	{
 		switch (hotkey) {
 			case SLHK_FOCUS_FILTER_BOX:
@@ -297,7 +293,7 @@ struct SignListWindow : Window, SignList {
 		return ES_HANDLED;
 	}
 
-	virtual void OnEditboxChanged(int widget)
+	void OnEditboxChanged(int widget) override
 	{
 		if (widget == WID_SIL_FILTER_TEXT) this->SetFilterString(this->filter_editbox.text.buf);
 	}
@@ -306,13 +302,13 @@ struct SignListWindow : Window, SignList {
 	{
 		if (this->signs.NeedRebuild()) {
 			this->BuildSignsList();
-			this->vscroll->SetCount(this->signs.Length());
+			this->vscroll->SetCount((uint)this->signs.size());
 			this->SetWidgetDirty(WID_SIL_CAPTION);
 		}
 		this->SortSignsList();
 	}
 
-	virtual void OnHundredthTick()
+	void OnHundredthTick() override
 	{
 		this->BuildSortSignList();
 		this->SetDirty();
@@ -323,7 +319,7 @@ struct SignListWindow : Window, SignList {
 	 * @param data Information about the changed data.
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		/* When there is a filter string, we always need to rebuild the list even if
 		 * the amount of signs in total is unchanged, as the subset of signs that is
@@ -348,7 +344,7 @@ static EventState SignListGlobalHotkeys(int hotkey)
 {
 	if (_game_mode == GM_MENU) return ES_NOT_HANDLED;
 	Window *w = ShowSignList();
-	if (w == NULL) return ES_NOT_HANDLED;
+	if (w == nullptr) return ES_NOT_HANDLED;
 	return w->OnHotkey(hotkey);
 }
 
@@ -398,7 +394,7 @@ static WindowDesc _sign_list_desc(
 /**
  * Open the sign list window
  *
- * @return newly opened sign list window, or NULL if the window could not be opened.
+ * @return newly opened sign list window, or nullptr if the window could not be opened.
  */
 Window *ShowSignList()
 {
@@ -414,7 +410,7 @@ Window *ShowSignList()
 static bool RenameSign(SignID index, const char *text)
 {
 	bool remove = StrEmpty(text);
-	DoCommandP(0, index, 0, CMD_RENAME_SIGN | (StrEmpty(text) ? CMD_MSG(STR_ERROR_CAN_T_DELETE_SIGN) : CMD_MSG(STR_ERROR_CAN_T_CHANGE_SIGN_NAME)), NULL, text);
+	DoCommandP(0, index, 0, CMD_RENAME_SIGN | (StrEmpty(text) ? CMD_MSG(STR_ERROR_CAN_T_DELETE_SIGN) : CMD_MSG(STR_ERROR_CAN_T_CHANGE_SIGN_NAME)), nullptr, text);
 	return remove;
 }
 
@@ -438,7 +434,7 @@ struct SignWindow : Window, SignList {
 	void UpdateSignEditWindow(const Sign *si)
 	{
 		/* Display an empty string when the sign hasn't been edited yet */
-		if (si->name != NULL) {
+		if (!si->name.empty()) {
 			SetDParam(0, si->index);
 			this->name_editbox.text.Assign(STR_SIGN_NAME);
 		} else {
@@ -467,7 +463,7 @@ struct SignWindow : Window, SignList {
 		/* Search through the list for the current sign, excluding
 		 * - the first sign if we want the previous sign or
 		 * - the last sign if we want the next sign */
-		uint end = this->signs.Length() - (next ? 1 : 0);
+		size_t end = this->signs.size() - (next ? 1 : 0);
 		for (uint i = next ? 0 : 1; i < end; i++) {
 			if (this->cur_sign == this->signs[i]->index) {
 				/* We've found the current sign, so return the sign before/after it */
@@ -475,10 +471,10 @@ struct SignWindow : Window, SignList {
 			}
 		}
 		/* If we haven't found the current sign by now, return the last/first sign */
-		return this->signs[next ? 0 : this->signs.Length() - 1];
+		return next ? this->signs.front() : this->signs.back();
 	}
 
-	virtual void SetStringParameters(int widget) const
+	void SetStringParameters(int widget) const override
 	{
 		switch (widget) {
 			case WID_QES_CAPTION:
@@ -487,7 +483,7 @@ struct SignWindow : Window, SignList {
 		}
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		switch (widget) {
 			case WID_QES_PREVIOUS:
@@ -555,7 +551,7 @@ static WindowDesc _query_sign_edit_desc(
 void HandleClickOnSign(const Sign *si)
 {
 	if (_ctrl_pressed && (si->owner == _local_company || (si->owner == OWNER_DEITY && _game_mode == GM_EDITOR))) {
-		RenameSign(si->index, NULL);
+		RenameSign(si->index, nullptr);
 		return;
 	}
 	ShowRenameSignWindow(si);
@@ -581,5 +577,5 @@ void DeleteRenameSignWindow(SignID sign)
 {
 	SignWindow *w = dynamic_cast<SignWindow *>(FindWindowById(WC_QUERY_STRING, WN_QUERY_STRING_SIGN));
 
-	if (w != NULL && w->cur_sign == sign) delete w;
+	if (w != nullptr && w->cur_sign == sign) delete w;
 }

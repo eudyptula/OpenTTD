@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -12,7 +10,6 @@
 #ifndef GAMELOG_INTERNAL_H
 #define GAMELOG_INTERNAL_H
 
-#include "network/core/config.h"
 #include "gamelog.h"
 
 /** Type of logged change */
@@ -33,6 +30,8 @@ enum GamelogChangeType {
 };
 
 
+static const uint GAMELOG_REVISION_LENGTH = 15;
+
 /** Contains information about one logged change */
 struct LoggedChange {
 	GamelogChangeType ct; ///< Type of change logged in this struct
@@ -42,7 +41,7 @@ struct LoggedChange {
 			byte landscape;  ///< landscape (temperate, arctic, ...)
 		} mode;
 		struct {
-			char text[NETWORK_REVISION_LENGTH]; ///< revision string, _openttd_revision
+			char text[GAMELOG_REVISION_LENGTH]; ///< revision string, _openttd_revision
 			uint32 newgrf;   ///< _openttd_newgrf_version
 			uint16 slver;    ///< _sl_version
 			byte modified;   ///< _openttd_revision_modified

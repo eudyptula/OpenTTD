@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -21,23 +19,15 @@
 #include "video/video_driver.hpp"
 #include "strings_func.h"
 #include "textfile_gui.h"
+#include "thread.h"
+#include "newgrf_config.h"
+#include "newgrf_text.h"
 
 #include "fileio_func.h"
 #include "fios.h"
 
 #include "safeguards.h"
 
-/** Create a new GRFTextWrapper. */
-GRFTextWrapper::GRFTextWrapper() :
-	text(NULL)
-{
-}
-
-/** Cleanup a GRFTextWrapper object. */
-GRFTextWrapper::~GRFTextWrapper()
-{
-	CleanUpGRFText(this->text);
-}
 
 /**
  * Create a new GRFConfig.
@@ -45,15 +35,9 @@ GRFTextWrapper::~GRFTextWrapper()
  *   is copied so the original string isn't needed after the constructor.
  */
 GRFConfig::GRFConfig(const char *filename) :
-	name(new GRFTextWrapper()),
-	info(new GRFTextWrapper()),
-	url(new GRFTextWrapper()),
 	num_valid_params(lengthof(param))
 {
-	if (filename != NULL) this->filename = stredup(filename);
-	this->name->AddRef();
-	this->info->AddRef();
-	this->url->AddRef();
+	if (filename != nullptr) this->filename = stredup(filename);
 }
 
 /**
@@ -78,16 +62,13 @@ GRFConfig::GRFConfig(const GRFConfig &config) :
 {
 	MemCpyT<uint8>(this->original_md5sum, config.original_md5sum, lengthof(this->original_md5sum));
 	MemCpyT<uint32>(this->param, config.param, lengthof(this->param));
-	if (config.filename != NULL) this->filename = stredup(config.filename);
-	this->name->AddRef();
-	this->info->AddRef();
-	this->url->AddRef();
-	if (config.error != NULL) this->error = new GRFError(*config.error);
-	for (uint i = 0; i < config.param_info.Length(); i++) {
-		if (config.param_info[i] == NULL) {
-			*this->param_info.Append() = NULL;
+	if (config.filename != nullptr) this->filename = stredup(config.filename);
+	if (config.error != nullptr) this->error = new GRFError(*config.error);
+	for (uint i = 0; i < config.param_info.size(); i++) {
+		if (config.param_info[i] == nullptr) {
+			this->param_info.push_back(nullptr);
 		} else {
-			*this->param_info.Append() = new GRFParameterInfo(*config.param_info[i]);
+			this->param_info.push_back(new GRFParameterInfo(*config.param_info[i]));
 		}
 	}
 }
@@ -100,11 +81,8 @@ GRFConfig::~GRFConfig()
 		free(this->filename);
 		delete this->error;
 	}
-	this->name->Release();
-	this->info->Release();
-	this->url->Release();
 
-	for (uint i = 0; i < this->param_info.Length(); i++) delete this->param_info[i];
+	for (uint i = 0; i < this->param_info.size(); i++) delete this->param_info[i];
 }
 
 /**
@@ -125,7 +103,7 @@ void GRFConfig::CopyParams(const GRFConfig &src)
  */
 const char *GRFConfig::GetName() const
 {
-	const char *name = GetGRFStringFromGRFText(this->name->text);
+	const char *name = GetGRFStringFromGRFText(this->name);
 	return StrEmpty(name) ? this->filename : name;
 }
 
@@ -135,7 +113,7 @@ const char *GRFConfig::GetName() const
  */
 const char *GRFConfig::GetDescription() const
 {
-	return GetGRFStringFromGRFText(this->info->text);
+	return GetGRFStringFromGRFText(this->info);
 }
 
 /**
@@ -144,7 +122,7 @@ const char *GRFConfig::GetDescription() const
  */
 const char *GRFConfig::GetURL() const
 {
-	return GetGRFStringFromGRFText(this->url->text);
+	return GetGRFStringFromGRFText(this->url);
 }
 
 /** Set the default value for all parameters as specified by action14. */
@@ -155,8 +133,8 @@ void GRFConfig::SetParameterDefaults()
 
 	if (!this->has_param_defaults) return;
 
-	for (uint i = 0; i < this->param_info.Length(); i++) {
-		if (this->param_info[i] == NULL) continue;
+	for (uint i = 0; i < this->param_info.size(); i++) {
+		if (this->param_info[i] == nullptr) continue;
 		this->param_info[i]->SetValue(this, this->param_info[i]->def_value);
 	}
 }
@@ -182,9 +160,9 @@ void GRFConfig::SetSuitablePalette()
  */
 void GRFConfig::FinalizeParameterInfo()
 {
-	for (GRFParameterInfo **info = this->param_info.Begin(); info != this->param_info.End(); ++info) {
-		if (*info == NULL) continue;
-		(*info)->Finalize();
+	for (GRFParameterInfo *info : this->param_info) {
+		if (info == nullptr) continue;
+		info->Finalize();
 	}
 }
 
@@ -201,7 +179,8 @@ uint _missing_extra_graphics = 0;
  */
 GRFError::GRFError(StringID severity, StringID message) :
 	message(message),
-	severity(severity)
+	severity(severity),
+	param_value()
 {
 }
 
@@ -210,21 +189,12 @@ GRFError::GRFError(StringID severity, StringID message) :
  * @param error The GRFError object to make a copy of.
  */
 GRFError::GRFError(const GRFError &error) :
-	ZeroedMemoryAllocator(),
 	custom_message(error.custom_message),
 	data(error.data),
 	message(error.message),
 	severity(error.severity)
 {
-	if (error.custom_message != NULL) this->custom_message = stredup(error.custom_message);
-	if (error.data           != NULL) this->data           = stredup(error.data);
 	memcpy(this->param_value, error.param_value, sizeof(this->param_value));
-}
-
-GRFError::~GRFError()
-{
-	free(this->custom_message);
-	free(this->data);
 }
 
 /**
@@ -232,8 +202,8 @@ GRFError::~GRFError()
  * @param nr The newgrf parameter that is changed.
  */
 GRFParameterInfo::GRFParameterInfo(uint nr) :
-	name(NULL),
-	desc(NULL),
+	name(),
+	desc(),
 	type(PTYPE_UINT_ENUM),
 	min_value(0),
 	max_value(UINT32_MAX),
@@ -241,6 +211,7 @@ GRFParameterInfo::GRFParameterInfo(uint nr) :
 	param_nr(nr),
 	first_bit(0),
 	num_bit(32),
+	value_names(),
 	complete_labels(false)
 {}
 
@@ -250,8 +221,8 @@ GRFParameterInfo::GRFParameterInfo(uint nr) :
  * @param info The GRFParameterInfo object to make a copy of.
  */
 GRFParameterInfo::GRFParameterInfo(GRFParameterInfo &info) :
-	name(DuplicateGRFText(info.name)),
-	desc(DuplicateGRFText(info.desc)),
+	name(info.name),
+	desc(info.desc),
 	type(info.type),
 	min_value(info.min_value),
 	max_value(info.max_value),
@@ -259,23 +230,9 @@ GRFParameterInfo::GRFParameterInfo(GRFParameterInfo &info) :
 	param_nr(info.param_nr),
 	first_bit(info.first_bit),
 	num_bit(info.num_bit),
+	value_names(info.value_names),
 	complete_labels(info.complete_labels)
 {
-	for (uint i = 0; i < info.value_names.Length(); i++) {
-		SmallPair<uint32, GRFText *> *data = info.value_names.Get(i);
-		this->value_names.Insert(data->first, DuplicateGRFText(data->second));
-	}
-}
-
-/** Cleanup all parameter info. */
-GRFParameterInfo::~GRFParameterInfo()
-{
-	CleanUpGRFText(this->name);
-	CleanUpGRFText(this->desc);
-	for (uint i = 0; i < this->value_names.Length(); i++) {
-		SmallPair<uint32, GRFText *> *data = this->value_names.Get(i);
-		CleanUpGRFText(data->second);
-	}
 }
 
 /**
@@ -329,9 +286,9 @@ void GRFParameterInfo::Finalize()
  */
 bool UpdateNewGRFConfigPalette(int32 p1)
 {
-	for (GRFConfig *c = _grfconfig_newgame; c != NULL; c = c->next) c->SetSuitablePalette();
-	for (GRFConfig *c = _grfconfig_static;  c != NULL; c = c->next) c->SetSuitablePalette();
-	for (GRFConfig *c = _all_grfs;          c != NULL; c = c->next) c->SetSuitablePalette();
+	for (GRFConfig *c = _grfconfig_newgame; c != nullptr; c = c->next) c->SetSuitablePalette();
+	for (GRFConfig *c = _grfconfig_static;  c != nullptr; c = c->next) c->SetSuitablePalette();
+	for (GRFConfig *c = _all_grfs;          c != nullptr; c = c->next) c->SetSuitablePalette();
 	return true;
 }
 
@@ -379,7 +336,7 @@ static bool CalcGRFMD5Sum(GRFConfig *config, Subdirectory subdir)
 
 	/* open the file */
 	f = FioFOpenFile(config->filename, "rb", subdir, &size);
-	if (f == NULL) return false;
+	if (f == nullptr) return false;
 
 	long start = ftell(f);
 	size = min(size, GRFGetSizeOfDataSection(f));
@@ -439,16 +396,16 @@ bool FillGRFDetails(GRFConfig *config, bool is_static, Subdirectory subdir)
 /**
  * Clear a GRF Config list, freeing all nodes.
  * @param config Start of the list.
- * @post \a config is set to \c NULL.
+ * @post \a config is set to \c nullptr.
  */
 void ClearGRFConfigList(GRFConfig **config)
 {
 	GRFConfig *c, *next;
-	for (c = *config; c != NULL; c = next) {
+	for (c = *config; c != nullptr; c = next) {
 		next = c->next;
 		delete c;
 	}
-	*config = NULL;
+	*config = nullptr;
 }
 
 
@@ -463,7 +420,7 @@ GRFConfig **CopyGRFConfigList(GRFConfig **dst, const GRFConfig *src, bool init_o
 {
 	/* Clear destination as it will be overwritten */
 	ClearGRFConfigList(dst);
-	for (; src != NULL; src = src->next) {
+	for (; src != nullptr; src = src->next) {
 		GRFConfig *c = new GRFConfig(*src);
 
 		ClrBit(c->flags, GCF_INIT_ONLY);
@@ -494,9 +451,9 @@ static void RemoveDuplicatesFromGRFConfigList(GRFConfig *list)
 	GRFConfig *prev;
 	GRFConfig *cur;
 
-	if (list == NULL) return;
+	if (list == nullptr) return;
 
-	for (prev = list, cur = list->next; cur != NULL; prev = cur, cur = cur->next) {
+	for (prev = list, cur = list->next; cur != nullptr; prev = cur, cur = cur->next) {
 		if (cur->ident.grfid != list->ident.grfid) continue;
 
 		prev->next = cur->next;
@@ -514,7 +471,7 @@ static void RemoveDuplicatesFromGRFConfigList(GRFConfig *list)
 void AppendStaticGRFConfigs(GRFConfig **dst)
 {
 	GRFConfig **tail = dst;
-	while (*tail != NULL) tail = &(*tail)->next;
+	while (*tail != nullptr) tail = &(*tail)->next;
 
 	CopyGRFConfigList(tail, _grfconfig_static, false);
 	RemoveDuplicatesFromGRFConfigList(*dst);
@@ -528,7 +485,7 @@ void AppendStaticGRFConfigs(GRFConfig **dst)
 void AppendToGRFConfigList(GRFConfig **dst, GRFConfig *el)
 {
 	GRFConfig **tail = dst;
-	while (*tail != NULL) tail = &(*tail)->next;
+	while (*tail != nullptr) tail = &(*tail)->next;
 	*tail = el;
 
 	RemoveDuplicatesFromGRFConfigList(*dst);
@@ -558,15 +515,15 @@ GRFListCompatibility IsGoodGRFConfigList(GRFConfig *grfconfig)
 {
 	GRFListCompatibility res = GLC_ALL_GOOD;
 
-	for (GRFConfig *c = grfconfig; c != NULL; c = c->next) {
+	for (GRFConfig *c = grfconfig; c != nullptr; c = c->next) {
 		const GRFConfig *f = FindGRFConfig(c->ident.grfid, FGCM_EXACT, c->ident.md5sum);
-		if (f == NULL || HasBit(f->flags, GCF_INVALID)) {
+		if (f == nullptr || HasBit(f->flags, GCF_INVALID)) {
 			char buf[256];
 
 			/* If we have not found the exactly matching GRF try to find one with the
 			 * same grfid, as it most likely is compatible */
-			f = FindGRFConfig(c->ident.grfid, FGCM_COMPATIBLE, NULL, c->version);
-			if (f != NULL) {
+			f = FindGRFConfig(c->ident.grfid, FGCM_COMPATIBLE, nullptr, c->version);
+			if (f != nullptr) {
 				md5sumToString(buf, lastof(buf), c->ident.md5sum);
 				DEBUG(grf, 1, "NewGRF %08X (%s) not found; checksum %s. Compatibility mode on", BSWAP32(c->ident.grfid), c->filename, buf);
 				if (!HasBit(c->flags, GCF_COMPATIBLE)) {
@@ -598,22 +555,18 @@ compatible_grf:
 				free(c->filename);
 				c->filename = stredup(f->filename);
 				memcpy(c->ident.md5sum, f->ident.md5sum, sizeof(c->ident.md5sum));
-				c->name->Release();
 				c->name = f->name;
-				c->name->AddRef();
-				c->info->Release();
 				c->info = f->name;
-				c->info->AddRef();
-				c->error = NULL;
+				c->error = nullptr;
 				c->version = f->version;
 				c->min_loadable_version = f->min_loadable_version;
 				c->num_valid_params = f->num_valid_params;
 				c->has_param_defaults = f->has_param_defaults;
-				for (uint i = 0; i < f->param_info.Length(); i++) {
-					if (f->param_info[i] == NULL) {
-						*c->param_info.Append() = NULL;
+				for (uint i = 0; i < f->param_info.size(); i++) {
+					if (f->param_info[i] == nullptr) {
+						c->param_info.push_back(nullptr);
 					} else {
-						*c->param_info.Append() = new GRFParameterInfo(*f->param_info[i]);
+						c->param_info.push_back(new GRFParameterInfo(*f->param_info[i]));
 					}
 				}
 			}
@@ -633,7 +586,7 @@ public:
 	{
 	}
 
-	/* virtual */ bool AddFile(const char *filename, size_t basepath_length, const char *tar_filename);
+	bool AddFile(const char *filename, size_t basepath_length, const char *tar_filename) override;
 
 	/** Do the scan for GRFs. */
 	static uint DoScan()
@@ -653,14 +606,14 @@ bool GRFFileScanner::AddFile(const char *filename, size_t basepath_length, const
 
 	bool added = true;
 	if (FillGRFDetails(c, false)) {
-		if (_all_grfs == NULL) {
+		if (_all_grfs == nullptr) {
 			_all_grfs = c;
 		} else {
 			/* Insert file into list at a position determined by its
 			 * name, so the list is sorted as we go along */
 			GRFConfig **pd, *d;
 			bool stop = false;
-			for (pd = &_all_grfs; (d = *pd) != NULL; pd = &d->next) {
+			for (pd = &_all_grfs; (d = *pd) != nullptr; pd = &d->next) {
 				if (c->ident.grfid == d->ident.grfid && memcmp(c->ident.md5sum, d->ident.md5sum, sizeof(c->ident.md5sum)) == 0) added = false;
 				/* Because there can be multiple grfs with the same name, make sure we checked all grfs with the same name,
 				 *  before inserting the entry. So insert a new grf at the end of all grfs with the same name, instead of
@@ -682,18 +635,18 @@ bool GRFFileScanner::AddFile(const char *filename, size_t basepath_length, const
 
 	this->num_scanned++;
 	if (this->next_update <= _realtime_tick) {
-		_modal_progress_work_mutex->EndCritical();
-		_modal_progress_paint_mutex->BeginCritical();
+		_modal_progress_work_mutex.unlock();
+		_modal_progress_paint_mutex.lock();
 
-		const char *name = NULL;
-		if (c->name != NULL) name = GetGRFStringFromGRFText(c->name->text);
-		if (name == NULL) name = c->filename;
+		const char *name = nullptr;
+		if (c->name != nullptr) name = GetGRFStringFromGRFText(c->name);
+		if (name == nullptr) name = c->filename;
 		UpdateNewGRFScanStatus(this->num_scanned, name);
 
-		_modal_progress_work_mutex->BeginCritical();
-		_modal_progress_paint_mutex->EndCritical();
+		_modal_progress_work_mutex.lock();
+		_modal_progress_paint_mutex.unlock();
 
-		this->next_update = _realtime_tick + 200;
+		this->next_update = _realtime_tick + MODAL_PROGRESS_REDRAW_TIMEOUT;
 	}
 
 	if (!added) {
@@ -707,25 +660,22 @@ bool GRFFileScanner::AddFile(const char *filename, size_t basepath_length, const
 
 /**
  * Simple sorter for GRFS
- * @param p1 the first GRFConfig *
- * @param p2 the second GRFConfig *
- * @return the same strcmp would return for the name of the NewGRF.
+ * @param c1 the first GRFConfig *
+ * @param c2 the second GRFConfig *
+ * @return true if the name of first NewGRF is before the name of the second.
  */
-static int CDECL GRFSorter(GRFConfig * const *p1, GRFConfig * const *p2)
+static bool GRFSorter(GRFConfig * const &c1, GRFConfig * const &c2)
 {
-	const GRFConfig *c1 = *p1;
-	const GRFConfig *c2 = *p2;
-
-	return strnatcmp(c1->GetName(), c2->GetName());
+	return strnatcmp(c1->GetName(), c2->GetName()) < 0;
 }
 
 /**
  * Really perform the scan for all NewGRFs.
  * @param callback The callback to call after the scanning is complete.
  */
-void DoScanNewGRFFiles(void *callback)
+void DoScanNewGRFFiles(NewGRFScanCallback *callback)
 {
-	_modal_progress_work_mutex->BeginCritical();
+	std::unique_lock<std::mutex> lock_work(_modal_progress_work_mutex);
 
 	ClearGRFConfigList(&_all_grfs);
 	TarScanner::DoScan(TarScanner::NEWGRF);
@@ -734,46 +684,41 @@ void DoScanNewGRFFiles(void *callback)
 	uint num = GRFFileScanner::DoScan();
 
 	DEBUG(grf, 1, "Scan complete, found %d files", num);
-	if (num != 0 && _all_grfs != NULL) {
+	if (num != 0 && _all_grfs != nullptr) {
 		/* Sort the linked list using quicksort.
 		 * For that we first have to make an array, then sort and
 		 * then remake the linked list. */
-		GRFConfig **to_sort = MallocT<GRFConfig*>(num);
+		std::vector<GRFConfig *> to_sort;
 
 		uint i = 0;
-		for (GRFConfig *p = _all_grfs; p != NULL; p = p->next, i++) {
-			to_sort[i] = p;
+		for (GRFConfig *p = _all_grfs; p != nullptr; p = p->next, i++) {
+			to_sort.push_back(p);
 		}
 		/* Number of files is not necessarily right */
 		num = i;
 
-		QSortT(to_sort, num, &GRFSorter);
+		std::sort(to_sort.begin(), to_sort.end(), GRFSorter);
 
 		for (i = 1; i < num; i++) {
 			to_sort[i - 1]->next = to_sort[i];
 		}
-		to_sort[num - 1]->next = NULL;
+		to_sort[num - 1]->next = nullptr;
 		_all_grfs = to_sort[0];
 
-		free(to_sort);
-
-#ifdef ENABLE_NETWORK
 		NetworkAfterNewGRFScan();
-#endif
 	}
 
-	_modal_progress_work_mutex->EndCritical();
-	_modal_progress_paint_mutex->BeginCritical();
+	lock_work.unlock();
+	std::lock_guard<std::mutex> lock_paint(_modal_progress_paint_mutex);
 
 	/* Yes... these are the NewGRF windows */
 	InvalidateWindowClassesData(WC_SAVELOAD, 0, true);
 	InvalidateWindowData(WC_GAME_OPTIONS, WN_GAME_OPTIONS_NEWGRF_STATE, GOID_NEWGRF_RESCANNED, true);
-	if (callback != NULL) ((NewGRFScanCallback*)callback)->OnNewGRFsScanned();
+	if (callback != nullptr) callback->OnNewGRFsScanned();
 
 	DeleteWindowByClass(WC_MODAL_PROGRESS);
 	SetModalProgress(false);
 	MarkWholeScreenDirty();
-	_modal_progress_paint_mutex->EndCritical();
 }
 
 /**
@@ -787,14 +732,14 @@ void ScanNewGRFFiles(NewGRFScanCallback *callback)
 	/* Only then can we really start, especially by marking the whole screen dirty. Get those other windows hidden!. */
 	MarkWholeScreenDirty();
 
-	if (!VideoDriver::GetInstance()->HasGUI() || !ThreadObject::New(&DoScanNewGRFFiles, callback, NULL, "ottd:newgrf-scan")) {
-		_modal_progress_work_mutex->EndCritical();
-		_modal_progress_paint_mutex->EndCritical();
+	if (!UseThreadedModelProgress() || !VideoDriver::GetInstance()->HasGUI() || !StartNewThread(nullptr, "ottd:newgrf-scan", &DoScanNewGRFFiles, (NewGRFScanCallback *)callback)) { // Without the seemingly superfluous cast, strange compiler errors ensue.
+		_modal_progress_work_mutex.unlock();
+		_modal_progress_paint_mutex.unlock();
 		DoScanNewGRFFiles(callback);
-		_modal_progress_paint_mutex->BeginCritical();
-		_modal_progress_work_mutex->BeginCritical();
+		_modal_progress_paint_mutex.lock();
+		_modal_progress_work_mutex.lock();
 	} else {
-		UpdateNewGRFScanStatus(0, NULL);
+		UpdateNewGRFScanStatus(0, nullptr);
 	}
 }
 
@@ -804,34 +749,36 @@ void ScanNewGRFFiles(NewGRFScanCallback *callback)
  * @param mode Restrictions for matching grfs
  * @param md5sum Expected MD5 sum
  * @param desired_version Requested version
- * @return The matching grf, if it exists in #_all_grfs, else \c NULL.
+ * @return The matching grf, if it exists in #_all_grfs, else \c nullptr.
  */
 const GRFConfig *FindGRFConfig(uint32 grfid, FindGRFConfigMode mode, const uint8 *md5sum, uint32 desired_version)
 {
-	assert((mode == FGCM_EXACT) != (md5sum == NULL));
-	const GRFConfig *best = NULL;
-	for (const GRFConfig *c = _all_grfs; c != NULL; c = c->next) {
+	assert((mode == FGCM_EXACT) != (md5sum == nullptr));
+	const GRFConfig *best = nullptr;
+	for (const GRFConfig *c = _all_grfs; c != nullptr; c = c->next) {
 		/* if md5sum is set, we look for an exact match and continue if not found */
 		if (!c->ident.HasGrfIdentifier(grfid, md5sum)) continue;
 		/* return it, if the exact same newgrf is found, or if we do not care about finding "the best" */
-		if (md5sum != NULL || mode == FGCM_ANY) return c;
+		if (md5sum != nullptr || mode == FGCM_ANY) return c;
 		/* Skip incompatible stuff, unless explicitly allowed */
 		if (mode != FGCM_NEWEST && HasBit(c->flags, GCF_INVALID)) continue;
 		/* check version compatibility */
 		if (mode == FGCM_COMPATIBLE && (c->version < desired_version || c->min_loadable_version > desired_version)) continue;
 		/* remember the newest one as "the best" */
-		if (best == NULL || c->version > best->version) best = c;
+		if (best == nullptr || c->version > best->version) best = c;
 	}
 
 	return best;
 }
 
-#ifdef ENABLE_NETWORK
-
 /** Structure for UnknownGRFs; this is a lightweight variant of GRFConfig */
 struct UnknownGRF : public GRFIdentifier {
-	UnknownGRF *next;     ///< The next unknown GRF.
-	GRFTextWrapper *name; ///< Name of the GRF.
+	GRFTextWrapper name; ///< Name of the GRF.
+
+	UnknownGRF() = default;
+	UnknownGRF(const UnknownGRF &other) = default;
+	UnknownGRF(UnknownGRF &&other) = default;
+	UnknownGRF(uint32 grfid, const uint8 *_md5sum) : GRFIdentifier(grfid, _md5sum), name(new GRFTextList) {}
 };
 
 /**
@@ -848,53 +795,44 @@ struct UnknownGRF : public GRFIdentifier {
  * @param create whether to create a new GRFConfig if the GRFConfig did not
  *               exist in the fake list of GRFConfigs.
  * @return The GRFTextWrapper of the name of the GRFConfig with the given GRF ID
- *         and MD5 checksum or NULL when it does not exist and create is false.
+ *         and MD5 checksum or nullptr when it does not exist and create is false.
  *         This value must NEVER be freed by the caller.
  */
-GRFTextWrapper *FindUnknownGRFName(uint32 grfid, uint8 *md5sum, bool create)
+GRFTextWrapper FindUnknownGRFName(uint32 grfid, uint8 *md5sum, bool create)
 {
-	UnknownGRF *grf;
-	static UnknownGRF *unknown_grfs = NULL;
+	static std::vector<UnknownGRF> unknown_grfs;
 
-	for (grf = unknown_grfs; grf != NULL; grf = grf->next) {
-		if (grf->grfid == grfid) {
-			if (memcmp(md5sum, grf->md5sum, sizeof(grf->md5sum)) == 0) return grf->name;
+	for (const auto &grf : unknown_grfs) {
+		if (grf.grfid == grfid) {
+			if (memcmp(md5sum, grf.md5sum, sizeof(grf.md5sum)) == 0) return grf.name;
 		}
 	}
 
-	if (!create) return NULL;
+	if (!create) return nullptr;
 
-	grf = CallocT<UnknownGRF>(1);
-	grf->grfid = grfid;
-	grf->next  = unknown_grfs;
-	grf->name = new GRFTextWrapper();
-	grf->name->AddRef();
+	unknown_grfs.emplace_back(grfid, md5sum);
+	UnknownGRF &grf = unknown_grfs.back();
 
-	AddGRFTextToList(&grf->name->text, UNKNOWN_GRF_NAME_PLACEHOLDER);
-	memcpy(grf->md5sum, md5sum, sizeof(grf->md5sum));
+	AddGRFTextToList(grf.name, UNKNOWN_GRF_NAME_PLACEHOLDER);
 
-	unknown_grfs = grf;
-	return grf->name;
+	return grf.name;
 }
-
-#endif /* ENABLE_NETWORK */
-
 
 /**
  * Retrieve a NewGRF from the current config by its grfid.
  * @param grfid grf to look for.
  * @param mask  GRFID mask to allow for partial matching.
- * @return The grf config, if it exists, else \c NULL.
+ * @return The grf config, if it exists, else \c nullptr.
  */
 GRFConfig *GetGRFConfig(uint32 grfid, uint32 mask)
 {
 	GRFConfig *c;
 
-	for (c = _grfconfig; c != NULL; c = c->next) {
+	for (c = _grfconfig; c != nullptr; c = c->next) {
 		if ((c->ident.grfid & mask) == (grfid & mask)) return c;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -919,7 +857,7 @@ static const uint32 OPENTTD_GRAPHICS_BASE_GRF_ID = BSWAP32(0xFF4F5400);
 /**
  * Search a textfile file next to this NewGRF.
  * @param type The type of the textfile to search for.
- * @return The filename for the textfile, \c NULL otherwise.
+ * @return The filename for the textfile, \c nullptr otherwise.
  */
 const char *GRFConfig::GetTextfile(TextfileType type) const
 {

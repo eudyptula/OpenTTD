@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -26,12 +24,14 @@ enum ToolTipsWidgets {
 enum AboutWidgets {
 	WID_A_SCROLLING_TEXT, ///< The actually scrolling text.
 	WID_A_WEBSITE,        ///< URL of OpenTTD website.
+	WID_A_COPYRIGHT,      ///< Copyright string
 };
 
 /** Widgets of the #QueryStringWindow class. */
 enum QueryStringWidgets {
 	WID_QS_CAPTION, ///< Caption of the window.
 	WID_QS_TEXT,    ///< Text of the query.
+	WID_QS_WARNING, ///< Warning label about password security
 	WID_QS_DEFAULT, ///< Default button.
 	WID_QS_CANCEL,  ///< Cancel button.
 	WID_QS_OK,      ///< OK button.

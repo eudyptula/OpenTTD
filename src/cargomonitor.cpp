@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -117,8 +115,9 @@ int32 GetPickupAmount(CargoMonitorID monitor, bool keep_monitoring)
  * @param src_type type of \a src.
  * @param src index of source.
  * @param st station where the cargo is delivered to.
+ * @param dest industry index where the cargo is delivered to.
  */
-void AddCargoDelivery(CargoID cargo_type, CompanyID company, uint32 amount, SourceType src_type, SourceID src, const Station *st)
+void AddCargoDelivery(CargoID cargo_type, CompanyID company, uint32 amount, SourceType src_type, SourceID src, const Station *st, IndustryID dest)
 {
 	if (amount == 0) return;
 
@@ -150,8 +149,9 @@ void AddCargoDelivery(CargoID cargo_type, CompanyID company, uint32 amount, Sour
 	if (iter != _cargo_deliveries.end()) iter->second += amount;
 
 	/* Industry delivery. */
-	for (const Industry * const *ip = st->industries_near.Begin(); ip != st->industries_near.End(); ip++) {
-		CargoMonitorID num = EncodeCargoIndustryMonitor(company, cargo_type, (*ip)->index);
+	for (Industry *ind : st->industries_near) {
+		if (ind->index != dest) continue;
+		CargoMonitorID num = EncodeCargoIndustryMonitor(company, cargo_type, ind->index);
 		CargoMonitorMap::iterator iter = _cargo_deliveries.find(num);
 		if (iter != _cargo_deliveries.end()) iter->second += amount;
 	}

@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -51,20 +49,19 @@ void LoadCheckData::Clear()
 	this->checkable = false;
 	this->error = INVALID_STRING_ID;
 	free(this->error_data);
-	this->error_data = NULL;
+	this->error_data = nullptr;
 
 	this->map_size_x = this->map_size_y = 256; // Default for old savegames which do not store mapsize.
 	this->current_date = 0;
 	memset(&this->settings, 0, sizeof(this->settings));
 
-	const CompanyPropertiesMap::iterator end = this->companies.End();
-	for (CompanyPropertiesMap::iterator it = this->companies.Begin(); it != end; it++) {
-		delete it->second;
+	for (auto &pair : this->companies) {
+		delete pair.second;
 	}
-	companies.Clear();
+	companies.clear();
 
 	GamelogFree(this->gamelog_action, this->gamelog_actions);
-	this->gamelog_action = NULL;
+	this->gamelog_action = nullptr;
 	this->gamelog_actions = 0;
 
 	ClearGRFConfigList(&this->grfconfig);
@@ -245,8 +242,8 @@ static const TextColour _fios_colours[] = {
  */
 static void SortSaveGameList(FileList &file_list)
 {
-	uint sort_start = 0;
-	uint sort_end = 0;
+	size_t sort_start = 0;
+	size_t sort_end = 0;
 
 	/* Directories are always above the files (FIOS_TYPE_DIR)
 	 * Drives (A:\ (windows only) are always under the files (FIOS_TYPE_DRIVE)
@@ -261,8 +258,7 @@ static void SortSaveGameList(FileList &file_list)
 		}
 	}
 
-	uint s_amount = file_list.Length() - sort_start - sort_end;
-	QSortT(file_list.Get(sort_start), s_amount, CompareFiosItems);
+	std::sort(file_list.files.begin() + sort_start, file_list.files.end() - sort_end);
 }
 
 struct SaveLoadWindow : public Window {
@@ -273,13 +269,14 @@ private:
 	AbstractFileType abstract_filetype; /// Type of file to select.
 	SaveLoadOperation fop;        ///< File operation to perform.
 	FileList fios_items;          ///< Save game list.
-	FiosItem o_dir;
-	const FiosItem *selected;     ///< Selected game in #fios_items, or \c NULL.
+	FiosItem o_dir;               ///< Original dir (home dir for this browser)
+	const FiosItem *selected;     ///< Selected game in #fios_items, or \c nullptr.
+	const FiosItem *highlighted;  ///< Item in fios_items highlighted by mouse pointer, or \c nullptr.
 	Scrollbar *vscroll;
 
 	StringFilter string_filter; ///< Filter for available games.
 	QueryString filter_editbox; ///< Filter editbox;
-	SmallVector<bool, 32> fios_items_shown; ///< Map of the filtered out fios items
+	std::vector<bool> fios_items_shown; ///< Map of the filtered out fios items
 
 	static void SaveGameConfirmationCallback(Window *w, bool confirmed)
 	{
@@ -407,7 +404,7 @@ public:
 		}
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
 		switch (widget) {
 			case WID_SL_SORT_BYNAME:
@@ -418,7 +415,7 @@ public:
 				break;
 
 			case WID_SL_BACKGROUND: {
-				static const char *path = NULL;
+				static const char *path = nullptr;
 				static StringID str = STR_ERROR_UNABLE_TO_READ_DRIVE;
 				static uint64 tot = 0;
 
@@ -437,15 +434,20 @@ public:
 				GfxFillRect(r.left + 1, r.top + 1, r.right, r.bottom, PC_BLACK);
 
 				uint y = r.top + WD_FRAMERECT_TOP;
-				for (uint pos = this->vscroll->GetPosition(); pos < this->fios_items.Length(); pos++) {
-					if (!this->fios_items_shown[pos]) {
+				uint scroll_pos = this->vscroll->GetPosition();
+				for (uint row = 0; row < this->fios_items.Length(); row++) {
+					if (!this->fios_items_shown[row]) {
 						/* The current item is filtered out : we do not show it */
+						scroll_pos++;
 						continue;
 					}
-					const FiosItem *item = this->fios_items.Get(pos);
+					if (row < scroll_pos) continue;
+					const FiosItem *item = this->fios_items.Get(row);
 
 					if (item == this->selected) {
 						GfxFillRect(r.left + 1, y, r.right, y + this->resize.step_height, PC_DARK_BLUE);
+					} else if (item == this->highlighted) {
+						GfxFillRect(r.left + 1, y, r.right, y + this->resize.step_height, PC_VERY_DARK_BLUE);
 					}
 					DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, y, item->title, _fios_colours[GetDetailedFileType(item->type)]);
 					y += this->resize.step_height;
@@ -459,7 +461,7 @@ public:
 						r.right - WD_FRAMERECT_RIGHT, r.top + FONT_HEIGHT_NORMAL * 2 + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM, PC_GREY);
 				DrawString(r.left, r.right, r.top + FONT_HEIGHT_NORMAL / 2 + WD_FRAMERECT_TOP, STR_SAVELOAD_DETAIL_CAPTION, TC_FROMSTRING, SA_HOR_CENTER);
 
-				if (this->selected == NULL) break;
+				if (this->selected == nullptr) break;
 
 				uint y = r.top + FONT_HEIGHT_NORMAL * 2 + WD_PAR_VSEP_NORMAL + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
 				uint y_max = r.bottom - FONT_HEIGHT_NORMAL - WD_FRAMERECT_BOTTOM;
@@ -515,7 +517,7 @@ public:
 						if (y > y_max) break;
 
 						/* NewGrf compatibility */
-						SetDParam(0, _load_check_data.grfconfig == NULL ? STR_NEWGRF_LIST_NONE :
+						SetDParam(0, _load_check_data.grfconfig == nullptr ? STR_NEWGRF_LIST_NONE :
 								STR_NEWGRF_LIST_ALL_FOUND + _load_check_data.grf_compatibility);
 						DrawString(r.left + WD_FRAMERECT_LEFT, r.right - WD_FRAMERECT_RIGHT, y, STR_SAVELOAD_DETAIL_GRFSTATUS);
 						y += FONT_HEIGHT_NORMAL;
@@ -528,13 +530,12 @@ public:
 						if (y > y_max) break;
 
 						/* Companies / AIs */
-						CompanyPropertiesMap::const_iterator end = _load_check_data.companies.End();
-						for (CompanyPropertiesMap::const_iterator it = _load_check_data.companies.Begin(); it != end; it++) {
-							SetDParam(0, it->first + 1);
-							const CompanyProperties &c = *it->second;
-							if (c.name != NULL) {
+						for (auto &pair : _load_check_data.companies) {
+							SetDParam(0, pair.first + 1);
+							const CompanyProperties &c = *pair.second;
+							if (!c.name.empty()) {
 								SetDParam(1, STR_JUST_RAW_STRING);
-								SetDParamStr(2, c.name);
+								SetDParamStr(2, c.name.c_str());
 							} else {
 								SetDParam(1, c.name_1);
 								SetDParam(2, c.name_2);
@@ -550,7 +551,7 @@ public:
 		}
 	}
 
-	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
 		switch (widget) {
 			case WID_SL_BACKGROUND:
@@ -572,17 +573,18 @@ public:
 		}
 	}
 
-	virtual void OnPaint()
+	void OnPaint() override
 	{
 		if (_savegame_sort_dirty) {
 			_savegame_sort_dirty = false;
 			SortSaveGameList(this->fios_items);
+			this->OnInvalidateData(SLIWD_FILTER_CHANGES);
 		}
 
 		this->DrawWidgets();
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		switch (widget) {
 			case WID_SL_SORT_BYNAME: // Sort save names by name
@@ -604,24 +606,24 @@ public:
 				this->InvalidateData(SLIWD_RESCAN_FILES);
 				break;
 
-			case WID_SL_LOAD_BUTTON:
-				if (this->selected != NULL && !_load_check_data.HasErrors()) {
-					const char *name = FiosBrowseTo(this->selected);
-					_file_to_saveload.SetMode(this->selected->type);
-					_file_to_saveload.SetName(name);
-					_file_to_saveload.SetTitle(this->selected->title);
+			case WID_SL_LOAD_BUTTON: {
+				if (this->selected == nullptr || _load_check_data.HasErrors()) break;
 
-					if (this->abstract_filetype == FT_HEIGHTMAP) {
-						delete this;
-						ShowHeightmapLoad();
+				const char *name = FiosBrowseTo(this->selected);
+				_file_to_saveload.SetMode(this->selected->type);
+				_file_to_saveload.SetName(name);
+				_file_to_saveload.SetTitle(this->selected->title);
 
-					} else if (!_load_check_data.HasNewGrfs() || _load_check_data.grf_compatibility != GLC_NOT_FOUND || _settings_client.gui.UserIsAllowedToChangeNewGRFs()) {
-						_switch_mode = (_game_mode == GM_EDITOR) ? SM_LOAD_SCENARIO : SM_LOAD_GAME;
-						ClearErrorMessages();
-						delete this;
-					}
+				if (this->abstract_filetype == FT_HEIGHTMAP) {
+					delete this;
+					ShowHeightmapLoad();
+				} else if (!_load_check_data.HasNewGrfs() || _load_check_data.grf_compatibility != GLC_NOT_FOUND || _settings_client.gui.UserIsAllowedToChangeNewGRFs()) {
+					_switch_mode = (_game_mode == GM_EDITOR) ? SM_LOAD_SCENARIO : SM_LOAD_GAME;
+					ClearErrorMessages();
+					delete this;
 				}
 				break;
+			}
 
 			case WID_SL_NEWGRF_INFO:
 				if (_load_check_data.HasNewGrfs()) {
@@ -633,9 +635,7 @@ public:
 				if (!_network_available) {
 					ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
 				} else if (_load_check_data.HasNewGrfs()) {
-#if defined(ENABLE_NETWORK)
 					ShowMissingContentWindow(_load_check_data.grfconfig);
-#endif
 				}
 				break;
 
@@ -652,43 +652,44 @@ public:
 				const FiosItem *file = this->fios_items.Get(y);
 
 				const char *name = FiosBrowseTo(file);
-				if (name != NULL) {
-					if (click_count == 1) {
-						if (this->selected != file) {
-							this->selected = file;
-							_load_check_data.Clear();
-
-							if (GetDetailedFileType(file->type) == DFT_GAME_FILE) {
-								/* Other detailed file types cannot be checked before. */
-								SaveOrLoad(name, SLO_CHECK, DFT_GAME_FILE, NO_DIRECTORY, false);
-							}
-
-							this->InvalidateData(SLIWD_SELECTION_CHANGES);
-						}
-						if (this->fop == SLO_SAVE) {
-							/* Copy clicked name to editbox */
-							this->filename_editbox.text.Assign(file->title);
-							this->SetWidgetDirty(WID_SL_SAVE_OSK_TITLE);
-						}
-					} else if (!_load_check_data.HasErrors()) {
-						this->selected = file;
-						if (this->fop == SLO_LOAD) {
-							if (this->abstract_filetype == FT_SAVEGAME || this->abstract_filetype == FT_SCENARIO) {
-								this->OnClick(pt, WID_SL_LOAD_BUTTON, 1);
-							} else {
-								assert(this->abstract_filetype == FT_HEIGHTMAP);
-								_file_to_saveload.SetMode(file->type);
-								_file_to_saveload.SetName(name);
-								_file_to_saveload.SetTitle(file->title);
-
-								delete this;
-								ShowHeightmapLoad();
-							}
-						}
-					}
-				} else {
+				if (name == nullptr) {
 					/* Changed directory, need refresh. */
 					this->InvalidateData(SLIWD_RESCAN_FILES);
+					break;
+				}
+
+				if (click_count == 1) {
+					if (this->selected != file) {
+						this->selected = file;
+						_load_check_data.Clear();
+
+						if (GetDetailedFileType(file->type) == DFT_GAME_FILE) {
+							/* Other detailed file types cannot be checked before. */
+							SaveOrLoad(name, SLO_CHECK, DFT_GAME_FILE, NO_DIRECTORY, false);
+						}
+
+						this->InvalidateData(SLIWD_SELECTION_CHANGES);
+					}
+					if (this->fop == SLO_SAVE) {
+						/* Copy clicked name to editbox */
+						this->filename_editbox.text.Assign(file->title);
+						this->SetWidgetDirty(WID_SL_SAVE_OSK_TITLE);
+					}
+				} else if (!_load_check_data.HasErrors()) {
+					this->selected = file;
+					if (this->fop == SLO_LOAD) {
+						if (this->abstract_filetype == FT_SAVEGAME || this->abstract_filetype == FT_SCENARIO) {
+							this->OnClick(pt, WID_SL_LOAD_BUTTON, 1);
+						} else {
+							assert(this->abstract_filetype == FT_HEIGHTMAP);
+							_file_to_saveload.SetMode(file->type);
+							_file_to_saveload.SetName(name);
+							_file_to_saveload.SetTitle(file->title);
+
+							delete this;
+							ShowHeightmapLoad();
+						}
+					}
 				}
 				break;
 			}
@@ -697,14 +698,12 @@ public:
 				if (!_network_available) {
 					ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
 				} else {
-#if defined(ENABLE_NETWORK)
 					assert(this->fop == SLO_LOAD);
 					switch (this->abstract_filetype) {
 						default: NOT_REACHED();
-						case FT_SCENARIO:  ShowNetworkContentListWindow(NULL, CONTENT_TYPE_SCENARIO);  break;
-						case FT_HEIGHTMAP: ShowNetworkContentListWindow(NULL, CONTENT_TYPE_HEIGHTMAP); break;
+						case FT_SCENARIO:  ShowNetworkContentListWindow(nullptr, CONTENT_TYPE_SCENARIO);  break;
+						case FT_HEIGHTMAP: ShowNetworkContentListWindow(nullptr, CONTENT_TYPE_HEIGHTMAP); break;
 					}
-#endif
 				}
 				break;
 
@@ -718,7 +717,34 @@ public:
 		}
 	}
 
-	virtual EventState OnKeyPress(WChar key, uint16 keycode)
+	void OnMouseLoop() override
+	{
+		const Point pt{ _cursor.pos.x - this->left, _cursor.pos.y - this->top };
+		const int widget = GetWidgetFromPos(this, pt.x, pt.y);
+
+		if (widget == WID_SL_DRIVES_DIRECTORIES_LIST) {
+			int y = this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_SL_DRIVES_DIRECTORIES_LIST, WD_FRAMERECT_TOP);
+			if (y == INT_MAX) return;
+
+			/* Get the corresponding non-filtered out item from the list */
+			int i = 0;
+			while (i <= y) {
+				if (!this->fios_items_shown[i]) y++;
+				i++;
+			}
+			const FiosItem *file = this->fios_items.Get(y);
+
+			if (file != this->highlighted) {
+				this->highlighted = file;
+				this->SetWidgetDirty(WID_SL_DRIVES_DIRECTORIES_LIST);
+			}
+		} else if (this->highlighted != nullptr) {
+			this->highlighted = nullptr;
+			this->SetWidgetDirty(WID_SL_DRIVES_DIRECTORIES_LIST);
+		}
+	}
+
+	EventState OnKeyPress(WChar key, uint16 keycode) override
 	{
 		if (keycode == WKC_ESC) {
 			delete this;
@@ -728,7 +754,7 @@ public:
 		return ES_NOT_HANDLED;
 	}
 
-	virtual void OnTimeout()
+	void OnTimeout() override
 	{
 		/* Widgets WID_SL_DELETE_SELECTION and WID_SL_SAVE_GAME only exist when saving to a file. */
 		if (this->fop != SLO_SAVE) return;
@@ -763,7 +789,7 @@ public:
 		}
 	}
 
-	virtual void OnResize()
+	void OnResize() override
 	{
 		this->vscroll->SetCapacityFromWidget(this, WID_SL_DRIVES_DIRECTORIES_LIST);
 	}
@@ -773,19 +799,19 @@ public:
 	 * @param data Information about the changed data.
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		switch (data) {
 			case SLIWD_RESCAN_FILES:
 				/* Rescan files */
-				this->selected = NULL;
+				this->selected = nullptr;
 				_load_check_data.Clear();
 				if (!gui_scope) break;
 
 				_fios_path_changed = true;
 				this->fios_items.BuildFileList(this->abstract_filetype, this->fop);
-				this->vscroll->SetCount(this->fios_items.Length());
-				this->selected = NULL;
+				this->vscroll->SetCount((uint)this->fios_items.Length());
+				this->selected = nullptr;
 				_load_check_data.Clear();
 
 				/* We reset the files filtered */
@@ -801,12 +827,12 @@ public:
 
 				switch (this->abstract_filetype) {
 					case FT_HEIGHTMAP:
-						this->SetWidgetDisabledState(WID_SL_LOAD_BUTTON, this->selected == NULL || _load_check_data.HasErrors());
+						this->SetWidgetDisabledState(WID_SL_LOAD_BUTTON, this->selected == nullptr || _load_check_data.HasErrors());
 						break;
 
 					case FT_SAVEGAME:
 					case FT_SCENARIO: {
-						bool disabled = this->selected == NULL || _load_check_data.HasErrors();
+						bool disabled = this->selected == nullptr || _load_check_data.HasErrors();
 						if (!_settings_client.gui.UserIsAllowedToChangeNewGRFs()) {
 							disabled |= _load_check_data.HasNewGrfs() && _load_check_data.grf_compatibility == GLC_NOT_FOUND;
 						}
@@ -824,7 +850,7 @@ public:
 
 			case SLIWD_FILTER_CHANGES:
 				/* Filter changes */
-				this->fios_items_shown.Resize(this->fios_items.Length());
+				this->fios_items_shown.resize(this->fios_items.Length());
 				uint items_shown_count = 0; ///< The number of items shown in the list
 				/* We pass through every fios item */
 				for (uint i = 0; i < this->fios_items.Length(); i++) {
@@ -841,7 +867,7 @@ public:
 
 						if (&(this->fios_items[i]) == this->selected && this->fios_items_shown[i] == false) {
 							/* The selected element has been filtered out */
-							this->selected = NULL;
+							this->selected = nullptr;
 							this->OnInvalidateData(SLIWD_SELECTION_CHANGES);
 						}
 					}
@@ -851,7 +877,7 @@ public:
 		}
 	}
 
-	virtual void OnEditboxChanged(int wid)
+	void OnEditboxChanged(int wid) override
 	{
 		if (wid == WID_SL_FILTER) {
 			this->string_filter.SetFilterTerm(this->filter_editbox.text.buf);

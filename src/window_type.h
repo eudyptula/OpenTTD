@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -623,7 +621,7 @@ enum WindowClass {
 	 * Extra viewport; %Window numbers:
 	 *   - Ascending value = #ExtraViewportWidgets
 	 */
-	WC_EXTRA_VIEW_PORT,
+	WC_EXTRA_VIEWPORT,
 
 
 	/**
@@ -692,6 +690,12 @@ enum WindowClass {
 	 *   - 0 = #FrametimeGraphWindowWidgets
 	 */
 	WC_FRAMETIME_GRAPH,
+
+	/**
+	 * Screenshot window; %Window numbers:
+	 *   - 0 = #ScreenshotWidgets
+	 */
+	WC_SCREENSHOT,
 
 	WC_INVALID = 0xFFFF, ///< Invalid window.
 };

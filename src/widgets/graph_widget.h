@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -49,7 +47,8 @@ enum CargoPaymentRatesWidgets {
 	WID_CPR_FOOTER,          ///< Footer.
 	WID_CPR_ENABLE_CARGOES,  ///< Enable cargoes button.
 	WID_CPR_DISABLE_CARGOES, ///< Disable cargoes button.
-	WID_CPR_CARGO_FIRST,     ///< First cargo in the list.
+	WID_CPR_MATRIX,          ///< Cargo list.
+	WID_CPR_MATRIX_SCROLLBAR,///< Cargo list scrollbar.
 };
 
 /** Widget of the #CompanyLeagueWindow class. */

@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -20,6 +18,7 @@
 
 #include <stdarg.h>
 #include <ctype.h> /* required for tolower() */
+#include <sstream>
 
 #ifdef _MSC_VER
 #include <errno.h> // required by vsnprintf implementation for MSVC
@@ -33,16 +32,16 @@
 #include "os/windows/string_uniscribe.h"
 #endif
 
-#if defined(WITH_COCOA)
-#include "os/macosx/string_osx.h"
-#endif
-
-#ifdef WITH_ICU_SORT
+#ifdef WITH_ICU_I18N
 /* Required by strnatcmp. */
 #include <unicode/ustring.h>
 #include "language.h"
 #include "gfx_func.h"
-#endif /* WITH_ICU_SORT */
+#endif /* WITH_ICU_I18N */
+
+#if defined(WITH_COCOA)
+#include "os/macosx/string_osx.h"
+#endif
 
 /* The function vsnprintf is used internally to perform the required formatting
  * tasks. As such this one must be allowed, and makes sure it's terminated. */
@@ -71,7 +70,7 @@ int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap)
  *
  * Appends the source string to the destination string with respect of the
  * terminating null-character and and the last pointer to the last element
- * in the destination buffer. If the last pointer is set to NULL no
+ * in the destination buffer. If the last pointer is set to nullptr no
  * boundary check is performed.
  *
  * @note usage: strecat(dst, src, lastof(dst));
@@ -99,7 +98,7 @@ char *strecat(char *dst, const char *src, const char *last)
  *
  * Copies the source string to the destination buffer with respect of the
  * terminating null-character and the last pointer to the last element in
- * the destination buffer. If the last pointer is set to NULL no boundary
+ * the destination buffer. If the last pointer is set to nullptr no boundary
  * check is performed.
  *
  * @note usage: strecpy(dst, src, lastof(dst));
@@ -131,13 +130,13 @@ char *strecpy(char *dst, const char *src, const char *last)
 /**
  * Create a duplicate of the given string.
  * @param s    The string to duplicate.
- * @param last The last character that is safe to duplicate. If NULL, the whole string is duplicated.
+ * @param last The last character that is safe to duplicate. If nullptr, the whole string is duplicated.
  * @note The maximum length of the resulting string might therefore be last - s + 1.
  * @return The duplicate of the string.
  */
 char *stredup(const char *s, const char *last)
 {
-	size_t len = last == NULL ? strlen(s) : ttd_strnlen(s, last - s + 1);
+	size_t len = last == nullptr ? strlen(s) : ttd_strnlen(s, last - s + 1);
 	char *tmp = CallocT<char>(len + 1);
 	memcpy(tmp, s, len);
 	return tmp;
@@ -186,18 +185,11 @@ void str_fix_scc_encoded(char *str, const char *last)
 }
 
 
-/**
- * Scans the string for valid characters and if it finds invalid ones,
- * replaces them with a question mark '?' (if not ignored)
- * @param str the string to validate
- * @param last the last valid character of str
- * @param settings the settings for the string validation.
- */
-void str_validate(char *str, const char *last, StringValidationSettings settings)
+template <class T>
+static void str_validate(T &dst, const char *str, const char *last, StringValidationSettings settings)
 {
 	/* Assume the ABSOLUTE WORST to be in str as it comes from the outside. */
 
-	char *dst = str;
 	while (str <= last && *str != '\0') {
 		size_t len = Utf8EncodedCharLen(*str);
 		/* If the character is unknown, i.e. encoded length is 0
@@ -221,7 +213,7 @@ void str_validate(char *str, const char *last, StringValidationSettings settings
 			do {
 				*dst++ = *str++;
 			} while (--len != 0);
-		} else if ((settings & SVS_ALLOW_NEWLINE) != 0  && c == '\n') {
+		} else if ((settings & SVS_ALLOW_NEWLINE) != 0 && c == '\n') {
 			*dst++ = *str++;
 		} else {
 			if ((settings & SVS_ALLOW_NEWLINE) != 0 && c == '\r' && str[1] == '\n') {
@@ -233,8 +225,38 @@ void str_validate(char *str, const char *last, StringValidationSettings settings
 			if ((settings & SVS_REPLACE_WITH_QUESTION_MARK) != 0) *dst++ = '?';
 		}
 	}
+}
 
+/**
+ * Scans the string for valid characters and if it finds invalid ones,
+ * replaces them with a question mark '?' (if not ignored)
+ * @param str the string to validate
+ * @param last the last valid character of str
+ * @param settings the settings for the string validation.
+ */
+void str_validate(char *str, const char *last, StringValidationSettings settings)
+{
+	char *dst = str;
+	str_validate(dst, str, last, settings);
 	*dst = '\0';
+}
+
+/**
+ * Scans the string for valid characters and if it finds invalid ones,
+ * replaces them with a question mark '?' (if not ignored)
+ * @param str the string to validate
+ * @param settings the settings for the string validation.
+ */
+std::string str_validate(const std::string &str, StringValidationSettings settings)
+{
+	auto buf = str.data();
+	auto last = buf + str.size();
+
+	std::ostringstream dst;
+	std::ostreambuf_iterator<char> dst_iter(dst);
+	str_validate(dst_iter, buf, last, settings);
+
+	return dst.str();
 }
 
 /**
@@ -447,7 +469,7 @@ char *md5sumToString(char *buf, const char *last, const uint8 md5sum[16])
  */
 size_t Utf8Decode(WChar *c, const char *s)
 {
-	assert(c != NULL);
+	assert(c != nullptr);
 
 	if (!HasBit(s[0], 7)) {
 		/* Single byte character: 0xxxxxxx */
@@ -481,11 +503,13 @@ size_t Utf8Decode(WChar *c, const char *s)
 
 /**
  * Encode a unicode character and place it in the buffer.
+ * @tparam T Type of the buffer.
  * @param buf Buffer to place character.
  * @param c   Unicode character to encode.
  * @return Number of characters in the encoded sequence.
  */
-size_t Utf8Encode(char *buf, WChar c)
+template <class T>
+inline size_t Utf8Encode(T buf, WChar c)
 {
 	if (c < 0x80) {
 		*buf = c;
@@ -510,6 +534,16 @@ size_t Utf8Encode(char *buf, WChar c)
 	/* DEBUG(misc, 1, "[utf8] can't UTF-8 encode value 0x%X", c); */
 	*buf = '?';
 	return 1;
+}
+
+size_t Utf8Encode(char *buf, WChar c)
+{
+	return Utf8Encode<char *>(buf, c);
+}
+
+size_t Utf8Encode(std::ostreambuf_iterator<char> &buf, WChar c)
+{
+	return Utf8Encode<std::ostreambuf_iterator<char> &>(buf, c);
 }
 
 /**
@@ -551,7 +585,7 @@ char *strcasestr(const char *haystack, const char *needle)
 		hay_len--;
 	}
 
-	return NULL;
+	return nullptr;
 }
 #endif /* DEFINE_STRCASESTR */
 
@@ -584,13 +618,13 @@ int strnatcmp(const char *s1, const char *s2, bool ignore_garbage_at_front)
 		s2 = SkipGarbage(s2);
 	}
 
-#ifdef WITH_ICU_SORT
-	if (_current_collator != NULL) {
+#ifdef WITH_ICU_I18N
+	if (_current_collator != nullptr) {
 		UErrorCode status = U_ZERO_ERROR;
 		int result = _current_collator->compareUTF8(s1, s2, status);
 		if (U_SUCCESS(status)) return result;
 	}
-#endif /* WITH_ICU_SORT */
+#endif /* WITH_ICU_I18N */
 
 #if defined(_WIN32) && !defined(STRGEN) && !defined(SETTINGSGEN)
 	int res = OTTDStringCompare(s1, s2);
@@ -613,7 +647,7 @@ int strnatcmp(const char *s1, const char *s2, bool ignore_garbage_at_front)
 	return new UniscribeStringIterator();
 }
 
-#elif defined(WITH_ICU_SORT)
+#elif defined(WITH_ICU_I18N)
 
 #include <unicode/utext.h>
 #include <unicode/brkiter.h>
@@ -624,27 +658,27 @@ class IcuStringIterator : public StringIterator
 	icu::BreakIterator *char_itr; ///< ICU iterator for characters.
 	icu::BreakIterator *word_itr; ///< ICU iterator for words.
 
-	SmallVector<UChar, 32> utf16_str;      ///< UTF-16 copy of the string.
-	SmallVector<size_t, 32> utf16_to_utf8; ///< Mapping from UTF-16 code point position to index in the UTF-8 source string.
+	std::vector<UChar> utf16_str;      ///< UTF-16 copy of the string.
+	std::vector<size_t> utf16_to_utf8; ///< Mapping from UTF-16 code point position to index in the UTF-8 source string.
 
 public:
-	IcuStringIterator() : char_itr(NULL), word_itr(NULL)
+	IcuStringIterator() : char_itr(nullptr), word_itr(nullptr)
 	{
 		UErrorCode status = U_ZERO_ERROR;
-		this->char_itr = icu::BreakIterator::createCharacterInstance(icu::Locale(_current_language != NULL ? _current_language->isocode : "en"), status);
-		this->word_itr = icu::BreakIterator::createWordInstance(icu::Locale(_current_language != NULL ? _current_language->isocode : "en"), status);
+		this->char_itr = icu::BreakIterator::createCharacterInstance(icu::Locale(_current_language != nullptr ? _current_language->isocode : "en"), status);
+		this->word_itr = icu::BreakIterator::createWordInstance(icu::Locale(_current_language != nullptr ? _current_language->isocode : "en"), status);
 
-		*this->utf16_str.Append() = '\0';
-		*this->utf16_to_utf8.Append() = 0;
+		this->utf16_str.push_back('\0');
+		this->utf16_to_utf8.push_back(0);
 	}
 
-	virtual ~IcuStringIterator()
+	~IcuStringIterator() override
 	{
 		delete this->char_itr;
 		delete this->word_itr;
 	}
 
-	virtual void SetString(const char *s)
+	void SetString(const char *s) override
 	{
 		const char *string_base = s;
 
@@ -652,40 +686,40 @@ public:
 		 * for word break iterators (especially for CJK languages) in combination
 		 * with UTF-8 input. As a work around we have to convert the input to
 		 * UTF-16 and create a mapping back to UTF-8 character indices. */
-		this->utf16_str.Clear();
-		this->utf16_to_utf8.Clear();
+		this->utf16_str.clear();
+		this->utf16_to_utf8.clear();
 
 		while (*s != '\0') {
 			size_t idx = s - string_base;
 
 			WChar c = Utf8Consume(&s);
 			if (c < 0x10000) {
-				*this->utf16_str.Append() = (UChar)c;
+				this->utf16_str.push_back((UChar)c);
 			} else {
 				/* Make a surrogate pair. */
-				*this->utf16_str.Append() = (UChar)(0xD800 + ((c - 0x10000) >> 10));
-				*this->utf16_str.Append() = (UChar)(0xDC00 + ((c - 0x10000) & 0x3FF));
-				*this->utf16_to_utf8.Append() = idx;
+				this->utf16_str.push_back((UChar)(0xD800 + ((c - 0x10000) >> 10)));
+				this->utf16_str.push_back((UChar)(0xDC00 + ((c - 0x10000) & 0x3FF)));
+				this->utf16_to_utf8.push_back(idx);
 			}
-			*this->utf16_to_utf8.Append() = idx;
+			this->utf16_to_utf8.push_back(idx);
 		}
-		*this->utf16_str.Append() = '\0';
-		*this->utf16_to_utf8.Append() = s - string_base;
+		this->utf16_str.push_back('\0');
+		this->utf16_to_utf8.push_back(s - string_base);
 
 		UText text = UTEXT_INITIALIZER;
 		UErrorCode status = U_ZERO_ERROR;
-		utext_openUChars(&text, this->utf16_str.Begin(), this->utf16_str.Length() - 1, &status);
+		utext_openUChars(&text, this->utf16_str.data(), this->utf16_str.size() - 1, &status);
 		this->char_itr->setText(&text, status);
 		this->word_itr->setText(&text, status);
 		this->char_itr->first();
 		this->word_itr->first();
 	}
 
-	virtual size_t SetCurPosition(size_t pos)
+	size_t SetCurPosition(size_t pos) override
 	{
 		/* Convert incoming position to an UTF-16 string index. */
 		uint utf16_pos = 0;
-		for (uint i = 0; i < this->utf16_to_utf8.Length(); i++) {
+		for (uint i = 0; i < this->utf16_to_utf8.size(); i++) {
 			if (this->utf16_to_utf8[i] == pos) {
 				utf16_pos = i;
 				break;
@@ -699,7 +733,7 @@ public:
 		return this->utf16_to_utf8[this->char_itr->current()];
 	}
 
-	virtual size_t Next(IterType what)
+	size_t Next(IterType what) override
 	{
 		int32_t pos;
 		switch (what) {
@@ -731,7 +765,7 @@ public:
 		return pos == icu::BreakIterator::DONE ? END : this->utf16_to_utf8[pos];
 	}
 
-	virtual size_t Prev(IterType what)
+	size_t Prev(IterType what) override
 	{
 		int32_t pos;
 		switch (what) {
@@ -779,7 +813,7 @@ class DefaultStringIterator : public StringIterator
 	size_t cur_pos;     ///< Current iteration position.
 
 public:
-	DefaultStringIterator() : string(NULL), len(0), cur_pos(0)
+	DefaultStringIterator() : string(nullptr), len(0), cur_pos(0)
 	{
 	}
 
@@ -792,7 +826,7 @@ public:
 
 	virtual size_t SetCurPosition(size_t pos)
 	{
-		assert(this->string != NULL && pos <= this->len);
+		assert(this->string != nullptr && pos <= this->len);
 		/* Sanitize in case we get a position inside an UTF-8 sequence. */
 		while (pos > 0 && IsUtf8Part(this->string[pos])) pos--;
 		return this->cur_pos = pos;
@@ -800,7 +834,7 @@ public:
 
 	virtual size_t Next(IterType what)
 	{
-		assert(this->string != NULL);
+		assert(this->string != nullptr);
 
 		/* Already at the end? */
 		if (this->cur_pos >= this->len) return END;
@@ -838,7 +872,7 @@ public:
 
 	virtual size_t Prev(IterType what)
 	{
-		assert(this->string != NULL);
+		assert(this->string != nullptr);
 
 		/* Already at the beginning? */
 		if (this->cur_pos == 0) return END;
@@ -878,7 +912,7 @@ public:
 /* static */ StringIterator *StringIterator::Create()
 {
 	StringIterator *i = OSXStringIterator::Create();
-	if (i != NULL) return i;
+	if (i != nullptr) return i;
 
 	return new DefaultStringIterator();
 }
