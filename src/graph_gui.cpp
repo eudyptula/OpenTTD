@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -56,7 +54,7 @@ struct GraphLegendWindow : Window {
 		}
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
 		if (!IsInsideMM(widget, WID_GL_FIRST_COMPANY, MAX_COMPANIES + WID_GL_FIRST_COMPANY)) return;
 
@@ -74,7 +72,7 @@ struct GraphLegendWindow : Window {
 		DrawString(r.left + (rtl ? (uint)WD_FRAMERECT_LEFT : (d.width + 4)), r.right - (rtl ? (d.width + 4) : (uint)WD_FRAMERECT_RIGHT), r.top + (r.bottom - r.top + 1 - FONT_HEIGHT_NORMAL) / 2, STR_COMPANY_NAME_COMPANY_NUM, HasBit(_legend_excluded_companies, cid) ? TC_BLACK : TC_WHITE);
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		if (!IsInsideMM(widget, WID_GL_FIRST_COMPANY, MAX_COMPANIES + WID_GL_FIRST_COMPANY)) return;
 
@@ -93,7 +91,7 @@ struct GraphLegendWindow : Window {
 	 * @param data Information about the changed data.
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		if (!gui_scope) return;
 		if (Company::IsValidID(data)) return;
@@ -485,7 +483,7 @@ protected:
 	}
 
 public:
-	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
 		if (widget != this->graph_widget) return;
 
@@ -521,7 +519,7 @@ public:
 		size->height = max<uint>(size->height, size->width / 3);
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
 		if (widget != this->graph_widget) return;
 
@@ -533,13 +531,13 @@ public:
 		return INVALID_DATAPOINT;
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		/* Clicked on legend? */
 		if (widget == WID_CV_KEY_BUTTON) ShowGraphLegend();
 	}
 
-	virtual void OnGameTick()
+	void OnGameTick() override
 	{
 		this->UpdateStatistics(false);
 	}
@@ -549,7 +547,7 @@ public:
 	 * @param data Information about the changed data.
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		if (!gui_scope) return;
 		this->UpdateStatistics(true);
@@ -569,8 +567,7 @@ public:
 		}
 
 		byte nums = 0;
-		const Company *c;
-		FOR_ALL_COMPANIES(c) {
+		for (const Company *c : Company::Iterate()) {
 			nums = min(this->num_vert_lines, max(nums, c->num_valid_stat_ent));
 		}
 
@@ -594,8 +591,8 @@ public:
 
 		int numd = 0;
 		for (CompanyID k = COMPANY_FIRST; k < MAX_COMPANIES; k++) {
-			c = Company::GetIfValid(k);
-			if (c != NULL) {
+			const Company *c = Company::GetIfValid(k);
+			if (c != nullptr) {
 				this->colours[numd] = _colour_gradient[c->colour][6];
 				for (int j = this->num_on_x_axis, i = 0; --j >= 0;) {
 					this->cost[numd][i] = (j >= c->num_valid_stat_ent) ? INVALID_DATAPOINT : GetGraphData(c, j);
@@ -621,7 +618,7 @@ struct OperatingProfitGraphWindow : BaseGraphWindow {
 		this->InitializeWindow(window_number);
 	}
 
-	virtual OverflowSafeInt64 GetGraphData(const Company *c, int j)
+	OverflowSafeInt64 GetGraphData(const Company *c, int j) override
 	{
 		return c->old_economy[j].income + c->old_economy[j].expenses;
 	}
@@ -672,7 +669,7 @@ struct IncomeGraphWindow : BaseGraphWindow {
 		this->InitializeWindow(window_number);
 	}
 
-	virtual OverflowSafeInt64 GetGraphData(const Company *c, int j)
+	OverflowSafeInt64 GetGraphData(const Company *c, int j) override
 	{
 		return c->old_economy[j].income;
 	}
@@ -721,7 +718,7 @@ struct DeliveredCargoGraphWindow : BaseGraphWindow {
 		this->InitializeWindow(window_number);
 	}
 
-	virtual OverflowSafeInt64 GetGraphData(const Company *c, int j)
+	OverflowSafeInt64 GetGraphData(const Company *c, int j) override
 	{
 		return c->old_economy[j].delivered_cargo.GetSum<OverflowSafeInt64>();
 	}
@@ -770,12 +767,12 @@ struct PerformanceHistoryGraphWindow : BaseGraphWindow {
 		this->InitializeWindow(window_number);
 	}
 
-	virtual OverflowSafeInt64 GetGraphData(const Company *c, int j)
+	OverflowSafeInt64 GetGraphData(const Company *c, int j) override
 	{
 		return c->old_economy[j].performance_history;
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		if (widget == WID_PHG_DETAILED_PERFORMANCE) ShowPerformanceRatingDetail();
 		this->BaseGraphWindow::OnClick(pt, widget, click_count);
@@ -826,7 +823,7 @@ struct CompanyValueGraphWindow : BaseGraphWindow {
 		this->InitializeWindow(window_number);
 	}
 
-	virtual OverflowSafeInt64 GetGraphData(const Company *c, int j)
+	OverflowSafeInt64 GetGraphData(const Company *c, int j) override
 	{
 		return c->old_economy[j].company_value;
 	}
@@ -869,35 +866,26 @@ void ShowCompanyValueGraph()
 /*****************/
 
 struct PaymentRatesGraphWindow : BaseGraphWindow {
-	bool first_init; ///< This value is true until the first initialization of the window has finished.
+	uint line_height;   ///< Pixel height of each cargo type row.
+	Scrollbar *vscroll; ///< Cargo list scrollbar.
+
 	PaymentRatesGraphWindow(WindowDesc *desc, WindowNumber window_number) :
 			BaseGraphWindow(desc, WID_CPR_GRAPH, STR_JUST_CURRENCY_SHORT)
 	{
-		this->first_init = true;
 		this->num_on_x_axis = 20;
 		this->num_vert_lines = 20;
 		this->month = 0xFF;
 		this->x_values_start     = 10;
 		this->x_values_increment = 10;
 
+		this->CreateNestedTree();
+		this->vscroll = this->GetScrollbar(WID_CPR_MATRIX_SCROLLBAR);
+		this->vscroll->SetCount(_sorted_standard_cargo_specs_size);
+
 		/* Initialise the dataset */
 		this->OnHundredthTick();
 
-		this->InitNested(window_number);
-
-		this->UpdateLoweredWidgets();
-	}
-
-	virtual void OnInit()
-	{
-		/* UpdateLoweredWidgets needs to be called after a language or NewGRF change, but it can't be called before
-		 * InitNested is done. On the first init these functions are called in the correct order by the constructor. */
-		if (!this->first_init) {
-			/* Initialise the dataset */
-			this->OnHundredthTick();
-			this->UpdateLoweredWidgets();
-		}
-		this->first_init = false;
+		this->FinishInitNested(window_number);
 	}
 
 	void UpdateExcludedData()
@@ -912,63 +900,73 @@ struct PaymentRatesGraphWindow : BaseGraphWindow {
 		}
 	}
 
-	void UpdateLoweredWidgets()
+	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
-		for (int i = 0; i < _sorted_standard_cargo_specs_size; i++) {
-			this->SetWidgetLoweredState(WID_CPR_CARGO_FIRST + i, !HasBit(this->excluded_data, i));
-		}
-	}
-
-	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
-	{
-		if (widget < WID_CPR_CARGO_FIRST) {
+		if (widget != WID_CPR_MATRIX) {
 			BaseGraphWindow::UpdateWidgetSize(widget, size, padding, fill, resize);
 			return;
 		}
 
-		const CargoSpec *cs = _sorted_cargo_specs[widget - WID_CPR_CARGO_FIRST];
-		SetDParam(0, cs->name);
-		Dimension d = GetStringBoundingBox(STR_GRAPH_CARGO_PAYMENT_CARGO);
-		d.width += 14; // colour field
-		d.width += WD_FRAMERECT_LEFT + WD_FRAMERECT_RIGHT;
-		d.height += WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
-		*size = maxdim(d, *size);
+		const CargoSpec *cs;
+		FOR_ALL_SORTED_STANDARD_CARGOSPECS(cs) {
+			SetDParam(0, cs->name);
+			Dimension d = GetStringBoundingBox(STR_GRAPH_CARGO_PAYMENT_CARGO);
+			d.width += 14; // colour field
+			d.width += WD_FRAMERECT_LEFT + WD_FRAMERECT_RIGHT;
+			d.height += WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
+			*size = maxdim(d, *size);
+		}
+
+		this->line_height = size->height;
+		size->height = this->line_height * 11; /* Default number of cargo types in most climates. */
+		resize->width = 0;
+		resize->height = this->line_height;
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
-		if (widget < WID_CPR_CARGO_FIRST) {
+		if (widget != WID_CPR_MATRIX) {
 			BaseGraphWindow::DrawWidget(r, widget);
 			return;
 		}
 
-		const CargoSpec *cs = _sorted_cargo_specs[widget - WID_CPR_CARGO_FIRST];
 		bool rtl = _current_text_dir == TD_RTL;
 
-		/* Since the buttons have no text, no images,
-		 * both the text and the coloured box have to be manually painted.
-		 * clk_dif will move one pixel down and one pixel to the right
-		 * when the button is clicked */
-		byte clk_dif = this->IsWidgetLowered(widget) ? 1 : 0;
 		int x = r.left + WD_FRAMERECT_LEFT;
 		int y = r.top;
 
-		int rect_x = clk_dif + (rtl ? r.right - 12 : r.left + WD_FRAMERECT_LEFT);
+		int pos = this->vscroll->GetPosition();
+		int max = pos + this->vscroll->GetCapacity();
 
-		GfxFillRect(rect_x, y + clk_dif, rect_x + 8, y + 5 + clk_dif, PC_BLACK);
-		GfxFillRect(rect_x + 1, y + 1 + clk_dif, rect_x + 7, y + 4 + clk_dif, cs->legend_colour);
-		SetDParam(0, cs->name);
-		DrawString(rtl ? r.left : x + 14 + clk_dif, (rtl ? r.right - 14 + clk_dif : r.right), y + clk_dif, STR_GRAPH_CARGO_PAYMENT_CARGO);
+		const CargoSpec *cs;
+		FOR_ALL_SORTED_STANDARD_CARGOSPECS(cs) {
+			if (pos-- > 0) continue;
+			if (--max < 0) break;
+
+			bool lowered = !HasBit(_legend_excluded_cargo, cs->Index());
+
+			/* Redraw box if lowered */
+			if (lowered) DrawFrameRect(r.left, y, r.right, y + this->line_height - 1, COLOUR_ORANGE, lowered ? FR_LOWERED : FR_NONE);
+
+			byte clk_dif = lowered ? 1 : 0;
+			int rect_x = clk_dif + (rtl ? r.right - 12 : r.left + WD_FRAMERECT_LEFT);
+
+			GfxFillRect(rect_x, y + clk_dif, rect_x + 8, y + 5 + clk_dif, PC_BLACK);
+			GfxFillRect(rect_x + 1, y + 1 + clk_dif, rect_x + 7, y + 4 + clk_dif, cs->legend_colour);
+			SetDParam(0, cs->name);
+			DrawString(rtl ? r.left : x + 14 + clk_dif, (rtl ? r.right - 14 + clk_dif : r.right), y + clk_dif, STR_GRAPH_CARGO_PAYMENT_CARGO);
+
+			y += this->line_height;
+		}
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		switch (widget) {
 			case WID_CPR_ENABLE_CARGOES:
 				/* Remove all cargoes from the excluded lists. */
 				_legend_excluded_cargo = 0;
 				this->excluded_data = 0;
-				this->UpdateLoweredWidgets();
 				this->SetDirty();
 				break;
 
@@ -981,24 +979,34 @@ struct PaymentRatesGraphWindow : BaseGraphWindow {
 					SetBit(this->excluded_data, i);
 					i++;
 				}
-				this->UpdateLoweredWidgets();
 				this->SetDirty();
 				break;
 			}
 
-			default:
-				if (widget >= WID_CPR_CARGO_FIRST) {
-					int i = widget - WID_CPR_CARGO_FIRST;
-					ToggleBit(_legend_excluded_cargo, _sorted_cargo_specs[i]->Index());
-					this->ToggleWidgetLoweredState(widget);
+			case WID_CPR_MATRIX: {
+				uint row = this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_CPR_MATRIX, 0, this->line_height);
+				if (row >= this->vscroll->GetCount()) return;
+
+				const CargoSpec *cs;
+				FOR_ALL_SORTED_STANDARD_CARGOSPECS(cs) {
+					if (row-- > 0) continue;
+
+					ToggleBit(_legend_excluded_cargo, cs->Index());
 					this->UpdateExcludedData();
 					this->SetDirty();
+					break;
 				}
 				break;
+			}
 		}
 	}
 
-	virtual void OnGameTick()
+	void OnResize() override
+	{
+		this->vscroll->SetCapacityFromWidget(this, WID_CPR_MATRIX);
+	}
+
+	void OnGameTick() override
 	{
 		/* Override default OnGameTick */
 	}
@@ -1008,13 +1016,13 @@ struct PaymentRatesGraphWindow : BaseGraphWindow {
 	 * @param data Information about the changed data.
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		if (!gui_scope) return;
 		this->OnHundredthTick();
 	}
 
-	virtual void OnHundredthTick()
+	void OnHundredthTick() override
 	{
 		this->UpdateExcludedData();
 
@@ -1030,23 +1038,6 @@ struct PaymentRatesGraphWindow : BaseGraphWindow {
 		this->num_dataset = i;
 	}
 };
-
-/** Construct the row containing the digit keys. */
-static NWidgetBase *MakeCargoButtons(int *biggest_index)
-{
-	NWidgetVertical *ver = new NWidgetVertical;
-
-	for (int i = 0; i < _sorted_standard_cargo_specs_size; i++) {
-		NWidgetBackground *leaf = new NWidgetBackground(WWT_PANEL, COLOUR_ORANGE, WID_CPR_CARGO_FIRST + i, NULL);
-		leaf->tool_tip = STR_GRAPH_CARGO_PAYMENT_TOGGLE_CARGO;
-		leaf->SetFill(1, 0);
-		leaf->SetLowered(true);
-		ver->Add(leaf);
-	}
-	*biggest_index = WID_CPR_CARGO_FIRST + _sorted_standard_cargo_specs_size - 1;
-	return ver;
-}
-
 
 static const NWidgetPart _nested_cargo_payment_rates_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
@@ -1065,12 +1056,15 @@ static const NWidgetPart _nested_cargo_payment_rates_widgets[] = {
 		NWidget(NWID_HORIZONTAL),
 			NWidget(WWT_EMPTY, COLOUR_GREY, WID_CPR_GRAPH), SetMinimalSize(495, 0), SetFill(1, 1), SetResize(1, 1),
 			NWidget(NWID_VERTICAL),
-				NWidget(NWID_SPACER), SetMinimalSize(0, 24), SetFill(0, 0), SetResize(0, 1),
+				NWidget(NWID_SPACER), SetMinimalSize(0, 24), SetFill(0, 1),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_ORANGE, WID_CPR_ENABLE_CARGOES), SetDataTip(STR_GRAPH_CARGO_ENABLE_ALL, STR_GRAPH_CARGO_TOOLTIP_ENABLE_ALL), SetFill(1, 0),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_ORANGE, WID_CPR_DISABLE_CARGOES), SetDataTip(STR_GRAPH_CARGO_DISABLE_ALL, STR_GRAPH_CARGO_TOOLTIP_DISABLE_ALL), SetFill(1, 0),
 				NWidget(NWID_SPACER), SetMinimalSize(0, 4),
-				NWidgetFunction(MakeCargoButtons),
-				NWidget(NWID_SPACER), SetMinimalSize(0, 24), SetFill(0, 1), SetResize(0, 1),
+				NWidget(NWID_HORIZONTAL),
+					NWidget(WWT_MATRIX, COLOUR_ORANGE, WID_CPR_MATRIX), SetResize(0, 2), SetMatrixDataTip(1, 0, STR_GRAPH_CARGO_PAYMENT_TOGGLE_CARGO), SetScrollbar(WID_CPR_MATRIX_SCROLLBAR),
+					NWidget(NWID_VSCROLLBAR, COLOUR_ORANGE, WID_CPR_MATRIX_SCROLLBAR),
+				EndContainer(),
+				NWidget(NWID_SPACER), SetMinimalSize(0, 24), SetFill(0, 1),
 			EndContainer(),
 			NWidget(NWID_SPACER), SetMinimalSize(5, 0), SetFill(0, 1), SetResize(0, 1),
 		EndContainer(),
@@ -1139,21 +1133,20 @@ private:
 	{
 		if (!this->companies.NeedRebuild()) return;
 
-		this->companies.Clear();
+		this->companies.clear();
 
-		const Company *c;
-		FOR_ALL_COMPANIES(c) {
-			*this->companies.Append() = c;
+		for (const Company *c : Company::Iterate()) {
+			this->companies.push_back(c);
 		}
 
-		this->companies.Compact();
+		this->companies.shrink_to_fit();
 		this->companies.RebuildDone();
 	}
 
 	/** Sort the company league by performance history */
-	static int CDECL PerformanceSorter(const Company * const *c1, const Company * const *c2)
+	static bool PerformanceSorter(const Company * const &c1, const Company * const &c2)
 	{
-		return (*c2)->old_economy[0].performance_history - (*c1)->old_economy[0].performance_history;
+		return c2->old_economy[0].performance_history < c1->old_economy[0].performance_history;
 	}
 
 public:
@@ -1164,7 +1157,7 @@ public:
 		this->companies.NeedResort();
 	}
 
-	virtual void OnPaint()
+	void OnPaint() override
 	{
 		this->BuildCompanyList();
 		this->companies.Sort(&PerformanceSorter);
@@ -1172,7 +1165,7 @@ public:
 		this->DrawWidgets();
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
 		if (widget != WID_CL_BACKGROUND) return;
 
@@ -1186,7 +1179,7 @@ public:
 		uint text_left     = rtl ? r.left + WD_FRAMERECT_LEFT : r.right - WD_FRAMERECT_LEFT - this->text_width;
 		uint text_right    = rtl ? r.left + WD_FRAMERECT_LEFT + this->text_width : r.right - WD_FRAMERECT_LEFT;
 
-		for (uint i = 0; i != this->companies.Length(); i++) {
+		for (uint i = 0; i != this->companies.size(); i++) {
 			const Company *c = this->companies[i];
 			DrawString(ordinal_left, ordinal_right, y, i + STR_ORDINAL_NUMBER_1ST, i == 0 ? TC_WHITE : TC_YELLOW);
 
@@ -1200,7 +1193,7 @@ public:
 		}
 	}
 
-	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
 		if (widget != WID_CL_BACKGROUND) return;
 
@@ -1224,8 +1217,7 @@ public:
 		this->icon_width = d.width + 2;
 		this->line_height = max<int>(d.height + 2, FONT_HEIGHT_NORMAL);
 
-		const Company *c;
-		FOR_ALL_COMPANIES(c) {
+		for (const Company *c : Company::Iterate()) {
 			SetDParam(0, c->index);
 			SetDParam(1, c->index);
 			SetDParam(2, _performance_titles[widest_title]);
@@ -1239,7 +1231,7 @@ public:
 	}
 
 
-	virtual void OnGameTick()
+	void OnGameTick() override
 	{
 		if (this->companies.NeedResort()) {
 			this->SetDirty();
@@ -1251,7 +1243,7 @@ public:
 	 * @param data Information about the changed data.
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		if (data == 0) {
 			/* This needs to be done in command-scope to enforce rebuilding before resorting invalid data */
@@ -1304,8 +1296,7 @@ struct PerformanceRatingDetailWindow : Window {
 	{
 		/* Update all company stats with the current data
 		 * (this is because _score_info is not saved to a savegame) */
-		Company *c;
-		FOR_ALL_COMPANIES(c) {
+		for (Company *c : Company::Iterate()) {
 			UpdateCompanyRatingAndValue(c, false);
 		}
 
@@ -1321,7 +1312,7 @@ struct PerformanceRatingDetailWindow : Window {
 	uint score_detail_left;
 	uint score_detail_right;
 
-	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
+	void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize) override
 	{
 		switch (widget) {
 			case WID_PRD_SCORE_FIRST:
@@ -1379,7 +1370,7 @@ struct PerformanceRatingDetailWindow : Window {
 		}
 	}
 
-	virtual void DrawWidget(const Rect &r, int widget) const
+	void DrawWidget(const Rect &r, int widget) const override
 	{
 		/* No need to draw when there's nothing to draw */
 		if (this->company == INVALID_COMPANY) return;
@@ -1458,7 +1449,7 @@ struct PerformanceRatingDetailWindow : Window {
 		}
 	}
 
-	virtual void OnClick(Point pt, int widget, int click_count)
+	void OnClick(Point pt, int widget, int click_count) override
 	{
 		/* Check which button is clicked */
 		if (IsInsideMM(widget, WID_PRD_COMPANY_FIRST, WID_PRD_COMPANY_LAST + 1)) {
@@ -1472,7 +1463,7 @@ struct PerformanceRatingDetailWindow : Window {
 		}
 	}
 
-	virtual void OnGameTick()
+	void OnGameTick() override
 	{
 		/* Update the company score every 5 days */
 		if (--this->timeout == 0) {
@@ -1486,7 +1477,7 @@ struct PerformanceRatingDetailWindow : Window {
 	 * @param data the company ID of the company that is going to be removed
 	 * @param gui_scope Whether the call is done from GUI scope. You may not do everything when not in GUI scope. See #InvalidateWindowData() for details.
 	 */
-	virtual void OnInvalidateData(int data = 0, bool gui_scope = true)
+	void OnInvalidateData(int data = 0, bool gui_scope = true) override
 	{
 		if (!gui_scope) return;
 		/* Disable the companies who are not active */
@@ -1502,8 +1493,7 @@ struct PerformanceRatingDetailWindow : Window {
 		}
 
 		if (this->company == INVALID_COMPANY) {
-			const Company *c;
-			FOR_ALL_COMPANIES(c) {
+			for (const Company *c : Company::Iterate()) {
 				this->company = c->index;
 				break;
 			}
@@ -1579,4 +1569,10 @@ static WindowDesc _performance_rating_detail_desc(
 void ShowPerformanceRatingDetail()
 {
 	AllocateWindowDescFront<PerformanceRatingDetailWindow>(&_performance_rating_detail_desc, 0);
+}
+
+void InitializeGraphGui()
+{
+	_legend_excluded_companies = 0;
+	_legend_excluded_cargo = 0;
 }

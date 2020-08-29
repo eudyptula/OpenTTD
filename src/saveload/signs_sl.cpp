@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -20,7 +18,7 @@
 /** Description of a sign within the savegame. */
 static const SaveLoad _sign_desc[] = {
 	SLE_CONDVAR(Sign, name,  SLE_NAME,                   SL_MIN_VERSION, SLV_84),
-	SLE_CONDSTR(Sign, name,  SLE_STR | SLF_ALLOW_CONTROL, 0, SLV_84, SL_MAX_VERSION),
+	SLE_CONDSSTR(Sign, name, SLE_STR | SLF_ALLOW_CONTROL, SLV_84, SL_MAX_VERSION),
 	SLE_CONDVAR(Sign, x,     SLE_FILE_I16 | SLE_VAR_I32, SL_MIN_VERSION, SLV_5),
 	SLE_CONDVAR(Sign, y,     SLE_FILE_I16 | SLE_VAR_I32, SL_MIN_VERSION, SLV_5),
 	SLE_CONDVAR(Sign, x,     SLE_INT32,                  SLV_5, SL_MAX_VERSION),
@@ -34,9 +32,7 @@ static const SaveLoad _sign_desc[] = {
 /** Save all signs */
 static void Save_SIGN()
 {
-	Sign *si;
-
-	FOR_ALL_SIGNS(si) {
+	for (Sign *si : Sign::Iterate()) {
 		SlSetArrayIndex(si->index);
 		SlObject(si, _sign_desc);
 	}
@@ -68,5 +64,5 @@ static void Load_SIGN()
 
 /** Chunk handlers related to signs. */
 extern const ChunkHandler _sign_chunk_handlers[] = {
-	{ 'SIGN', Save_SIGN, Load_SIGN, NULL, NULL, CH_ARRAY | CH_LAST},
+	{ 'SIGN', Save_SIGN, Load_SIGN, nullptr, nullptr, CH_ARRAY | CH_LAST},
 };

@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -28,6 +26,10 @@
 #include "core/pool_type.hpp"
 #include "game/game.hpp"
 #include "linkgraph/linkgraphschedule.h"
+#include "station_kdtree.h"
+#include "town_kdtree.h"
+#include "viewport_kdtree.h"
+#include "newgrf_profiling.h"
 
 #include "safeguards.h"
 
@@ -42,7 +44,9 @@ void InitializeRailGui();
 void InitializeRoadGui();
 void InitializeAirportGui();
 void InitializeDockGui();
+void InitializeGraphGui();
 void InitializeObjectGui();
+void InitializeTownGui();
 void InitializeIndustries();
 void InitializeObjects();
 void InitializeTrees();
@@ -66,6 +70,8 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	_thd.redsq = INVALID_TILE;
 	if (reset_settings) MakeNewgameSettingsLive();
 
+	_newgrf_profilers.clear();
+
 	if (reset_date) {
 		SetDate(ConvertYMDToDate(_settings_game.game_creation.starting_year, 0, 1), 0);
 		InitializeOldNames();
@@ -73,6 +79,10 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 
 	LinkGraphSchedule::Clear();
 	PoolBase::Clean(PT_NORMAL);
+
+	RebuildStationKdtree();
+	RebuildTownKdtree();
+	RebuildViewportKdtree();
 
 	ResetPersistentNewGRFData();
 
@@ -87,7 +97,9 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	InitializeRoadGui();
 	InitializeAirportGui();
 	InitializeDockGui();
+	InitializeGraphGui();
 	InitializeObjectGui();
+	InitializeTownGui();
 	InitializeAIGui();
 	InitializeTrees();
 	InitializeIndustries();
@@ -102,9 +114,7 @@ void InitializeGame(uint size_x, uint size_y, bool reset_date, bool reset_settin
 	InitializeCheats();
 
 	InitTextEffects();
-#ifdef ENABLE_NETWORK
 	NetworkInitChatMessage();
-#endif /* ENABLE_NETWORK */
 	InitializeAnimatedTiles();
 
 	InitializeEconomy();

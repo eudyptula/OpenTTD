@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -18,8 +16,6 @@
 #include "tcp.h"
 #include "../network_type.h"
 #include "../../core/pool_type.hpp"
-
-#ifdef ENABLE_NETWORK
 
 /**
  * Enum with types of TCP packets specific to the admin network.
@@ -138,7 +134,7 @@ protected:
 
 	/**
 	 * Register updates to be sent at certain frequencies (as announced in the PROTOCOL packet):
-	 * uint16  Update type (see #AdminUpdateType).
+	 * uint16  Update type (see #AdminUpdateType). Note integer type - see "Certain Packet Information" in docs/admin_network.md.
 	 * uint16  Update frequency (see #AdminUpdateFrequency), setting #ADMIN_FREQUENCY_POLL is always ignored.
 	 * @param p The packet that was just received.
 	 * @return The state the network should have.
@@ -147,7 +143,7 @@ protected:
 
 	/**
 	 * Poll the server for certain updates, an invalid poll (e.g. not existent id) gets silently dropped:
-	 * uint8   #AdminUpdateType the server should answer for, only if #AdminUpdateFrequency #ADMIN_FREQUENCY_POLL is advertised in the PROTOCOL packet.
+	 * uint8   #AdminUpdateType the server should answer for, only if #AdminUpdateFrequency #ADMIN_FREQUENCY_POLL is advertised in the PROTOCOL packet. Note integer type - see "Certain Packet Information" in docs/admin_network.md.
 	 * uint32  ID relevant to the packet type, e.g.
 	 *          - the client ID for #ADMIN_UPDATE_CLIENT_INFO. Use UINT32_MAX to show all clients.
 	 *          - the company ID for #ADMIN_UPDATE_COMPANY_INFO. Use UINT32_MAX to show all companies.
@@ -363,7 +359,7 @@ protected:
 	 * uint8   ID of the company.
 	 * uint64  Money.
 	 * uint64  Loan.
-	 * uint64  Income.
+	 * int64   Income.
 	 * uint16  Delivered cargo (this quarter).
 	 * uint64  Company value (last quarter).
 	 * uint16  Performance (last quarter).
@@ -483,7 +479,7 @@ protected:
 
 	NetworkRecvStatus HandlePacket(Packet *p);
 public:
-	NetworkRecvStatus CloseConnection(bool error = true);
+	NetworkRecvStatus CloseConnection(bool error = true) override;
 
 	NetworkAdminSocketHandler(SOCKET s);
 	~NetworkAdminSocketHandler();
@@ -499,7 +495,5 @@ public:
 		return this->status;
 	}
 };
-
-#endif /* ENABLE_NETWORK */
 
 #endif /* NETWORK_CORE_TCP_ADMIN_H */

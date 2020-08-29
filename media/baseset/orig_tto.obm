@@ -1,5 +1,3 @@
-; $Id$
-;
 ; This represents the original music as on the Transport
 ; Tycoon (with World Editor) for DOS CD.
 ;
@@ -7,7 +5,7 @@
 name              = original_tto
 shortname         = TTOD
 version           = 1
-!! description STR_BASEMUSIC_TTO_DESCRIPTION
+@description_STR_BASEMUSIC_TTO_DESCRIPTION@
 
 [files]
 theme = gm-tto.cat

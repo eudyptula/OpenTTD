@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -16,10 +14,10 @@
 
 class VideoDriver_Cocoa : public VideoDriver {
 public:
-	/* virtual */ const char *Start(const char * const *param);
+	const char *Start(const StringList &param) override;
 
 	/** Stop the video driver */
-	/* virtual */ void Stop();
+	void Stop() override;
 
 	/** Mark dirty a screen region
 	 * @param left x-coordinate of left border
@@ -27,44 +25,44 @@ public:
 	 * @param width width or dirty rectangle
 	 * @param height height of dirty rectangle
 	 */
-	/* virtual */ void MakeDirty(int left, int top, int width, int height);
+	void MakeDirty(int left, int top, int width, int height) override;
 
 	/** Programme main loop */
-	/* virtual */ void MainLoop();
+	void MainLoop() override;
 
 	/** Change window resolution
 	 * @param w New window width
 	 * @param h New window height
 	 * @return Whether change was successful
 	 */
-	/* virtual */ bool ChangeResolution(int w, int h);
+	bool ChangeResolution(int w, int h) override;
 
 	/** Set a new window mode
 	 * @param fullscreen Whether to set fullscreen mode or not
 	 * @return Whether changing the screen mode was successful
 	 */
-	/* virtual */ bool ToggleFullscreen(bool fullscreen);
+	bool ToggleFullscreen(bool fullscreen) override;
 
 	/** Callback invoked after the blitter was changed.
 	 * @return True if no error.
 	 */
-	/* virtual */ bool AfterBlitterChange();
+	bool AfterBlitterChange() override;
 
 	/**
 	 * An edit box lost the input focus. Abort character compositing if necessary.
 	 */
-	/* virtual */ void EditBoxLostFocus();
+	void EditBoxLostFocus() override;
 
 	/** Return driver name
 	 * @return driver name
 	 */
-	/* virtual */ const char *GetName() const { return "cocoa"; }
+	const char *GetName() const override { return "cocoa"; }
 };
 
 class FVideoDriver_Cocoa : public DriverFactoryBase {
 public:
 	FVideoDriver_Cocoa() : DriverFactoryBase(Driver::DT_VIDEO, 10, "cocoa", "Cocoa Video Driver") {}
-	/* virtual */ Driver *CreateInstance() const { return new VideoDriver_Cocoa(); }
+	Driver *CreateInstance() const override { return new VideoDriver_Cocoa(); }
 };
 
 
@@ -86,6 +84,7 @@ public:
 	int buffer_depth;     ///< Colour depth of used frame buffer
 	void *pixel_buffer;   ///< used for direct pixel access
 	void *window_buffer;  ///< Colour translation from palette to screen
+	CGColorSpaceRef color_space; //< Window color space
 	id window;            ///< Pointer to window object
 
 #	define MAX_DIRTY_RECTS 100
@@ -190,16 +189,8 @@ public:
 
 extern CocoaSubdriver *_cocoa_subdriver;
 
-CocoaSubdriver *QZ_CreateFullscreenSubdriver(int width, int height, int bpp);
-
-#ifdef ENABLE_COCOA_QUICKDRAW
-CocoaSubdriver *QZ_CreateWindowQuickdrawSubdriver(int width, int height, int bpp);
-#endif
-
 #ifdef ENABLE_COCOA_QUARTZ
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
 CocoaSubdriver *QZ_CreateWindowQuartzSubdriver(int width, int height, int bpp);
-#endif
 #endif
 
 void QZ_GameSizeChanged();
@@ -230,16 +221,7 @@ uint QZ_ListModes(OTTD_Point *modes, uint max_modes, CGDirectDisplayID display_i
 @end
 
 /** Subclass of NSView to fix Quartz rendering and mouse awareness */
-@interface OTTD_CocoaView : NSView
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5
-#	if MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4
-		<NSTextInputClient, NSTextInput>
-#	else
-		<NSTextInputClient>
-#	endif /* MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4 */
-#else
-	<NSTextInput>
-#endif /* MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5 */
+@interface OTTD_CocoaView : NSView <NSTextInputClient>
 {
 	CocoaSubdriver *driver;
 	NSTrackingRectTag trackingtag;
@@ -259,10 +241,7 @@ uint QZ_ListModes(OTTD_Point *modes, uint max_modes, CGDirectDisplayID display_i
 @end
 
 /** Delegate for our NSWindow to send ask for quit on close */
-@interface OTTD_CocoaWindowDelegate : NSObject
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
-	<NSWindowDelegate>
-#endif
+@interface OTTD_CocoaWindowDelegate : NSObject <NSWindowDelegate>
 {
 	CocoaSubdriver *driver;
 }
@@ -271,6 +250,7 @@ uint QZ_ListModes(OTTD_Point *modes, uint max_modes, CGDirectDisplayID display_i
 
 - (BOOL)windowShouldClose:(id)sender;
 - (void)windowDidEnterFullScreen:(NSNotification *)aNotification;
+- (void)windowDidChangeScreenProfile:(NSNotification *)aNotification;
 @end
 
 

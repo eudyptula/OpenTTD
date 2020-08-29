@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -26,7 +24,7 @@
 #include "../stdafx.h"
 #include "../debug.h"
 #include "../station_base.h"
-#include "../thread/thread.h"
+#include "../thread.h"
 #include "../town.h"
 #include "../network/network.h"
 #include "../window_func.h"
@@ -45,6 +43,8 @@
 #include "../string_func.h"
 #include "../fios.h"
 #include "../error.h"
+#include <atomic>
+#include <string>
 
 #include "table/strings.h"
 
@@ -94,7 +94,7 @@ struct ReadBuffer {
 	 * Initialise our variables.
 	 * @param reader The filter to actually read data.
 	 */
-	ReadBuffer(LoadFilter *reader) : bufp(NULL), bufe(NULL), reader(reader), read(0)
+	ReadBuffer(LoadFilter *reader) : bufp(nullptr), bufe(nullptr), reader(reader), read(0)
 	{
 	}
 
@@ -125,13 +125,20 @@ struct ReadBuffer {
 
 /** Container for dumping the savegame (quickly) to memory. */
 struct MemoryDumper {
-	AutoFreeSmallVector<byte *, 16> blocks; ///< Buffer with blocks of allocated memory.
-	byte *buf;                              ///< Buffer we're going to write to.
-	byte *bufe;                             ///< End of the buffer we write to.
+	std::vector<byte *> blocks; ///< Buffer with blocks of allocated memory.
+	byte *buf;                  ///< Buffer we're going to write to.
+	byte *bufe;                 ///< End of the buffer we write to.
 
 	/** Initialise our variables. */
-	MemoryDumper() : buf(NULL), bufe(NULL)
+	MemoryDumper() : buf(nullptr), bufe(nullptr)
 	{
+	}
+
+	~MemoryDumper()
+	{
+		for (auto p : this->blocks) {
+			free(p);
+		}
 	}
 
 	/**
@@ -143,7 +150,7 @@ struct MemoryDumper {
 		/* Are we at the end of this chunk? */
 		if (this->buf == this->bufe) {
 			this->buf = CallocT<byte>(MEMORY_CHUNK_SIZE);
-			*this->blocks.Append() = this->buf;
+			this->blocks.push_back(this->buf);
 			this->bufe = this->buf + MEMORY_CHUNK_SIZE;
 		}
 
@@ -175,7 +182,7 @@ struct MemoryDumper {
 	 */
 	size_t GetSize() const
 	{
-		return this->blocks.Length() * MEMORY_CHUNK_SIZE - (this->bufe - this->buf);
+		return this->blocks.size() * MEMORY_CHUNK_SIZE - (this->bufe - this->buf);
 	}
 };
 
@@ -239,7 +246,7 @@ extern const ChunkHandler _airport_chunk_handlers[];
 extern const ChunkHandler _object_chunk_handlers[];
 extern const ChunkHandler _persistent_storage_chunk_handlers[];
 
-/** Array of all chunks in a savegame, \c NULL terminated. */
+/** Array of all chunks in a savegame, \c nullptr terminated. */
 static const ChunkHandler * const _chunk_handlers[] = {
 	_gamelog_chunk_handlers,
 	_map_chunk_handlers,
@@ -274,7 +281,7 @@ static const ChunkHandler * const _chunk_handlers[] = {
 	_airport_chunk_handlers,
 	_object_chunk_handlers,
 	_persistent_storage_chunk_handlers,
-	NULL,
+	nullptr,
 };
 
 /**
@@ -282,10 +289,10 @@ static const ChunkHandler * const _chunk_handlers[] = {
  * @param ch the chunk handler iterator
  */
 #define FOR_ALL_CHUNK_HANDLERS(ch) \
-	for (const ChunkHandler * const *chsc = _chunk_handlers; *chsc != NULL; chsc++) \
-		for (const ChunkHandler *ch = *chsc; ch != NULL; ch = (ch->flags & CH_LAST) ? NULL : ch + 1)
+	for (const ChunkHandler * const *chsc = _chunk_handlers; *chsc != nullptr; chsc++) \
+		for (const ChunkHandler *ch = *chsc; ch != nullptr; ch = (ch->flags & CH_LAST) ? nullptr : ch + 1)
 
-/** Null all pointers (convert index -> NULL) */
+/** Null all pointers (convert index -> nullptr) */
 static void SlNullPointers()
 {
 	_sl.action = SLA_NULL;
@@ -298,7 +305,7 @@ static void SlNullPointers()
 	DEBUG(sl, 1, "Nulling pointers");
 
 	FOR_ALL_CHUNK_HANDLERS(ch) {
-		if (ch->ptrs_proc != NULL) {
+		if (ch->ptrs_proc != nullptr) {
 			DEBUG(sl, 2, "Nulling pointers for %c%c%c%c", ch->id >> 24, ch->id >> 16, ch->id >> 8, ch->id);
 			ch->ptrs_proc();
 		}
@@ -323,18 +330,22 @@ void NORETURN SlError(StringID string, const char *extra_msg)
 	if (_sl.action == SLA_LOAD_CHECK) {
 		_load_check_data.error = string;
 		free(_load_check_data.error_data);
-		_load_check_data.error_data = (extra_msg == NULL) ? NULL : stredup(extra_msg);
+		_load_check_data.error_data = (extra_msg == nullptr) ? nullptr : stredup(extra_msg);
 	} else {
 		_sl.error_str = string;
 		free(_sl.extra_msg);
-		_sl.extra_msg = (extra_msg == NULL) ? NULL : stredup(extra_msg);
+		_sl.extra_msg = (extra_msg == nullptr) ? nullptr : stredup(extra_msg);
 	}
 
-	/* We have to NULL all pointers here; we might be in a state where
+	/* We have to nullptr all pointers here; we might be in a state where
 	 * the pointers are actually filled with indices, which means that
 	 * when we access them during cleaning the pool dereferences of
 	 * those indices will be made with segmentation faults as result. */
 	if (_sl.action == SLA_LOAD || _sl.action == SLA_PTRS) SlNullPointers();
+
+	/* Logging could be active. */
+	GamelogStopAnyAction();
+
 	throw std::exception();
 }
 
@@ -350,10 +361,29 @@ void NORETURN SlErrorCorrupt(const char *msg)
 	SlError(STR_GAME_SAVELOAD_ERROR_BROKEN_SAVEGAME, msg);
 }
 
+/**
+ * Issue an SlErrorCorrupt with a format string.
+ * @param format format string
+ * @param ... arguments to format string
+ * @note This function does never return as it throws an exception to
+ *       break out of all the saveload code.
+ */
+void NORETURN SlErrorCorruptFmt(const char *format, ...)
+{
+	va_list ap;
+	char msg[256];
 
-typedef void (*AsyncSaveFinishProc)();                ///< Callback for when the savegame loading is finished.
-static AsyncSaveFinishProc _async_save_finish = NULL; ///< Callback to call when the savegame loading is finished.
-static ThreadObject *_save_thread;                    ///< The thread we're using to compress and write a savegame
+	va_start(ap, format);
+	vseprintf(msg, lastof(msg), format, ap);
+	va_end(ap);
+
+	SlErrorCorrupt(msg);
+}
+
+
+typedef void (*AsyncSaveFinishProc)();                      ///< Callback for when the savegame loading is finished.
+static std::atomic<AsyncSaveFinishProc> _async_save_finish; ///< Callback to call when the savegame loading is finished.
+static std::thread _save_thread;                            ///< The thread we're using to compress and write a savegame
 
 /**
  * Called by save thread to tell we finished saving.
@@ -362,9 +392,9 @@ static ThreadObject *_save_thread;                    ///< The thread we're usin
 static void SetAsyncSaveFinish(AsyncSaveFinishProc proc)
 {
 	if (_exit_game) return;
-	while (_async_save_finish != NULL) CSleep(10);
+	while (_async_save_finish.load(std::memory_order_acquire) != nullptr) CSleep(10);
 
-	_async_save_finish = proc;
+	_async_save_finish.store(proc, std::memory_order_release);
 }
 
 /**
@@ -372,16 +402,13 @@ static void SetAsyncSaveFinish(AsyncSaveFinishProc proc)
  */
 void ProcessAsyncSaveFinish()
 {
-	if (_async_save_finish == NULL) return;
+	AsyncSaveFinishProc proc = _async_save_finish.exchange(nullptr, std::memory_order_acq_rel);
+	if (proc == nullptr) return;
 
-	_async_save_finish();
+	proc();
 
-	_async_save_finish = NULL;
-
-	if (_save_thread != NULL) {
-		_save_thread->Join();
-		delete _save_thread;
-		_save_thread = NULL;
+	if (_save_thread.joinable()) {
+		_save_thread.join();
 	}
 }
 
@@ -438,16 +465,6 @@ static inline void SlWriteUint64(uint64 x)
 {
 	SlWriteUint32((uint32)(x >> 32));
 	SlWriteUint32((uint32)x);
-}
-
-/**
- * Read in bytes from the file/data structure but don't do
- * anything with them, discarding them in effect
- * @param length The amount of bytes that is being treated this way
- */
-static inline void SlSkipBytes(size_t length)
-{
-	for (; length != 0; length--) SlReadByte();
 }
 
 /**
@@ -766,7 +783,7 @@ void WriteValue(void *ptr, VarType conv, int64 val)
 		case SLE_VAR_U32: *(uint32*)ptr = val; break;
 		case SLE_VAR_I64: *(int64 *)ptr = val; break;
 		case SLE_VAR_U64: *(uint64*)ptr = val; break;
-		case SLE_VAR_NAME: *(char**)ptr = CopyFromOldName(val); break;
+		case SLE_VAR_NAME: *reinterpret_cast<std::string *>(ptr) = CopyFromOldName(val); break;
 		case SLE_VAR_NULL: break;
 		default: NOT_REACHED();
 	}
@@ -839,7 +856,7 @@ static void SlSaveLoadConv(void *ptr, VarType conv)
  */
 static inline size_t SlCalcNetStringLen(const char *ptr, size_t length)
 {
-	if (ptr == NULL) return 0;
+	if (ptr == nullptr) return 0;
 	return min(strlen(ptr), length - 1);
 }
 
@@ -872,6 +889,21 @@ static inline size_t SlCalcStringLen(const void *ptr, size_t length, VarType con
 	}
 
 	len = SlCalcNetStringLen(str, len);
+	return len + SlGetArrayLength(len); // also include the length of the index
+}
+
+/**
+ * Calculate the gross length of the string that it
+ * will occupy in the savegame. This includes the real length, returned
+ * by SlCalcNetStringLen and the length that the index will occupy.
+ * @param ptr Pointer to the \c std::string.
+ * @return The gross length of the string.
+ */
+static inline size_t SlCalcStdStringLen(const void *ptr)
+{
+	const std::string *str = reinterpret_cast<const std::string *>(ptr);
+
+	size_t len = str->length();
 	return len + SlGetArrayLength(len); // also include the length of the index
 }
 
@@ -924,7 +956,7 @@ static void SlString(void *ptr, size_t length, VarType conv)
 				case SLE_VAR_STRQ: // Malloc'd string, free previous incarnation, and allocate
 					free(*(char **)ptr);
 					if (len == 0) {
-						*(char **)ptr = NULL;
+						*(char **)ptr = nullptr;
 						return;
 					} else {
 						*(char **)ptr = MallocT<char>(len + 1); // terminating '\0'
@@ -948,6 +980,53 @@ static void SlString(void *ptr, size_t length, VarType conv)
 			str_validate((char *)ptr, (char *)ptr + len, settings);
 			break;
 		}
+		case SLA_PTRS: break;
+		case SLA_NULL: break;
+		default: NOT_REACHED();
+	}
+}
+
+/**
+ * Save/Load a \c std::string.
+ * @param ptr the string being manipulated
+ * @param conv must be SLE_FILE_STRING
+ */
+static void SlStdString(void *ptr, VarType conv)
+{
+	std::string *str = reinterpret_cast<std::string *>(ptr);
+
+	switch (_sl.action) {
+		case SLA_SAVE: {
+			size_t len = str->length();
+			SlWriteArrayLength(len);
+			SlCopyBytes(const_cast<void *>(static_cast<const void *>(str->c_str())), len);
+			break;
+		}
+
+		case SLA_LOAD_CHECK:
+		case SLA_LOAD: {
+			size_t len = SlReadArrayLength();
+			char *buf = AllocaM(char, len + 1);
+
+			SlCopyBytes(buf, len);
+			buf[len] = '\0'; // properly terminate the string
+
+			StringValidationSettings settings = SVS_REPLACE_WITH_QUESTION_MARK;
+			if ((conv & SLF_ALLOW_CONTROL) != 0) {
+				settings = settings | SVS_ALLOW_CONTROL_CODE;
+				if (IsSavegameVersionBefore(SLV_169)) {
+					str_fix_scc_encoded(buf, buf + len);
+				}
+			}
+			if ((conv & SLF_ALLOW_NEWLINE) != 0) {
+				settings = settings | SVS_ALLOW_NEWLINE;
+			}
+			str_validate(buf, buf + len, settings);
+
+			// Store sanitized string.
+			str->assign(buf);
+		}
+
 		case SLA_PTRS: break;
 		case SLA_NULL: break;
 		default: NOT_REACHED();
@@ -1019,7 +1098,7 @@ void SlArray(void *array, size_t length, VarType conv)
  * Pointers cannot be saved to a savegame, so this functions gets
  * the index of the item, and if not available, it hussles with
  * pointers (looks really bad :()
- * Remember that a NULL item has value 0, and all
+ * Remember that a nullptr item has value 0, and all
  * indices have +1, so vehicle 0 is saved as index 1.
  * @param obj The object that we want to get the index of
  * @param rt SLRefType type of the object the index is being sought of
@@ -1029,7 +1108,7 @@ static size_t ReferenceToInt(const void *obj, SLRefType rt)
 {
 	assert(_sl.action == SLA_SAVE);
 
-	if (obj == NULL) return 0;
+	if (obj == nullptr) return 0;
 
 	switch (rt) {
 		case REF_VEHICLE_OLD: // Old vehicles we save as new ones
@@ -1052,7 +1131,7 @@ static size_t ReferenceToInt(const void *obj, SLRefType rt)
  * Pointers cannot be loaded from a savegame, so this function
  * gets the index from the savegame and returns the appropriate
  * pointer from the already loaded base.
- * Remember that an index of 0 is a NULL pointer so all indices
+ * Remember that an index of 0 is a nullptr pointer so all indices
  * are +1 so vehicle 0 is saved as 1.
  * @param index The index that is being converted to a pointer
  * @param rt SLRefType type of the object the pointer is sought of
@@ -1070,8 +1149,8 @@ static void *IntToReference(size_t index, SLRefType rt)
 		rt = REF_VEHICLE;
 	}
 
-	/* No need to look up NULL pointers, just return immediately */
-	if (index == (rt == REF_VEHICLE_OLD ? 0xFFFF : 0)) return NULL;
+	/* No need to look up nullptr pointers, just return immediately */
+	if (index == (rt == REF_VEHICLE_OLD ? 0xFFFF : 0)) return nullptr;
 
 	/* Correct index. Old vehicles were saved differently:
 	 * invalid vehicle was 0xFFFF, now we use 0x0000 for everything invalid. */
@@ -1085,7 +1164,7 @@ static void *IntToReference(size_t index, SLRefType rt)
 		case REF_ORDER:
 			if (Order::IsValidID(index)) return Order::Get(index);
 			/* in old versions, invalid order was used to mark end of order list */
-			if (IsSavegameVersionBefore(SLV_5, 2)) return NULL;
+			if (IsSavegameVersionBefore(SLV_5, 2)) return nullptr;
 			SlErrorCorrupt("Referencing invalid Order");
 
 		case REF_VEHICLE_OLD:
@@ -1377,6 +1456,7 @@ size_t SlCalcObjMemberLength(const void *object, const SaveLoad *sld)
 		case SL_STR:
 		case SL_LST:
 		case SL_DEQUE:
+		case SL_STDSTR:
 			/* CONDITIONAL saveload types depend on the savegame version */
 			if (!SlIsObjectValidInSavegame(sld)) break;
 
@@ -1387,6 +1467,7 @@ size_t SlCalcObjMemberLength(const void *object, const SaveLoad *sld)
 				case SL_STR: return SlCalcStringLen(GetVariableAddress(object, sld), sld->length, sld->conv);
 				case SL_LST: return SlCalcListLen(GetVariableAddress(object, sld));
 				case SL_DEQUE: return SlCalcDequeLen(GetVariableAddress(object, sld), sld->conv);
+				case SL_STDSTR: return SlCalcStdStringLen(GetVariableAddress(object, sld));
 				default: NOT_REACHED();
 			}
 			break;
@@ -1424,6 +1505,8 @@ static bool IsVariableSizeRight(const SaveLoad *sld)
 				case SLE_VAR_I64:
 				case SLE_VAR_U64:
 					return sld->size == sizeof(int64);
+				case SLE_VAR_NAME:
+					return sld->size == sizeof(std::string);
 				default:
 					return sld->size == sizeof(void *);
 			}
@@ -1434,6 +1517,10 @@ static bool IsVariableSizeRight(const SaveLoad *sld)
 		case SL_STR:
 			/* These should be pointer sized, or fixed array. */
 			return sld->size == sizeof(void *) || sld->size == sld->length;
+
+		case SL_STDSTR:
+			/* These should be all pointers to std::string. */
+			return sld->size == sizeof(std::string);
 
 		default:
 			return true;
@@ -1456,6 +1543,7 @@ bool SlObjectMember(void *ptr, const SaveLoad *sld)
 		case SL_STR:
 		case SL_LST:
 		case SL_DEQUE:
+		case SL_STDSTR:
 			/* CONDITIONAL saveload types depend on the savegame version */
 			if (!SlIsObjectValidInSavegame(sld)) return false;
 			if (SlSkipVariableOnLoad(sld)) return false;
@@ -1475,7 +1563,7 @@ bool SlObjectMember(void *ptr, const SaveLoad *sld)
 							*(void **)ptr = IntToReference(*(size_t *)ptr, (SLRefType)conv);
 							break;
 						case SLA_NULL:
-							*(void **)ptr = NULL;
+							*(void **)ptr = nullptr;
 							break;
 						default: NOT_REACHED();
 					}
@@ -1484,12 +1572,13 @@ bool SlObjectMember(void *ptr, const SaveLoad *sld)
 				case SL_STR: SlString(ptr, sld->length, sld->conv); break;
 				case SL_LST: SlList(ptr, (SLRefType)conv); break;
 				case SL_DEQUE: SlDeque(ptr, conv); break;
+				case SL_STDSTR: SlStdString(ptr, sld->conv); break;
 				default: NOT_REACHED();
 			}
 			break;
 
 		/* SL_WRITEBYTE writes a value to the savegame to identify the type of an object.
-		 * When loading, the value is read explictly with SlReadByte() to determine which
+		 * When loading, the value is read explicitly with SlReadByte() to determine which
 		 * object description to use. */
 		case SL_WRITEBYTE:
 			switch (_sl.action) {
@@ -1541,7 +1630,7 @@ void SlObject(void *object, const SaveLoad *sld)
  */
 void SlGlobList(const SaveLoadGlobVarList *sldg)
 {
-	SlObject(NULL, (const SaveLoad*)sldg);
+	SlObject(nullptr, (const SaveLoad*)sldg);
 }
 
 /**
@@ -1613,7 +1702,7 @@ static void SlLoadChunk(const ChunkHandler *ch)
 
 /**
  * Load a chunk of data for checking savegames.
- * If the chunkhandler is NULL, the chunk is skipped.
+ * If the chunkhandler is nullptr, the chunk is skipped.
  * @param ch The chunkhandler that will be used for the operation
  */
 static void SlLoadCheckChunk(const ChunkHandler *ch)
@@ -1684,7 +1773,7 @@ static inline void SlStubSaveProc2(void *arg)
  */
 static void SlStubSaveProc()
 {
-	SlAutolength(SlStubSaveProc2, NULL);
+	SlAutolength(SlStubSaveProc2, nullptr);
 }
 
 /**
@@ -1697,7 +1786,7 @@ static void SlSaveChunk(const ChunkHandler *ch)
 	ChunkSaveLoadProc *proc = ch->save_proc;
 
 	/* Don't save any chunk information if there is no save handler. */
-	if (proc == NULL) return;
+	if (proc == nullptr) return;
 
 	SlWriteUint32(ch->id);
 	DEBUG(sl, 2, "Saving chunk %c%c%c%c", ch->id >> 24, ch->id >> 16, ch->id >> 8, ch->id);
@@ -1749,7 +1838,7 @@ static void SlSaveChunks()
 static const ChunkHandler *SlFindChunkHandler(uint32 id)
 {
 	FOR_ALL_CHUNK_HANDLERS(ch) if (ch->id == id) return ch;
-	return NULL;
+	return nullptr;
 }
 
 /** Load all chunks */
@@ -1762,7 +1851,7 @@ static void SlLoadChunks()
 		DEBUG(sl, 2, "Loading chunk %c%c%c%c", id >> 24, id >> 16, id >> 8, id);
 
 		ch = SlFindChunkHandler(id);
-		if (ch == NULL) SlErrorCorrupt("Unknown chunk type");
+		if (ch == nullptr) SlErrorCorrupt("Unknown chunk type");
 		SlLoadChunk(ch);
 	}
 }
@@ -1777,7 +1866,7 @@ static void SlLoadCheckChunks()
 		DEBUG(sl, 2, "Loading chunk %c%c%c%c", id >> 24, id >> 16, id >> 8, id);
 
 		ch = SlFindChunkHandler(id);
-		if (ch == NULL) SlErrorCorrupt("Unknown chunk type");
+		if (ch == nullptr) SlErrorCorrupt("Unknown chunk type");
 		SlLoadCheckChunk(ch);
 	}
 }
@@ -1790,7 +1879,7 @@ static void SlFixPointers()
 	DEBUG(sl, 1, "Fixing pointers");
 
 	FOR_ALL_CHUNK_HANDLERS(ch) {
-		if (ch->ptrs_proc != NULL) {
+		if (ch->ptrs_proc != nullptr) {
 			DEBUG(sl, 2, "Fixing pointers for %c%c%c%c", ch->id >> 24, ch->id >> 16, ch->id >> 8, ch->id);
 			ch->ptrs_proc();
 		}
@@ -1811,29 +1900,29 @@ struct FileReader : LoadFilter {
 	 * Create the file reader, so it reads from a specific file.
 	 * @param file The file to read from.
 	 */
-	FileReader(FILE *file) : LoadFilter(NULL), file(file), begin(ftell(file))
+	FileReader(FILE *file) : LoadFilter(nullptr), file(file), begin(ftell(file))
 	{
 	}
 
 	/** Make sure everything is cleaned up. */
 	~FileReader()
 	{
-		if (this->file != NULL) fclose(this->file);
-		this->file = NULL;
+		if (this->file != nullptr) fclose(this->file);
+		this->file = nullptr;
 
 		/* Make sure we don't double free. */
-		_sl.sf = NULL;
+		_sl.sf = nullptr;
 	}
 
-	/* virtual */ size_t Read(byte *buf, size_t size)
+	size_t Read(byte *buf, size_t size) override
 	{
 		/* We're in the process of shutting down, i.e. in "failure" mode. */
-		if (this->file == NULL) return 0;
+		if (this->file == nullptr) return 0;
 
 		return fread(buf, 1, size, this->file);
 	}
 
-	/* virtual */ void Reset()
+	void Reset() override
 	{
 		clearerr(this->file);
 		if (fseek(this->file, this->begin, SEEK_SET)) {
@@ -1850,7 +1939,7 @@ struct FileWriter : SaveFilter {
 	 * Create the file writer, so it writes to a specific file.
 	 * @param file The file to write to.
 	 */
-	FileWriter(FILE *file) : SaveFilter(NULL), file(file)
+	FileWriter(FILE *file) : SaveFilter(nullptr), file(file)
 	{
 	}
 
@@ -1860,21 +1949,21 @@ struct FileWriter : SaveFilter {
 		this->Finish();
 
 		/* Make sure we don't double free. */
-		_sl.sf = NULL;
+		_sl.sf = nullptr;
 	}
 
-	/* virtual */ void Write(byte *buf, size_t size)
+	void Write(byte *buf, size_t size) override
 	{
 		/* We're in the process of shutting down, i.e. in "failure" mode. */
-		if (this->file == NULL) return;
+		if (this->file == nullptr) return;
 
 		if (fwrite(buf, 1, size, this->file) != size) SlError(STR_GAME_SAVELOAD_ERROR_FILE_NOT_WRITEABLE);
 	}
 
-	/* virtual */ void Finish()
+	void Finish() override
 	{
-		if (this->file != NULL) fclose(this->file);
-		this->file = NULL;
+		if (this->file != nullptr) fclose(this->file);
+		this->file = nullptr;
 	}
 };
 
@@ -1899,7 +1988,7 @@ struct LZOLoadFilter : LoadFilter {
 		if (lzo_init() != LZO_E_OK) SlError(STR_GAME_SAVELOAD_ERROR_BROKEN_INTERNAL_ERROR, "cannot initialize decompressor");
 	}
 
-	/* virtual */ size_t Read(byte *buf, size_t ssize)
+	size_t Read(byte *buf, size_t ssize) override
 	{
 		assert(ssize >= LZO_BUFFER_SIZE);
 
@@ -1929,7 +2018,7 @@ struct LZOLoadFilter : LoadFilter {
 		if (tmp[0] != lzo_adler32(0, out, size + sizeof(uint32))) SlErrorCorrupt("Bad checksum");
 
 		/* Decompress */
-		int ret = lzo1x_decompress_safe(out + sizeof(uint32) * 1, size, buf, &len, NULL);
+		int ret = lzo1x_decompress_safe(out + sizeof(uint32) * 1, size, buf, &len, nullptr);
 		if (ret != LZO_E_OK) SlError(STR_GAME_SAVELOAD_ERROR_FILE_NOT_READABLE);
 		return len;
 	}
@@ -1947,7 +2036,7 @@ struct LZOSaveFilter : SaveFilter {
 		if (lzo_init() != LZO_E_OK) SlError(STR_GAME_SAVELOAD_ERROR_BROKEN_INTERNAL_ERROR, "cannot initialize compressor");
 	}
 
-	/* virtual */ void Write(byte *buf, size_t size)
+	void Write(byte *buf, size_t size) override
 	{
 		const lzo_bytep in = buf;
 		/* Buffer size is from the LZO docs plus the chunk header size. */
@@ -1986,7 +2075,7 @@ struct NoCompLoadFilter : LoadFilter {
 	{
 	}
 
-	/* virtual */ size_t Read(byte *buf, size_t size)
+	size_t Read(byte *buf, size_t size) override
 	{
 		return this->chain->Read(buf, size);
 	}
@@ -2003,7 +2092,7 @@ struct NoCompSaveFilter : SaveFilter {
 	{
 	}
 
-	/* virtual */ void Write(byte *buf, size_t size)
+	void Write(byte *buf, size_t size) override
 	{
 		this->chain->Write(buf, size);
 	}
@@ -2037,7 +2126,7 @@ struct ZlibLoadFilter : LoadFilter {
 		inflateEnd(&this->z);
 	}
 
-	/* virtual */ size_t Read(byte *buf, size_t size)
+	size_t Read(byte *buf, size_t size) override
 	{
 		this->z.next_out  = buf;
 		this->z.avail_out = (uint)size;
@@ -2116,14 +2205,14 @@ struct ZlibSaveFilter : SaveFilter {
 		} while (this->z.avail_in || !this->z.avail_out);
 	}
 
-	/* virtual */ void Write(byte *buf, size_t size)
+	void Write(byte *buf, size_t size) override
 	{
 		this->WriteLoop(buf, size, 0);
 	}
 
-	/* virtual */ void Finish()
+	void Finish() override
 	{
-		this->WriteLoop(NULL, 0, Z_FINISH);
+		this->WriteLoop(nullptr, 0, Z_FINISH);
 		this->chain->Finish();
 	}
 };
@@ -2134,7 +2223,7 @@ struct ZlibSaveFilter : SaveFilter {
  ********** START OF LZMA CODE **************
  ********************************************/
 
-#if defined(WITH_LZMA)
+#if defined(WITH_LIBLZMA)
 #include <lzma.h>
 
 /**
@@ -2166,7 +2255,7 @@ struct LZMALoadFilter : LoadFilter {
 		lzma_end(&this->lzma);
 	}
 
-	/* virtual */ size_t Read(byte *buf, size_t size)
+	size_t Read(byte *buf, size_t size) override
 	{
 		this->lzma.next_out  = buf;
 		this->lzma.avail_out = size;
@@ -2235,19 +2324,19 @@ struct LZMASaveFilter : SaveFilter {
 		} while (this->lzma.avail_in || !this->lzma.avail_out);
 	}
 
-	/* virtual */ void Write(byte *buf, size_t size)
+	void Write(byte *buf, size_t size) override
 	{
 		this->WriteLoop(buf, size, LZMA_RUN);
 	}
 
-	/* virtual */ void Finish()
+	void Finish() override
 	{
-		this->WriteLoop(NULL, 0, LZMA_FINISH);
+		this->WriteLoop(nullptr, 0, LZMA_FINISH);
 		this->chain->Finish();
 	}
 };
 
-#endif /* WITH_LZMA */
+#endif /* WITH_LIBLZMA */
 
 /*******************************************
  ************* END OF CODE *****************
@@ -2272,7 +2361,7 @@ static const SaveLoadFormat _saveload_formats[] = {
 	/* Roughly 75% larger than zlib level 6 at only ~7% of the CPU usage. */
 	{"lzo",    TO_BE32X('OTTD'), CreateLoadFilter<LZOLoadFilter>,    CreateSaveFilter<LZOSaveFilter>,    0, 0, 0},
 #else
-	{"lzo",    TO_BE32X('OTTD'), NULL,                               NULL,                               0, 0, 0},
+	{"lzo",    TO_BE32X('OTTD'), nullptr,                            nullptr,                            0, 0, 0},
 #endif
 	/* Roughly 5 times larger at only 1% of the CPU usage over zlib level 6. */
 	{"none",   TO_BE32X('OTTN'), CreateLoadFilter<NoCompLoadFilter>, CreateSaveFilter<NoCompSaveFilter>, 0, 0, 0},
@@ -2282,9 +2371,9 @@ static const SaveLoadFormat _saveload_formats[] = {
 	 * 1 is "only" 3 times as fast. Level 0 results in uncompressed savegames at about 8 times the cost of "none". */
 	{"zlib",   TO_BE32X('OTTZ'), CreateLoadFilter<ZlibLoadFilter>,   CreateSaveFilter<ZlibSaveFilter>,   0, 6, 9},
 #else
-	{"zlib",   TO_BE32X('OTTZ'), NULL,                               NULL,                               0, 0, 0},
+	{"zlib",   TO_BE32X('OTTZ'), nullptr,                            nullptr,                            0, 0, 0},
 #endif
-#if defined(WITH_LZMA)
+#if defined(WITH_LIBLZMA)
 	/* Level 2 compression is speed wise as fast as zlib level 6 compression (old default), but results in ~10% smaller saves.
 	 * Higher compression levels are possible, and might improve savegame size by up to 25%, but are also up to 10 times slower.
 	 * The next significant reduction in file size is at level 4, but that is already 4 times slower. Level 3 is primarily 50%
@@ -2292,14 +2381,14 @@ static const SaveLoadFormat _saveload_formats[] = {
 	 * It's OTTX and not e.g. OTTL because liblzma is part of xz-utils and .tar.xz is preferred over .tar.lzma. */
 	{"lzma",   TO_BE32X('OTTX'), CreateLoadFilter<LZMALoadFilter>,   CreateSaveFilter<LZMASaveFilter>,   0, 2, 9},
 #else
-	{"lzma",   TO_BE32X('OTTX'), NULL,                               NULL,                               0, 0, 0},
+	{"lzma",   TO_BE32X('OTTX'), nullptr,                            nullptr,                            0, 0, 0},
 #endif
 };
 
 /**
  * Return the savegameformat of the game. Whether it was created with ZLIB compression
  * uncompressed, or another type
- * @param s Name of the savegame format. If NULL it picks the first available one
+ * @param s Name of the savegame format. If nullptr it picks the first available one
  * @param compression_level Output for telling what compression level we want.
  * @return Pointer to SaveLoadFormat struct giving all characteristics of this type of savegame
  */
@@ -2313,12 +2402,12 @@ static const SaveLoadFormat *GetSavegameFormat(char *s, byte *compression_level)
 	if (!StrEmpty(s)) {
 		/* Get the ":..." of the compression level out of the way */
 		char *complevel = strrchr(s, ':');
-		if (complevel != NULL) *complevel = '\0';
+		if (complevel != nullptr) *complevel = '\0';
 
 		for (const SaveLoadFormat *slf = &_saveload_formats[0]; slf != endof(_saveload_formats); slf++) {
-			if (slf->init_write != NULL && strcmp(s, slf->name) == 0) {
+			if (slf->init_write != nullptr && strcmp(s, slf->name) == 0) {
 				*compression_level = slf->default_compression;
-				if (complevel != NULL) {
+				if (complevel != nullptr) {
 					/* There is a compression level in the string.
 					 * First restore the : we removed to do proper name matching,
 					 * then move the the begin of the actual version. */
@@ -2344,7 +2433,7 @@ static const SaveLoadFormat *GetSavegameFormat(char *s, byte *compression_level)
 		ShowErrorMessage(STR_CONFIG_ERROR, STR_CONFIG_ERROR_INVALID_SAVEGAME_COMPRESSION_ALGORITHM, WL_CRITICAL);
 
 		/* Restore the string by adding the : back */
-		if (complevel != NULL) *complevel = ':';
+		if (complevel != nullptr) *complevel = ':';
 	}
 	*compression_level = def->default_compression;
 	return def;
@@ -2356,21 +2445,31 @@ extern bool AfterLoadGame();
 extern bool LoadOldSaveGame(const char *file);
 
 /**
+ * Clear temporary data that is passed between various saveload phases.
+ */
+static void ResetSaveloadData()
+{
+	ResetTempEngineData();
+	ResetLabelMaps();
+	ResetOldWaypoints();
+}
+
+/**
  * Clear/free saveload state.
  */
 static inline void ClearSaveLoadState()
 {
 	delete _sl.dumper;
-	_sl.dumper = NULL;
+	_sl.dumper = nullptr;
 
 	delete _sl.sf;
-	_sl.sf = NULL;
+	_sl.sf = nullptr;
 
 	delete _sl.reader;
-	_sl.reader = NULL;
+	_sl.reader = nullptr;
 
 	delete _sl.lf;
-	_sl.lf = NULL;
+	_sl.lf = nullptr;
 }
 
 /**
@@ -2467,19 +2566,11 @@ static SaveOrLoadResult SaveFileToDisk(bool threaded)
 	}
 }
 
-/** Thread run function for saving the file to disk. */
-static void SaveFileToDiskThread(void *arg)
-{
-	SaveFileToDisk(true);
-}
-
 void WaitTillSaved()
 {
-	if (_save_thread == NULL) return;
+	if (!_save_thread.joinable()) return;
 
-	_save_thread->Join();
-	delete _save_thread;
-	_save_thread = NULL;
+	_save_thread.join();
 
 	/* Make sure every other state is handled properly as well. */
 	ProcessAsyncSaveFinish();
@@ -2506,7 +2597,8 @@ static SaveOrLoadResult DoSave(SaveFilter *writer, bool threaded)
 	SlSaveChunks();
 
 	SaveFileStart();
-	if (!threaded || !ThreadObject::New(&SaveFileToDiskThread, NULL, &_save_thread, "ottd:savegame")) {
+
+	if (!threaded || !StartNewThread(&_save_thread, "ottd:savegame", &SaveFileToDisk, true)) {
 		if (threaded) DEBUG(sl, 1, "Cannot create savegame thread, reverting to single-threaded mode...");
 
 		SaveOrLoadResult result = SaveFileToDisk(false);
@@ -2597,7 +2689,7 @@ static SaveOrLoadResult DoLoad(LoadFilter *reader, bool load_check)
 	}
 
 	/* loader for this savegame type is not implemented? */
-	if (fmt->init_load == NULL) {
+	if (fmt->init_load == nullptr) {
 		char err_str[64];
 		seprintf(err_str, lastof(err_str), "Loader for '%s' is not available.", fmt->name);
 		SlError(STR_GAME_SAVELOAD_ERROR_BROKEN_INTERNAL_ERROR, err_str);
@@ -2608,6 +2700,8 @@ static SaveOrLoadResult DoLoad(LoadFilter *reader, bool load_check)
 	_next_offs = 0;
 
 	if (!load_check) {
+		ResetSaveloadData();
+
 		/* Old maps were hardcoded to 256x256 and thus did not contain
 		 * any mapsize information. Pre-initialize to 256x256 to not to
 		 * confuse old games */
@@ -2712,6 +2806,8 @@ SaveOrLoadResult SaveOrLoad(const char *filename, SaveLoadOperation fop, Detaile
 	try {
 		/* Load a TTDLX or TTDPatch game */
 		if (fop == SLO_LOAD && dft == DFT_OLD_GAME_FILE) {
+			ResetSaveloadData();
+
 			InitializeGame(256, 256, true, true); // set a mapsize of 256x256 for TTDPatch games or it might get confused
 
 			/* TTD/TTO savegames have no NewGRFs, TTDP savegame have them
@@ -2752,11 +2848,11 @@ SaveOrLoadResult SaveOrLoad(const char *filename, SaveLoadOperation fop, Detaile
 		FILE *fh = (fop == SLO_SAVE) ? FioFOpenFile(filename, "wb", sb) : FioFOpenFile(filename, "rb", sb);
 
 		/* Make it a little easier to load savegames from the console */
-		if (fh == NULL && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", SAVE_DIR);
-		if (fh == NULL && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", BASE_DIR);
-		if (fh == NULL && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", SCENARIO_DIR);
+		if (fh == nullptr && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", SAVE_DIR);
+		if (fh == nullptr && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", BASE_DIR);
+		if (fh == nullptr && fop != SLO_SAVE) fh = FioFOpenFile(filename, "rb", SCENARIO_DIR);
 
-		if (fh == NULL) {
+		if (fh == nullptr) {
 			SlError(fop == SLO_SAVE ? STR_GAME_SAVELOAD_ERROR_FILE_NOT_WRITEABLE : STR_GAME_SAVELOAD_ERROR_FILE_NOT_READABLE);
 		}
 
@@ -2801,8 +2897,7 @@ void GenerateDefaultSaveName(char *buf, const char *last)
 	 * 'Spectator' as "company" name. */
 	CompanyID cid = _local_company;
 	if (!Company::IsValidID(cid)) {
-		const Company *c;
-		FOR_ALL_COMPANIES(c) {
+		for (const Company *c : Company::Iterate()) {
 			cid = c->index;
 			break;
 		}
@@ -2870,36 +2965,3 @@ void FileToSaveLoad::SetTitle(const char *title)
 {
 	strecpy(this->title, title, lastof(this->title));
 }
-
-#if 0
-/**
- * Function to get the type of the savegame by looking at the file header.
- * NOTICE: Not used right now, but could be used if extensions of savegames are garbled
- * @param file Savegame to be checked
- * @return SL_OLD_LOAD or SL_LOAD of the file
- */
-int GetSavegameType(char *file)
-{
-	const SaveLoadFormat *fmt;
-	uint32 hdr;
-	FILE *f;
-	int mode = SL_OLD_LOAD;
-
-	f = fopen(file, "rb");
-	if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
-		DEBUG(sl, 0, "Savegame is obsolete or invalid format");
-		mode = SL_LOAD; // don't try to get filename, just show name as it is written
-	} else {
-		/* see if we have any loader for this type. */
-		for (fmt = _saveload_formats; fmt != endof(_saveload_formats); fmt++) {
-			if (fmt->tag == hdr) {
-				mode = SL_LOAD; // new type of savegame
-				break;
-			}
-		}
-	}
-
-	fclose(f);
-	return mode;
-}
-#endif

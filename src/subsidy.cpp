@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -132,14 +130,11 @@ static inline void SetPartOfSubsidyFlag(SourceType type, SourceID index, PartOfS
 /** Perform a full rebuild of the subsidies cache. */
 void RebuildSubsidisedSourceAndDestinationCache()
 {
-	Town *t;
-	FOR_ALL_TOWNS(t) t->cache.part_of_subsidy = POS_NONE;
+	for (Town *t : Town::Iterate()) t->cache.part_of_subsidy = POS_NONE;
 
-	Industry *i;
-	FOR_ALL_INDUSTRIES(i) i->part_of_subsidy = POS_NONE;
+	for (Industry *i : Industry::Iterate()) i->part_of_subsidy = POS_NONE;
 
-	const Subsidy *s;
-	FOR_ALL_SUBSIDIES(s) {
+	for (const Subsidy *s : Subsidy::Iterate()) {
 		SetPartOfSubsidyFlag(s->src_type, s->src, POS_SRC);
 		SetPartOfSubsidyFlag(s->dst_type, s->dst, POS_DST);
 	}
@@ -154,8 +149,7 @@ void DeleteSubsidyWith(SourceType type, SourceID index)
 {
 	bool dirty = false;
 
-	Subsidy *s;
-	FOR_ALL_SUBSIDIES(s) {
+	for (Subsidy *s : Subsidy::Iterate()) {
 		if ((s->src_type == type && s->src == index) || (s->dst_type == type && s->dst == index)) {
 			delete s;
 			dirty = true;
@@ -179,8 +173,7 @@ void DeleteSubsidyWith(SourceType type, SourceID index)
  */
 static bool CheckSubsidyDuplicate(CargoID cargo, SourceType src_type, SourceID src, SourceType dst_type, SourceID dst)
 {
-	const Subsidy *s;
-	FOR_ALL_SUBSIDIES(s) {
+	for (const Subsidy *s : Subsidy::Iterate()) {
 		if (s->cargo_type == cargo &&
 				s->src_type == src_type && s->src == src &&
 				s->dst_type == dst_type && s->dst == dst) {
@@ -333,21 +326,29 @@ bool FindSubsidyTownCargoRoute()
 
 	/* Select a random town. */
 	const Town *src_town = Town::GetRandom();
+	if (src_town->cache.population < SUBSIDY_CARGO_MIN_POPULATION) return false;
 
-	CargoTypes town_cargo_produced = src_town->cargo_produced;
+	CargoArray town_cargo_produced = GetProductionAroundTiles(src_town->xy, 1, 1, SUBSIDY_TOWN_CARGO_RADIUS);
 
 	/* Passenger subsidies are not handled here. */
-	ClrBit(town_cargo_produced, CT_PASSENGERS);
+	town_cargo_produced[CT_PASSENGERS] = 0;
+
+	uint8 cargo_count = 0;
+	for (CargoID i = 0; i < NUM_CARGO; i++) {
+		if (town_cargo_produced[i] > 0) cargo_count++;
+	}
 
 	/* No cargo produced at all? */
-	if (town_cargo_produced == 0) return false;
+	if (cargo_count == 0) return false;
 
 	/* Choose a random cargo that is produced in the town. */
-	uint8 cargo_number = RandomRange(CountBits(town_cargo_produced));
+	uint8 cargo_number = RandomRange(cargo_count);
 	CargoID cid;
-	FOR_EACH_SET_CARGO_ID(cid, town_cargo_produced) {
-		if (cargo_number == 0) break;
-		cargo_number--;
+	for (cid = 0; cid < NUM_CARGO; cid++) {
+		if (town_cargo_produced[cid] > 0) {
+			if (cargo_number == 0) break;
+			cargo_number--;
+		}
 	}
 
 	/* Avoid using invalid NewGRF cargoes. */
@@ -376,7 +377,7 @@ bool FindSubsidyIndustryCargoRoute()
 
 	/* Select a random industry. */
 	const Industry *src_ind = Industry::GetRandom();
-	if (src_ind == NULL) return false;
+	if (src_ind == nullptr) return false;
 
 	uint trans, total;
 
@@ -422,17 +423,18 @@ bool FindSubsidyIndustryCargoRoute()
  */
 bool FindSubsidyCargoDestination(CargoID cid, SourceType src_type, SourceID src)
 {
-	/* Choose a random destination. Only consider towns if they can accept the cargo. */
-	SourceType dst_type = (HasBit(_town_cargoes_accepted, cid) && Chance16(1, 2)) ? ST_TOWN : ST_INDUSTRY;
+	/* Choose a random destination. */
+	SourceType dst_type = Chance16(1, 2) ? ST_TOWN : ST_INDUSTRY;
 
 	SourceID dst;
 	switch (dst_type) {
 		case ST_TOWN: {
 			/* Select a random town. */
 			const Town *dst_town = Town::GetRandom();
+			CargoArray town_cargo_accepted = GetAcceptanceAroundTiles(dst_town->xy, 1, 1, SUBSIDY_TOWN_CARGO_RADIUS);
 
 			/* Check if the town can accept this cargo. */
-			if (!HasBit(dst_town->cargo_accepted_total, cid)) return false;
+			if (town_cargo_accepted[cid] < 8) return false;
 
 			dst = dst_town->index;
 			break;
@@ -441,7 +443,7 @@ bool FindSubsidyCargoDestination(CargoID cid, SourceType src_type, SourceID src)
 		case ST_INDUSTRY: {
 			/* Select a random industry. */
 			const Industry *dst_ind = Industry::GetRandom();
-			if (dst_ind == NULL) return false;
+			if (dst_ind == nullptr) return false;
 
 			/* The industry must accept the cargo */
 			bool valid = std::find(dst_ind->accepts_cargo, endof(dst_ind->accepts_cargo), cid) != endof(dst_ind->accepts_cargo);
@@ -473,8 +475,7 @@ void SubsidyMonthlyLoop()
 {
 	bool modified = false;
 
-	Subsidy *s;
-	FOR_ALL_SUBSIDIES(s) {
+	for (Subsidy *s : Subsidy::Iterate()) {
 		if (--s->remaining == 0) {
 			if (!s->IsAwarded()) {
 				Pair reftype = SetupSubsidyDecodeParam(s, true);
@@ -564,24 +565,19 @@ bool CheckSubsidised(CargoID cargo_type, CompanyID company, SourceType src_type,
 
 	/* Remember all towns near this station (at least one house in its catchment radius)
 	 * which are destination of subsidised path. Do that only if needed */
-	SmallVector<const Town *, 2> towns_near;
+	std::vector<const Town *> towns_near;
 	if (!st->rect.IsEmpty()) {
-		Subsidy *s;
-		FOR_ALL_SUBSIDIES(s) {
+		for (const Subsidy *s : Subsidy::Iterate()) {
 			/* Don't create the cache if there is no applicable subsidy with town as destination */
 			if (s->dst_type != ST_TOWN) continue;
 			if (s->cargo_type != cargo_type || s->src_type != src_type || s->src != src) continue;
 			if (s->IsAwarded() && s->awarded != company) continue;
 
-			Rect rect = st->GetCatchmentRect();
-
-			for (int y = rect.top; y <= rect.bottom; y++) {
-				for (int x = rect.left; x <= rect.right; x++) {
-					TileIndex tile = TileXY(x, y);
-					if (!IsTileType(tile, MP_HOUSE)) continue;
-					const Town *t = Town::GetByTile(tile);
-					if (t->cache.part_of_subsidy & POS_DST) towns_near.Include(t);
-				}
+			BitmapTileIterator it(st->catchment_tiles);
+			for (TileIndex tile = it; tile != INVALID_TILE; tile = ++it) {
+				if (!IsTileType(tile, MP_HOUSE)) continue;
+				const Town *t = Town::GetByTile(tile);
+				if (t->cache.part_of_subsidy & POS_DST) include(towns_near, t);
 			}
 			break;
 		}
@@ -591,23 +587,22 @@ bool CheckSubsidised(CargoID cargo_type, CompanyID company, SourceType src_type,
 
 	/* Check if there's a (new) subsidy that applies. There can be more subsidies triggered by this delivery!
 	 * Think about the case that subsidies are A->B and A->C and station has both B and C in its catchment area */
-	Subsidy *s;
-	FOR_ALL_SUBSIDIES(s) {
+	for (Subsidy *s : Subsidy::Iterate()) {
 		if (s->cargo_type == cargo_type && s->src_type == src_type && s->src == src && (!s->IsAwarded() || s->awarded == company)) {
 			switch (s->dst_type) {
 				case ST_INDUSTRY:
-					for (const Industry * const *ip = st->industries_near.Begin(); ip != st->industries_near.End(); ip++) {
-						if (s->dst == (*ip)->index) {
-							assert((*ip)->part_of_subsidy & POS_DST);
+					for (Industry *ind : st->industries_near) {
+						if (s->dst == ind->index) {
+							assert(ind->part_of_subsidy & POS_DST);
 							subsidised = true;
 							if (!s->IsAwarded()) s->AwardTo(company);
 						}
 					}
 					break;
 				case ST_TOWN:
-					for (const Town * const *tp = towns_near.Begin(); tp != towns_near.End(); tp++) {
-						if (s->dst == (*tp)->index) {
-							assert((*tp)->cache.part_of_subsidy & POS_DST);
+					for (const Town *tp : towns_near) {
+						if (s->dst == tp->index) {
+							assert(tp->cache.part_of_subsidy & POS_DST);
 							subsidised = true;
 							if (!s->IsAwarded()) s->AwardTo(company);
 						}

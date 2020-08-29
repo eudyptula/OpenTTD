@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -27,20 +25,22 @@
 #define STRING_FUNC_H
 
 #include <stdarg.h>
+#include <iosfwd>
 
 #include "core/bitmath_func.hpp"
 #include "string_type.h"
 
 char *strecat(char *dst, const char *src, const char *last);
 char *strecpy(char *dst, const char *src, const char *last);
-char *stredup(const char *src, const char *last = NULL);
+char *stredup(const char *src, const char *last = nullptr);
 
 int CDECL seprintf(char *str, const char *last, const char *format, ...) WARN_FORMAT(3, 4);
-int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap);
+int CDECL vseprintf(char *str, const char *last, const char *format, va_list ap) WARN_FORMAT(3, 0);
 
 char *CDECL str_fmt(const char *str, ...) WARN_FORMAT(1, 2);
 
 void str_validate(char *str, const char *last, StringValidationSettings settings = SVS_REPLACE_WITH_QUESTION_MARK);
+std::string str_validate(const std::string &str, StringValidationSettings settings = SVS_REPLACE_WITH_QUESTION_MARK);
 void ValidateString(const char *str);
 
 void str_fix_scc_encoded(char *str, const char *last);
@@ -54,11 +54,11 @@ bool StrValid(const char *str, const char *last);
  *
  * @param s The pointer to the first element of the buffer
  * @return true if the buffer starts with the terminating null-character or
- *         if the given pointer points to NULL else return false
+ *         if the given pointer points to nullptr else return false
  */
 static inline bool StrEmpty(const char *s)
 {
-	return s == NULL || s[0] == '\0';
+	return s == nullptr || s[0] == '\0';
 }
 
 /**
@@ -81,6 +81,7 @@ bool IsValidChar(WChar key, CharSetFilter afilter);
 
 size_t Utf8Decode(WChar *c, const char *s);
 size_t Utf8Encode(char *buf, WChar c);
+size_t Utf8Encode(std::ostreambuf_iterator<char> &buf, WChar c);
 size_t Utf8TrimString(char *s, size_t maxlen);
 
 
@@ -88,6 +89,14 @@ static inline WChar Utf8Consume(const char **s)
 {
 	WChar c;
 	*s += Utf8Decode(&c, *s);
+	return c;
+}
+
+template <class Titr>
+static inline WChar Utf8Consume(Titr &s)
+{
+	WChar c;
+	s += Utf8Decode(&c, &*s);
 	return c;
 }
 

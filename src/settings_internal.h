@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * This file is part of OpenTTD.
  * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -20,7 +18,7 @@
  * @see VarTypes
  * @see SettingDescBase
  */
-enum SettingDescTypeLong {
+enum SettingDescType : byte {
 	/* 4 bytes allocated a maximum of 16 types for GenericType */
 	SDT_BEGIN       = 0,
 	SDT_NUMX        = 0, ///< any number-type
@@ -29,13 +27,13 @@ enum SettingDescTypeLong {
 	SDT_MANYOFMANY  = 3, ///< bitmasked number where MULTIPLE bits may be set
 	SDT_INTLIST     = 4, ///< list of integers separated by a comma ','
 	SDT_STRING      = 5, ///< string with a pre-allocated buffer
+	SDT_STDSTRING   = 6, ///< \c std::string
 	SDT_END,
-	/* 10 more possible primitives */
+	/* 9 more possible primitives */
 };
-typedef SimpleTinyEnumT<SettingDescTypeLong, byte> SettingDescType;
 
 
-enum SettingGuiFlagLong {
+enum SettingGuiFlag : uint16 {
 	/* 1 byte allocated for a maximum of 8 flags
 	 * Flags directing saving/loading of a variable */
 	SGF_NONE = 0,
@@ -49,8 +47,7 @@ enum SettingGuiFlagLong {
 	SGF_SCENEDIT_TOO = 1 << 7, ///< this setting can be changed in the scenario editor (only makes sense when SGF_NEWGAME_ONLY is set)
 	SGF_PER_COMPANY  = 1 << 8, ///< this setting can be different for each company (saved in company struct)
 };
-DECLARE_ENUM_AS_BIT_SET(SettingGuiFlagLong)
-typedef SimpleTinyEnumT<SettingGuiFlagLong, uint16> SettingGuiFlag;
+DECLARE_ENUM_AS_BIT_SET(SettingGuiFlag)
 
 /**
  * A SettingCategory defines a grouping of the settings.
